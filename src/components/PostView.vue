@@ -1,0 +1,143 @@
+<script setup lang="ts">
+import { computed, nextTick, provide, reactive, ref, watch } from 'vue';
+import { auth, loginOpen } from '../lib/auth';
+import { benLabel, beneficiariesFor } from '../lib/ben';
+import { adapter, type ChainThread } from '../lib/chains';
+import { t } from '../lib/i18n';
+import { toggleVoteAll, votedAll } from '../lib/actions';
+import { applyResult, canMirrorPost, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
+import { href, navigate, postParam, postRef, state, USER } from '../lib/store';
+import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
+import { toast } from '../lib/toast';
+import type { Post } from '../lib/types';
+import ChainBadges, { type BadgeItem } from './ChainBadges.vue';
+import CommentNode from './CommentNode.vue';
+import DevTipToggle from './DevTipToggle.vue';
+import VersionsModal from './VersionsModal.vue';
+
+/**
+ * Blurt answers first (primary chain; the post page appears as soon as it does). Then, for the blog owner's posts, every
+ * other configured chain is asked for the same permlink in parallel; their discussions are merged into one comment tree.
+ */
+const post = ref<Post | null>(null);                  // the Blurt copy
+const threads = reactive<Record<string, ChainThread>>({});
+provide('threads', threads);                          // CommentNode adds freshly sent copies here
+const loading = ref(true);
+const body = ref('');
+const sending = ref(false);
+const sendingChain = ref('');
+const versionsOpen = ref(false);
+
+const merged = computed(() => mergeThreads(threads));
+const readMin = computed(() => Math.max(1, Math.round((post.value?.body.split(/\s+/).length ?? 0) / 200)));
+const benText = computed(() => (auth.me && post.value ? benLabel(beneficiariesFor(auth.me.user, post.value)) : ''));
+const catFor = (tag: string) => state.cfg.cats.find((c) => c.tags.includes(tag));
+const loggedIn = computed(() => Object.keys(auth.sessions).length > 0);
+const targets = computed(() => commentTargets(merged.value.root));
+const targetNote = computed(() => targets.value.map((c) => `@${auth.sessions[c.id].user} (${c.name})`).join(', '));
+const voteTitle = computed(() => Object.entries(merged.value.root).map(([c, p]) => `${adapter(c).name}: ♥ ${p.active_votes?.length ?? 0}`).join('\n'));
+/** True while at least one other chain has not answered yet (the spinner next to the comments). */
+const checking = computed(() => mirrored.value && mirrorChains().some((c) => !threads[c.id] || threads[c.id].status === 'loading'));
+const postDiffers = computed(() => versionsDiffer(merged.value.root, true));
+const mirrored = computed(() => !!post.value && post.value.author === USER && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
+
+const badges = computed<BadgeItem[]>(() => mirrored.value ? [{ id: 'blurt', name: 'Blurt' }, ...mirrorChains()].map((c) => {
+  const th = threads[c.id]; const account = accountOn(c.id);
+  return { id: c.id, name: c.name, status: th?.status ?? 'loading', account, url: account && post.value ? adapter(c.id).postUrl(account, post.value.permlink) : undefined,
+    canSend: !!post.value && canMirrorPost(c.id, post.value, threads), sending: sendingChain.value === c.id };
+}) : []);
+
+async function load(): Promise<void> {
+  loading.value = true;
+  Object.keys(threads).forEach((k) => delete threads[k]);
+  const { author, permlink } = postRef(state.post);
+  const th = await adapter('blurt').getThread(author, permlink);
+  const root = th.status === 'found' ? th.root! : null;
+  const isComment = !!root && (root.depth ?? 0) > 0;
+  if (root && (isComment || root.author !== USER)) {
+    // a comment (e.g. from a notification) -> its root post, with the comment highlighted; a post of somebody else -> that author's blog
+    const r = isComment ? rootOf(root) : { author: root.author, permlink: root.permlink };
+    if (r) {
+      const focus = isComment ? `${author}/${permlink}` : '';
+      if (r.author === USER) { if (isComment) { navigate(href({ post: postParam(r.author, r.permlink), c: focus }), true); return; } }
+      else { window.location.replace(`?user=${encodeURIComponent(r.author)}&post=${encodeURIComponent(r.permlink)}${focus ? '&c=' + encodeURIComponent(focus) : ''}`); return; }
+    }
+  }
+  post.value = root;
+  if (root) threads.blurt = th;
+  loading.value = false;
+  if (root && mirrored.value) for (const c of mirrorChains()) void loadChainThread(threads, c.id, permlink); // parallel, filled in as they answer
+  void scrollToFocus();
+}
+watch(() => state.post, load, { immediate: true });
+// logging in to another chain while the post is open: look the post up there too
+watch(() => mirrorChains().map((c) => c.id).join(), () => {
+  if (post.value && mirrored.value) for (const c of mirrorChains()) if (!threads[c.id]) void loadChainThread(threads, c.id, post.value.permlink);
+});
+watch(() => state.focus, () => { void scrollToFocus(); });
+const retry = (chain: string): void => { if (post.value) void loadChainThread(threads, chain, post.value.permlink); };
+
+async function scrollToFocus(): Promise<void> {
+  if (!state.focus || loading.value) return;
+  await nextTick();
+  const el = document.querySelector<HTMLElement>(`[data-ck="${state.focus}"]`);
+  if (!el) return;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl'); // restart the highlight animation
+}
+
+async function send(): Promise<void> {
+  if (!post.value) return;
+  if (!loggedIn.value) { loginOpen.value = true; return; }
+  const text = body.value.trim(); if (!text || sending.value) return;
+  if (!targets.value.length) { toast(t('noTargets')); loginOpen.value = true; return; }
+  sending.value = true;
+  const res = await sendComment(merged.value.root, text);
+  applyResult(threads, merged.value.root, res);
+  if (Object.keys(res.ok).length) body.value = '';
+  toast(describeResult(res, t('commentSent')));
+  sending.value = false;
+}
+async function sendPost(chain: string): Promise<void> {
+  if (!post.value) return;
+  sendingChain.value = chain;
+  try { await mirrorPost(chain, post.value); toast(t('postSentTo', { c: adapter(chain).name })); await loadChainThread(threads, chain, post.value.permlink); }
+  catch (e) { toast((e as Error).message); }
+  sendingChain.value = '';
+}
+</script>
+
+<template>
+  <div v-if="loading" class="article"><div class="skel-img" /><div class="art-in"><div class="skel-line w60" /><div class="skel-line" /><div class="skel-line" /><div class="skel-line w80" /></div></div>
+  <div v-else-if="!post" class="center">{{ t('postNotFound') }}</div>
+  <div v-else class="article">
+    <div v-if="thumbOf(post)" class="thumb hero-img" :style="{ backgroundImage: `url('${thumbOf(post)}')` }" />
+    <div class="art-in">
+      <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
+      <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }}</div>
+      <h1>{{ post.title }}</h1>
+      <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <span class="pay" :title="payoutTitle(post)">{{ payoutOf(post).toFixed(3) }} BLURT</span></div>
+      <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />
+      <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true">⚠ {{ t('versionsDiffer') }}</a></div>
+      <div class="md post-body" v-html="renderMd(post.body)" />
+      <div class="actions">
+        <button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)">♥ {{ post.active_votes?.length ?? 0 }}</button>
+        <template v-for="tag in tagsOf(post)" :key="tag">
+          <a v-if="catFor(tag)" class="tag" :href="href({ cat: catFor(tag)!.id })" @click.prevent="navigate(href({ cat: catFor(tag)!.id }))">#{{ tag }}</a>
+          <span v-else class="tag">#{{ tag }}</span>
+        </template>
+      </div>
+      <h3>{{ t('comments', { n: post.children ?? 0 }) }} <span v-if="checking" class="spinner" role="status" :aria-label="t('checkingChains')" :title="t('checkingChains')" /></h3>
+      <div v-if="checking" class="mute help">{{ t('checkingChains') }}</div>
+      <template v-if="loggedIn">
+        <textarea v-model="body" rows="3" :placeholder="t('addComment')" />
+        <div class="mute target-note">{{ targets.length ? t('willSendTo', { list: targetNote }) : t('noTargets') }}</div>
+        <div class="actions"><button class="pri" :disabled="sending" @click="send">{{ t('send') }}</button></div>
+        <DevTipToggle v-if="benText" :list="benText" />
+      </template>
+      <p v-else class="mute">{{ t('loginToComment') }}</p>
+      <CommentNode v-for="n in merged.nodes" :key="n.permlink" :node="n" :parent="merged.root" :depth="0" />
+      <VersionsModal v-if="versionsOpen" :versions="merged.root" @close="versionsOpen = false" />
+    </div>
+  </div>
+</template>
