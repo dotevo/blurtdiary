@@ -45,7 +45,16 @@ const benText = computed(() => auth.me
 
 async function onFile(e: Event): Promise<void> {
   const input = e.target as HTMLInputElement; const f = input.files?.[0]; input.value = '';
+  if (f) await uploadFile(f);
+}
+/** Ctrl+V of a screenshot or copied image: upload it and put it in at the cursor. Plain-text pastes are left alone. */
+function onPaste(e: ClipboardEvent): void {
+  const f = [...(e.clipboardData?.items ?? [])].find((i) => i.kind === 'file' && i.type.startsWith('image/'))?.getAsFile();
   if (!f) return;
+  e.preventDefault();
+  if (!uploading.value) void uploadFile(f.name && f.name !== 'image.png' ? f : new File([f], `screenshot-${Date.now()}.${f.type.split('/')[1] || 'png'}`, { type: f.type }));
+}
+async function uploadFile(f: File): Promise<void> {
   uploading.value = true;
   try {
     const { url, others, failed } = await uploadEverywhere(f);
@@ -89,7 +98,7 @@ async function submit(): Promise<void> {
       <input ref="fileInput" type="file" accept="image/*" hidden @change="onFile">
       <button :disabled="uploading" @click="fileInput?.click()">🖼 {{ uploading ? t('uploading') : t('uploadImage') }}</button>
     </div>
-    <textarea v-show="tab === 'edit'" ref="ta" v-model="body" class="body-in" rows="18" :placeholder="t('bodyPh')" />
+    <textarea v-show="tab === 'edit'" ref="ta" @paste="onPaste" v-model="body" class="body-in" rows="18" :placeholder="t('bodyPh')" />
     <div v-show="tab === 'preview'" class="md post-body preview" v-html="renderMd(body)" />
 
     <label class="lbl">{{ t('tags') }}</label>

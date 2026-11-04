@@ -8,10 +8,17 @@ import { auth, wvSign } from './auth';
 import { adapter, CHAINS, PRIMARY } from './chains';
 import { t } from './i18n';
 
+/**
+ * Only Blurt's image host is used for now: Hive's and Steem's hosts rejected our uploads and are untested. Mirrored posts keep
+ * pointing at the Blurt image URLs. Set to true to upload to every logged-in chain again.
+ */
+const UPLOAD_TO_MIRRORS = false;
 const MAX_BYTES = 10 * 1024 * 1024;
 /** Image URL on the primary chain's host -> the same image's URL per other chain. */
 export type ImageMap = Record<string, Record<string, string>>;
 const MD_IMG = /(!\[[^\]]*\]\()(https?:[^)\s]+)/g;
+
+interface WvReply { success: boolean; result?: string; message?: string }
 
 /** Uploads `file` to one chain's image host with that chain's session. */
 export async function uploadImage(file: File, chain: string = PRIMARY): Promise<string> {
@@ -30,7 +37,12 @@ export async function uploadImage(file: File, chain: string = PRIMARY): Promise<
     const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', combined));
     sig = dblurt.PrivateKey.from(me.key!).sign(hash as never).toString();
   } else {
-    const r = await wvSign(chain, me.user, JSON.stringify({ type: 'Buffer', data: Array.from(combined) }), '');
+    const msg = JSON.stringify({ type: 'Buffer', data: Array.from(combined) });
+    const kc = (window as unknown as { blurt_keychain?: { requestSignBuffer: (u: string, m: string, k: string, cb: (r: WvReply) => void) => void } }).blurt_keychain;
+    // Blurt: the extension's own API, called exactly like the working forum project does; otherwise the generic request channel
+    const r: WvReply = chain === PRIMARY && kc
+      ? await new Promise<WvReply>((res) => kc.requestSignBuffer(me.user, msg, 'posting', res))
+      : await wvSign(chain, me.user, msg, '');
     if (!r.success) throw new Error(r.message || t('wvError'));
     let s = (r.result ?? '').split(':')[0];
     if (s.startsWith('SIG_K1_')) { try { s = dblurt.Signature.fromString(s).toString(); } catch { /* keep as is */ } }
@@ -52,7 +64,7 @@ export async function uploadEverywhere(file: File): Promise<{ url: string; other
   const others: Record<string, string> = {}, failed: string[] = [];
   const [url] = await Promise.all([
     uploadImage(file, PRIMARY),
-    ...CHAINS.filter((c) => c.id !== PRIMARY && auth.sessions[c.id] && c.imageHost).map(async (c) => {
+    ...CHAINS.filter((c) => UPLOAD_TO_MIRRORS && c.id !== PRIMARY && auth.sessions[c.id] && c.imageHost).map(async (c) => {
       try { others[c.id] = await uploadImage(file, c.id); } catch (e) { console.warn('image upload failed on', c.id, e); failed.push(c.name); }
     }),
   ]);
@@ -72,7 +84,7 @@ export async function localizeBody(chain: string, body: string, known: ImageMap 
   await Promise.all(urls.map(async (u) => {
     if (known[u]?.[chain]) { map[u] = known[u][chain]; return; }
     let host = ''; try { host = new URL(u).host; } catch { return; }
-    if (a.imageHosts.includes(host) || !a.imageHost || !auth.sessions[chain]) return; // already on this chain's host / cannot upload
+    if (!UPLOAD_TO_MIRRORS || a.imageHosts.includes(host) || !a.imageHost || !auth.sessions[chain]) return; // already on this chain's host / cannot upload
     try {
       const r = await fetch(u); if (!r.ok) return;
       const blob = await r.blob();

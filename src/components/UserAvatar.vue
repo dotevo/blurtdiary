@@ -5,5 +5,5 @@ const broken = ref(false);
 </script>
 <template>
   <span v-if="broken" class="avatar" :class="{ sm: small }">{{ (name[0] || '?').toUpperCase() }}</span>
-  <img v-else class="avatar" :class="{ sm: small }" :src="`https://images.blurt.blog/u/${name}/avatar/small`" alt="" loading="lazy" @error="broken = true">
+  <img v-else class="avatar" :class="{ sm: small }" :src="`https://imgp.blurt.blog/profileimage/${name}/64x64`" alt="" loading="lazy" @error="broken = true">
 </template>
