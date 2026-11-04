@@ -197,5 +197,11 @@
  "favRemove": "Retirer",
  "favEmpty": "Aucun blog suivi. Ouvrez un blog et cliquez sur l’étoile.",
  "wvRemembered": "Les connexions WhaleVault sont mémorisées sur cet appareil (aucune clé n’est enregistrée).",
- "rememberKey": "Mémoriser la clé sur cet appareil"
+ "rememberKey": "Mémoriser la clé sur cet appareil",
+ "rpcNodes": "Nœuds RPC",
+ "rpcHelp": "Choisissez le nœud avec lequel chaque blockchain communique. « Automatique » repousse un nœud qui ne répond pas en fin de file et continue avec celui qui a fonctionné. Blurt garde un ordre fixe car tous les nœuds Blurt n’ont pas toutes les API.",
+ "rpcAuto": "Automatique",
+ "rpcActive": "actif : {n}",
+ "rpcIdle": "pas encore utilisé",
+ "rpcBlurtNote": "Blurt : un nœud sans l’API étendue (ex. rpc.blurt.blog) est ignoré pour les listes d’articles et les commentaires."
 }

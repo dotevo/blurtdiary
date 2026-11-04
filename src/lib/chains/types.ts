@@ -1,4 +1,5 @@
 import type { Beneficiary, Operation, Post } from '../types';
+import type { NodePool } from './nodes';
 
 /** Identifier of a supported blockchain: 'blurt' (primary), 'hive', 'steem'. The registry in index.ts is the source of truth. */
 export type ChainId = string;
@@ -45,8 +46,8 @@ export interface ChainAdapter {
   addressPrefix: string;
   /** Hex chain id used when signing transactions; undefined = the dblurt default (Blurt). */
   chainId?: string;
-  /** Node list used for broadcasting and for plain (condenser_api) calls. */
-  nodes: string[];
+  /** Node queue used for broadcasting and for plain (condenser_api) calls (see nodes.ts). */
+  pool: NodePool;
   /** Account that receives the optional app-author tip on this chain (none = no tip is requested). */
   devAccount?: string;
   /** Prefix WhaleVault expects in `username` for this chain. */

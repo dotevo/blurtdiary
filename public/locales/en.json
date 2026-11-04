@@ -197,5 +197,11 @@
  "favRemove": "Remove",
  "favEmpty": "No followed blogs yet. Open a blog and click the star.",
  "wvRemembered": "WhaleVault logins are remembered on this device (no key is stored).",
- "rememberKey": "Remember the key on this device"
+ "rememberKey": "Remember the key on this device",
+ "rpcNodes": "RPC nodes",
+ "rpcHelp": "Choose which node each blockchain talks to. Automatic moves a node that does not answer to the end of the queue and keeps using the one that worked. Blurt keeps a fixed order because not every Blurt node has every API.",
+ "rpcAuto": "Automatic",
+ "rpcActive": "active: {n}",
+ "rpcIdle": "not used yet",
+ "rpcBlurtNote": "Blurt: a node without the extended API (e.g. rpc.blurt.blog) is skipped for post lists and comments."
 }

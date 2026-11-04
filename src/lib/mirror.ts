@@ -20,7 +20,7 @@ import { localizeBody, type ImageMap } from './upload';
 import { meta, pushKid, tagsOf } from './util';
 import type { Operation, Post } from './types';
 
-const THREAD_DEADLINE_MS = 20000;
+const THREAD_DEADLINE_MS = 40000; // must exceed (nodes in the queue x per-node timeout), otherwise the last nodes are never tried
 const BLURT_COMMUNITY = /^blurt-\d+$/;
 export const keyOf = (p: { author: string; permlink: string }): string => `${p.author}/${p.permlink}`;
 

@@ -19,6 +19,7 @@ import SupportModal from './components/SupportModal.vue';
 import WriteView from './components/WriteView.vue';
 import UserAvatar from './components/UserAvatar.vue';
 import FavList from './components/FavList.vue';
+import NodeSettings from './components/NodeSettings.vue';
 import { favs, isFav, toggleFav } from './lib/favs';
 
 const who = ref('');
@@ -80,6 +81,7 @@ const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sideba
     <footer class="foot mute">
       <div v-if="state.cfg.footer">{{ state.cfg.footer }}</div>
       {{ t('footer') }} · <a :href="href({ view: 'docs' })" @click.prevent="navigate(href({ view: 'docs' }))">{{ t('docs') }}</a>
+      <NodeSettings />
     </footer>
   </template>
   <LoginModal v-if="loginOpen" @close="loginOpen = false" />

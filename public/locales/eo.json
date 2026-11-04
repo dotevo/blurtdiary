@@ -197,5 +197,11 @@
  "favRemove": "Forigi",
  "favEmpty": "Ankoraŭ neniu sekvata blogo. Malfermu blogon kaj alklaku la stelon.",
  "wvRemembered": "WhaleVault-ensalutoj estas memoritaj en ĉi tiu aparato (neniu ŝlosilo estas konservita).",
- "rememberKey": "Memori la ŝlosilon en ĉi tiu aparato"
+ "rememberKey": "Memori la ŝlosilon en ĉi tiu aparato",
+ "rpcNodes": "RPC-nodoj",
+ "rpcHelp": "Elektu kun kiu nodo ĉiu blokĉeno parolas. «Aŭtomate» movas nodon, kiu ne respondas, al la fino de la vico kaj daŭre uzas tiun, kiu funkciis. Blurt konservas fiksan ordon, ĉar ne ĉiu Blurt-nodo havas ĉiujn API-ojn.",
+ "rpcAuto": "Aŭtomate",
+ "rpcActive": "aktiva: {n}",
+ "rpcIdle": "ankoraŭ ne uzita",
+ "rpcBlurtNote": "Blurt: nodo sen la plilongigita API (ekz. rpc.blurt.blog) estas preterlasita por listoj de afiŝoj kaj komentoj."
 }

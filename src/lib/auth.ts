@@ -104,9 +104,9 @@ export async function broadcast(ops: Operation[], chain: ChainId = PRIMARY): Pro
   if (me.type === 'key') {
     // dblurt is a dhive fork: the address prefix and chain id options make it sign for Hive/Steem as well
     const opts = a.chainId ? { addressPrefix: a.addressPrefix, chainId: a.chainId } : undefined;
-    await new dblurt.Client(a.nodes, opts).broadcast.sendOperations(ops as never, dblurt.PrivateKey.from(me.key!));
+    await new dblurt.Client(a.pool.list(), opts).broadcast.sendOperations(ops as never, dblurt.PrivateKey.from(me.key!));
   } else {
-    const r = await wvSign(chain, me.user, { operations: ops, url: a.nodes[0] }, 'bkc_broadcast');
+    const r = await wvSign(chain, me.user, { operations: ops, url: a.pool.list()[0] }, 'bkc_broadcast');
     if (!r.success) throw new Error(r.message || t('wvError'));
   }
 }

@@ -6,20 +6,23 @@ import { APP_DEV, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
 import { jsonRpc } from './jsonrpc';
+import { NodePool } from './nodes';
 import { resolveThread } from './thread';
 import type { ChainAccount, ChainAdapter } from './types';
 
-export const STEEM_NODES = ['https://api.steemit.com', 'https://api.moecki.online'];
+export const STEEM_NODES = ['https://api.steemit.com', 'https://api.moecki.online', 'https://steemd.steemworld.org'];
+/** Adaptive: a silent node drops to the end of the queue, the one that answered is asked first next time. */
+export const STEEM_POOL = new NodePool('steem', STEEM_NODES, true, 5000);
 
 export const steem: ChainAdapter = {
   id: 'steem', name: 'Steem', letter: 'S', color: '#2f80ed', symbol: 'STEEM', payoutSymbol: 'SBD',
-  addressPrefix: 'STM', chainId: '0000000000000000000000000000000000000000000000000000000000000000', nodes: STEEM_NODES,
+  addressPrefix: 'STM', chainId: '0000000000000000000000000000000000000000000000000000000000000000', pool: STEEM_POOL,
   devAccount: APP_DEV, // the app author's account on Steem (optional 1% tip, same switch as on Blurt)
   vaultPrefix: 'stm:', powerSymbol: 'SP',
   imageHost: 'https://steemitimages.com', imageHosts: ['steemitimages.com', 'cdn.steemitimages.com'],
 
   postUrl: (author, permlink) => `https://steemit.com/@${author}/${permlink}`,
-  call: (api, method, params) => jsonRpc(STEEM_NODES, api, method, params, 'modern'),
+  call: (api, method, params) => jsonRpc(STEEM_POOL, api, method, params, 'modern'),
 
   async getAccount(name) {
     const [acc] = await steem.call<ChainAccount[]>('condenser_api', 'get_accounts', [[name]]);

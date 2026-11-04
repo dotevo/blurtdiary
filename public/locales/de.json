@@ -197,5 +197,11 @@
  "favRemove": "Entfernen",
  "favEmpty": "Noch keine gefolgten Blogs. Öffne einen Blog und klicke auf den Stern.",
  "wvRemembered": "WhaleVault-Anmeldungen werden auf diesem Gerät gespeichert (es wird kein Key gespeichert).",
- "rememberKey": "Key auf diesem Gerät merken"
+ "rememberKey": "Key auf diesem Gerät merken",
+ "rpcNodes": "RPC-Nodes",
+ "rpcHelp": "Wähle, mit welchem Node jede Blockchain spricht. „Automatisch“ schiebt einen nicht antwortenden Node ans Ende der Warteschlange und nutzt weiter den, der funktioniert hat. Blurt behält eine feste Reihenfolge, weil nicht jeder Blurt-Node jede API hat.",
+ "rpcAuto": "Automatisch",
+ "rpcActive": "aktiv: {n}",
+ "rpcIdle": "noch nicht benutzt",
+ "rpcBlurtNote": "Blurt: Ein Node ohne erweiterte API (z. B. rpc.blurt.blog) wird für Beitragslisten und Kommentare übersprungen."
 }

@@ -197,5 +197,11 @@
  "favRemove": "Usuń",
  "favEmpty": "Brak obserwowanych blogów. Otwórz blog i kliknij gwiazdkę.",
  "wvRemembered": "Logowanie przez WhaleVault jest pamiętane na tym urządzeniu (żaden klucz nie jest zapisywany).",
- "rememberKey": "Zapamiętaj klucz na tym urządzeniu"
+ "rememberKey": "Zapamiętaj klucz na tym urządzeniu",
+ "rpcNodes": "Węzły RPC",
+ "rpcHelp": "Wybierz, z którym węzłem ma rozmawiać każdy blockchain. Tryb automatyczny przesuwa węzeł, który nie odpowiada, na koniec kolejki i dalej używa tego, który zadziałał. Blurt ma stałą kolejność, bo nie każdy węzeł Blurt ma wszystkie API.",
+ "rpcAuto": "Automatycznie",
+ "rpcActive": "aktywny: {n}",
+ "rpcIdle": "jeszcze nieużywany",
+ "rpcBlurtNote": "Blurt: węzeł bez rozszerzonego API (np. rpc.blurt.blog) jest pomijany przy listach wpisów i komentarzach."
 }

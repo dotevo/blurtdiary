@@ -6,19 +6,23 @@ import { APP_DEV, COMMUNITY_WEIGHT, commentOptions as blurtCommentOptions, commu
 import type { Beneficiary, Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
 import { jsonRpc } from './jsonrpc';
+import { NodePool } from './nodes';
 import { resolveThread } from './thread';
 import type { ChainAccount, ChainAdapter } from './types';
 
 export const BRIDGE_NODES = ['https://rpc.drakernoise.com', 'https://blurtrpc.dagobert.uk', 'https://rpc.beblurt.com'];
 export const ALL_NODES = [...BRIDGE_NODES, 'https://rpc.blurt.blog'];
+// fixed order (not adaptive): not every node serves every API, so a failure must not reshuffle which node is asked for what
+const BRIDGE_POOL = new NodePool('blurt', BRIDGE_NODES, false, 7000);
+const ALL_POOL = new NodePool('blurt', ALL_NODES, false, 7000);
 
 export const blurt: ChainAdapter = {
   id: 'blurt', name: 'Blurt', letter: 'B', color: '#e4572e', symbol: 'BLURT', payoutSymbol: 'BLURT',
-  addressPrefix: 'BLT', chainId: undefined /* dblurt default */, nodes: ALL_NODES, devAccount: APP_DEV, vaultPrefix: 'blt:', powerSymbol: 'BP',
+  addressPrefix: 'BLT', chainId: undefined /* dblurt default */, pool: ALL_POOL, devAccount: APP_DEV, vaultPrefix: 'blt:', powerSymbol: 'BP',
   imageHost: 'https://img-upload.blurt.blog', imageHosts: ['images.blurt.blog', 'img-upload.blurt.blog'],
 
   postUrl: (author, permlink) => `https://blurt.blog/@${author}/${permlink}`,
-  call: (api, method, params) => jsonRpc(api === 'bridge' ? BRIDGE_NODES : ALL_NODES, api, method, params),
+  call: (api, method, params) => jsonRpc(api === 'bridge' ? BRIDGE_POOL : ALL_POOL, api, method, params),
 
   async getAccount(name) {
     const [acc] = await blurt.call<ChainAccount[]>('condenser_api', 'get_accounts', [[name]]);
