@@ -3,7 +3,7 @@ import { t } from '../lib/i18n';
 import type { MirrorStatus } from '../lib/chains';
 import ChainDot from './ChainDot.vue';
 
-export interface BadgeItem { id: string; name: string; status: MirrorStatus; account?: string; url?: string; canSend: boolean; sending: boolean }
+export interface BadgeItem { id: string; name: string; status: MirrorStatus; error?: string; account?: string; url?: string; canSend: boolean; sending: boolean }
 /** Post-level row: where does this post exist? Found = coloured (links to the copy), missing = dashed, unknown (RPC error) = "!". */
 defineProps<{ items: BadgeItem[] }>();
 const emit = defineEmits<{ retry: [chain: string]; send: [chain: string] }>();
@@ -11,7 +11,7 @@ const label = (i: BadgeItem): string => ({
   loading: t('chainChecking', { c: i.name }),
   found: t('chainFound', { c: i.name, a: i.account ?? '' }),
   missing: t('chainMissing', { c: i.name }),
-  error: t('chainError', { c: i.name }),
+  error: t('chainError', { c: i.name }) + (i.error ? ` [${i.error}]` : ''),
 }[i.status]);
 </script>
 <template>

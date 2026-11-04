@@ -13,7 +13,7 @@ export const BRIDGE_NODES = ['https://rpc.drakernoise.com', 'https://blurtrpc.da
 export const ALL_NODES = [...BRIDGE_NODES, 'https://rpc.blurt.blog'];
 
 export const blurt: ChainAdapter = {
-  id: 'blurt', name: 'Blurt', letter: 'B', color: '#e4572e', symbol: 'BLURT',
+  id: 'blurt', name: 'Blurt', letter: 'B', color: '#e4572e', symbol: 'BLURT', payoutSymbol: 'BLURT',
   addressPrefix: 'BLT', chainId: undefined /* dblurt default */, nodes: ALL_NODES, devAccount: APP_DEV, vaultPrefix: 'blt:', powerSymbol: 'BP',
   imageHost: 'https://img-upload.blurt.blog', imageHosts: ['images.blurt.blog', 'img-upload.blurt.blog'],
 

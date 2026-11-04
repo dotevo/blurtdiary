@@ -33,11 +33,12 @@ async function run(fn: () => Promise<void>): Promise<void> {
       <div v-if="!auth.me" class="mute help">{{ t('blurtFirst') }}</div>
       <div v-else-if="chain !== 'blurt'" class="mute help">{{ t('loginOtherChain') }}</div>
       <input v-model="user" :placeholder="suggested || t('usernamePh')" autocapitalize="off">
-      <button class="pri" :disabled="busy" @click="run(() => loginWhaleVault(chain, clean(), remember))">WhaleVault</button>
+      <button class="pri" :disabled="busy" @click="run(() => loginWhaleVault(chain, clean()))">WhaleVault</button>
+      <span class="mute help">{{ t('wvRemembered') }}</span>
       <input v-model="key" type="password" :placeholder="t('keyPh')" autocomplete="off">
       <button :disabled="busy || !key" @click="run(() => loginKey(chain, clean(), key.trim(), remember))">{{ t('loginKey') }}</button>
       <span class="mute">{{ remember ? t('keyNoteSaved') : t('keyNote') }}</span>
-      <label class="remember"><input v-model="remember" type="checkbox"> {{ t('rememberLogin') }}</label>
+      <label class="remember"><input v-model="remember" type="checkbox"> {{ t('rememberKey') }}</label>
       <div v-if="remember" class="mute help badtxt">{{ t('rememberWarn') }}</div>
       <button @click="emit('close')">{{ t('cancel') }}</button>
     </div>

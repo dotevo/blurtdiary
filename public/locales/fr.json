@@ -195,5 +195,7 @@
  "favFollow": "Suivre ce blog",
  "favUnfollow": "Ne plus suivre",
  "favRemove": "Retirer",
- "favEmpty": "Aucun blog suivi. Ouvrez un blog et cliquez sur l’étoile."
+ "favEmpty": "Aucun blog suivi. Ouvrez un blog et cliquez sur l’étoile.",
+ "wvRemembered": "Les connexions WhaleVault sont mémorisées sur cet appareil (aucune clé n’est enregistrée).",
+ "rememberKey": "Mémoriser la clé sur cet appareil"
 }

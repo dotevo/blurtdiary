@@ -195,5 +195,7 @@
  "favFollow": "Diesem Blog folgen",
  "favUnfollow": "Nicht mehr folgen",
  "favRemove": "Entfernen",
- "favEmpty": "Noch keine gefolgten Blogs. Öffne einen Blog und klicke auf den Stern."
+ "favEmpty": "Noch keine gefolgten Blogs. Öffne einen Blog und klicke auf den Stern.",
+ "wvRemembered": "WhaleVault-Anmeldungen werden auf diesem Gerät gespeichert (es wird kein Key gespeichert).",
+ "rememberKey": "Key auf diesem Gerät merken"
 }

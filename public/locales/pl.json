@@ -195,5 +195,7 @@
  "favFollow": "Obserwuj ten blog",
  "favUnfollow": "Przestań obserwować",
  "favRemove": "Usuń",
- "favEmpty": "Brak obserwowanych blogów. Otwórz blog i kliknij gwiazdkę."
+ "favEmpty": "Brak obserwowanych blogów. Otwórz blog i kliknij gwiazdkę.",
+ "wvRemembered": "Logowanie przez WhaleVault jest pamiętane na tym urządzeniu (żaden klucz nie jest zapisywany).",
+ "rememberKey": "Zapamiętaj klucz na tym urządzeniu"
 }

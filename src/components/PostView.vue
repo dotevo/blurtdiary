@@ -5,12 +5,13 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
-import { applyResult, canMirrorPost, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
+import { applyResult, canMirrorPost, chainsOf, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { href, navigate, postParam, postRef, state, USER } from '../lib/store';
 import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
 import { toast } from '../lib/toast';
 import type { Post } from '../lib/types';
 import ChainBadges, { type BadgeItem } from './ChainBadges.vue';
+import ChainDot from './ChainDot.vue';
 import CommentNode from './CommentNode.vue';
 import DevTipToggle from './DevTipToggle.vue';
 import VersionsModal from './VersionsModal.vue';
@@ -38,12 +39,13 @@ const targetNote = computed(() => targets.value.map((c) => `@${auth.sessions[c.i
 const voteTitle = computed(() => Object.entries(merged.value.root).map(([c, p]) => `${adapter(c).name}: ♥ ${p.active_votes?.length ?? 0}`).join('\n'));
 /** True while at least one other chain has not answered yet (the spinner next to the comments). */
 const checking = computed(() => mirrored.value && mirrorChains().some((c) => !threads[c.id] || threads[c.id].status === 'loading'));
+const payoutChains = computed(() => chainsOf(merged.value.root)); // rewards of every chain that has a copy
 const postDiffers = computed(() => versionsDiffer(merged.value.root, true));
 const mirrored = computed(() => !!post.value && post.value.author === USER && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
 
 const badges = computed<BadgeItem[]>(() => mirrored.value ? [{ id: 'blurt', name: 'Blurt' }, ...mirrorChains()].map((c) => {
   const th = threads[c.id]; const account = accountOn(c.id);
-  return { id: c.id, name: c.name, status: th?.status ?? 'loading', account, url: account && post.value ? adapter(c.id).postUrl(account, post.value.permlink) : undefined,
+  return { id: c.id, name: c.name, status: th?.status ?? 'loading', error: th?.error, account, url: account && post.value ? adapter(c.id).postUrl(account, post.value.permlink) : undefined,
     canSend: !!post.value && canMirrorPost(c.id, post.value, threads), sending: sendingChain.value === c.id };
 }) : []);
 
@@ -116,7 +118,7 @@ async function sendPost(chain: string): Promise<void> {
       <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
       <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }}</div>
       <h1>{{ post.title }}</h1>
-      <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <span class="pay" :title="payoutTitle(post)">{{ payoutOf(post).toFixed(3) }} BLURT</span></div>
+      <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <template v-for="x in payoutChains" :key="x.id"><span class="pay" :title="payoutTitle(merged.root[x.id])"><ChainDot v-if="payoutChains.length > 1" :chain="x.id" /> {{ payoutOf(merged.root[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></div>
       <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />
       <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true">⚠ {{ t('versionsDiffer') }}</a></div>
       <div class="md post-body" v-html="renderMd(post.body)" />

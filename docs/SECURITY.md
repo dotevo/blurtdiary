@@ -3,7 +3,9 @@
 - Login with a **posting key** is verified in the browser (the derived public key must be one of the account's posting keys). The key is never
   sent anywhere; only signed transactions / image signatures are.
 - By default a session lives in `sessionStorage` (this tab only) **including the key in plain text**; it disappears when the tab is closed.
-- **Stay logged in on this device** (opt-in checkbox, discouraged in the UI) also copies the session to `localStorage` (`bd-saved-sessions`),
+- **WhaleVault logins are always remembered** on the device (only the account name is stored, no secret), so a reload or a new visit keeps you
+  logged in; signing still needs the extension.
+- **Remember the key on this device** (opt-in checkbox, discouraged in the UI) also copies the session to `localStorage` (`bd-saved-sessions`),
   so it survives closing the tab. Logging out removes it. Logging out of Blurt removes every session.
 - Anything running in the page's origin - including browser extensions with access to the site - can read `sessionStorage` / `localStorage`
   and the key field. This cannot be prevented from page code, and encrypting the key in the page would not help.

@@ -195,5 +195,7 @@
  "favFollow": "Sekvi ĉi tiun blogon",
  "favUnfollow": "Ĉesi sekvi",
  "favRemove": "Forigi",
- "favEmpty": "Ankoraŭ neniu sekvata blogo. Malfermu blogon kaj alklaku la stelon."
+ "favEmpty": "Ankoraŭ neniu sekvata blogo. Malfermu blogon kaj alklaku la stelon.",
+ "wvRemembered": "WhaleVault-ensalutoj estas memoritaj en ĉi tiu aparato (neniu ŝlosilo estas konservita).",
+ "rememberKey": "Memori la ŝlosilon en ĉi tiu aparato"
 }

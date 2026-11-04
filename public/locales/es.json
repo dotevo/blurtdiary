@@ -195,5 +195,7 @@
  "favFollow": "Seguir este blog",
  "favUnfollow": "Dejar de seguir",
  "favRemove": "Quitar",
- "favEmpty": "Aún no sigues ningún blog. Abre un blog y pulsa la estrella."
+ "favEmpty": "Aún no sigues ningún blog. Abre un blog y pulsa la estrella.",
+ "wvRemembered": "Los inicios de sesión con WhaleVault se recuerdan en este dispositivo (no se guarda ninguna clave).",
+ "rememberKey": "Recordar la clave en este dispositivo"
 }

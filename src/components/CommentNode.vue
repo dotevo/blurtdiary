@@ -24,7 +24,6 @@ const threads = inject<Record<string, ChainThread>>('threads', {});
 
 const c = computed(() => primaryOf(props.node.versions));
 const chains = computed(() => chainsOf(props.node.versions));
-const primaryChain = computed(() => chains.value[0]);
 const blurtCopy = computed(() => props.node.versions.blurt);
 const coal = computed(() => (blurtCopy.value ? coalMap.value.get(blurtCopy.value.author.toLowerCase()) : undefined)); // COAL lists Blurt accounts
 const shown = ref(false);
@@ -79,7 +78,7 @@ async function sendCopy(chain: string): Promise<void> {
       <UserAvatar :name="c.author" small /> <b>{{ c.author }}</b>
       <span v-if="showMirrors" class="cm-chains"><ChainDot v-for="d in dots" :key="d.id" :chain="d.id" :status="d.status" :title="d.title" /></span>
       <span v-if="coal" class="warn" :title="coal.reason + (coal.notes ? ' — ' + coal.notes : '')">⚠ COAL</span>
-      <span class="mute">{{ fmtDate(c.created) }} · <span class="pay" :title="payoutTitle(c)">{{ payoutOf(c).toFixed(3) }} {{ primaryChain.symbol }}</span></span>
+      <span class="mute">{{ fmtDate(c.created) }} · <template v-for="x in chains" :key="x.id"><span class="pay" :title="payoutTitle(node.versions[x.id])"><ChainDot v-if="chains.length > 1" :chain="x.id" /> {{ payoutOf(node.versions[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></span>
     </div>
 
     <!-- COAL author: only a blurred plain-text excerpt (no remote images/links are loaded) until the reader clicks -->

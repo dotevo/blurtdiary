@@ -39,6 +39,8 @@ export interface ChainAdapter {
   color: string;
   /** Native token symbol (BLURT, HIVE, STEEM) – used in payout labels. */
   symbol: string;
+  /** Unit in which post/comment rewards are shown (Hive/Steem report the dollar-valued HBD/SBD, Blurt BLURT). */
+  payoutSymbol: string;
   /** Key prefix of public keys on this chain (BLT / STM). */
   addressPrefix: string;
   /** Hex chain id used when signing transactions; undefined = the dblurt default (Blurt). */

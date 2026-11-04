@@ -30,7 +30,8 @@ export const loginOpen = ref(false);
 const persist = (): void => {
   try { sessionStorage.setItem(KEY, JSON.stringify(auth.sessions)); } catch { /* ignore */ }
   try {
-    const keep = Object.fromEntries(Object.entries(auth.sessions).filter(([, s]) => s.remember));
+    // WhaleVault sessions hold no secret (just the account name), so they always persist; keys only when the user opted in
+    const keep = Object.fromEntries(Object.entries(auth.sessions).filter(([, s]) => s.remember || s.type === 'wv'));
     if (Object.keys(keep).length) localStorage.setItem(SAVED, JSON.stringify(keep)); else localStorage.removeItem(SAVED);
   } catch { /* ignore */ }
 };
@@ -77,12 +78,12 @@ export const wvSign = (chain: ChainId, user: string, message: unknown, reason: s
 /** Other chains can only be added on top of a Blurt login (Blurt is the main account). */
 const needBlurtFirst = (chain: ChainId): void => { if (chain !== PRIMARY && !auth.sessions[PRIMARY]) throw new Error(t('blurtFirst')); };
 
-export async function loginWhaleVault(chain: ChainId, user: string, remember = false): Promise<void> {
+export async function loginWhaleVault(chain: ChainId, user: string): Promise<void> {
   needBlurtFirst(chain);
   if (!(await wvAvailable())) throw new Error(t('wvMissing'));
   const r = await wvSign(chain, user, `Login to Blurt Diary as ${user} at ${new Date().toISOString()}`, 'Login');
   if (!r.success) throw new Error(r.message || t('wvError'));
-  setSession(chain, { user, type: 'wv', chain, remember });
+  setSession(chain, { user, type: 'wv', chain });
 }
 
 export async function loginKey(chain: ChainId, user: string, key: string, remember = false): Promise<void> {

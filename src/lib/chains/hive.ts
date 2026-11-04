@@ -9,17 +9,17 @@ import { jsonRpc } from './jsonrpc';
 import { resolveThread } from './thread';
 import type { ChainAccount, ChainAdapter } from './types';
 
-export const HIVE_NODES = ['https://api.hive.blog', 'https://api.deathwing.me', 'https://hive-api.arcange.eu'];
+export const HIVE_NODES = ['https://api.hive.blog', 'https://api.openhive.network', 'https://api.deathwing.me', 'https://hive-api.arcange.eu'];
 
 export const hive: ChainAdapter = {
-  id: 'hive', name: 'Hive', letter: 'H', color: '#e31337', symbol: 'HIVE',
+  id: 'hive', name: 'Hive', letter: 'H', color: '#e31337', symbol: 'HIVE', payoutSymbol: 'HBD',
   addressPrefix: 'STM', chainId: 'beeab0de00000000000000000000000000000000000000000000000000000000', nodes: HIVE_NODES,
   devAccount: APP_DEV, // the app author's account on Hive (optional 1% tip, same switch as on Blurt)
   vaultPrefix: 'hiv:', powerSymbol: 'HP',
   imageHost: 'https://images.hive.blog', imageHosts: ['images.hive.blog', 'images.ecency.com'],
 
   postUrl: (author, permlink) => `https://peakd.com/@${author}/${permlink}`,
-  call: (api, method, params) => jsonRpc(HIVE_NODES, api, method, params),
+  call: (api, method, params) => jsonRpc(HIVE_NODES, api, method, params, 'modern'),
 
   async getAccount(name) {
     const [acc] = await hive.call<ChainAccount[]>('condenser_api', 'get_accounts', [[name]]);
