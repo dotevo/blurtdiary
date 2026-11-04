@@ -1,6 +1,6 @@
 import { reactive, computed } from 'vue';
 import { rpc } from './rpc';
-import { CONFIG_PERMLINK, emptyConfig, parseConfig } from './config';
+import { CONFIG_PERMLINK, emptyConfig, normAccount, parseConfig } from './config';
 import { rootOf, slug, tagsOf } from './util';
 import { applyTheme } from './theme';
 import { touchFav } from './favs';
@@ -10,7 +10,8 @@ import type { BlogCategory, BlogConfig, Post, Profile } from './types';
 
 const PAGE = 20;
 const q = new URLSearchParams(location.search);
-export const USER = (q.get('user') ?? '').toLowerCase().replace(/^@/, '');
+// the account name goes into URLs, storage keys and RPC calls: anything that is not a valid account name is ignored
+export const USER = normAccount(q.get('user') ?? '');
 if (USER) { try { localStorage.setItem('bd-last-user', USER); } catch { /* ignore */ } } // used by the installed app (PWA) to reopen the last blog
 // ?recent=auto|replies|own|scan lets you try each "recent comments" strategy in the browser.
 export const RECENT_MODE = q.get('recent') ?? 'auto';

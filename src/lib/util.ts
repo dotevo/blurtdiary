@@ -32,7 +32,7 @@ export function thumbOf(p: Post): string {
   const m = meta(p); const im = m.image;
   const first = (Array.isArray(im) ? im[0] : im) as string | undefined;
   const found = first ?? (p.body.match(/!\[[^\]]*\]\((https?:[^)\s]+)/) ?? p.body.match(/<img[^>]+src=["'](https?:[^"']+)/))?.[1];
-  return found ?? '';
+  return safeImg(found);
 }
 /** Root post of a comment: condenser gives root_author/root_permlink, bridge only `url` (/cat/@rootAuthor/rootPermlink#@author/permlink). */
 export function rootOf(c: Post): { author: string; permlink: string } | null {
@@ -43,4 +43,29 @@ export function rootOf(c: Post): { author: string; permlink: string } | null {
 export const excerpt = (b: string): string =>
   b.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, '')
     .replace(/https?:\/\/\S+/g, '').replace(/[#>*_`~|-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
-export const renderMd = (body: string): string => DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string);
+/**
+ * Markdown/HTML from the chain (posts, comments, the owner's panels) is untrusted: anybody can publish anything, and every blog
+ * runs on ONE origin that holds the keys. So this is an ALLOW-LIST, not DOMPurify's permissive default (which keeps <form>,
+ * <input>, <style>, `style=`, `class=`, `id=` ...): those would allow a fake "enter your key" form or a full-screen overlay that
+ * reuses the app's own CSS classes. Only plain content tags and a few harmless attributes survive; links are https/mailto only.
+ */
+const MD_TAGS = ['p', 'br', 'hr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'ins', 'sub', 'sup', 'mark', 'code', 'pre',
+  'a', 'img', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'div', 'span', 'center', 'details', 'summary', 'figure', 'figcaption'];
+const MD_ATTRS = ['href', 'src', 'alt', 'title', 'width', 'height', 'align', 'colspan', 'rowspan', 'start', 'open'];
+let hooked = false;
+function hookOnce(): void {
+  if (hooked) return; hooked = true;
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A') { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer nofollow ugc'); }
+    if (node.tagName === 'IMG') { node.setAttribute('loading', 'lazy'); node.setAttribute('referrerpolicy', 'no-referrer'); }
+  });
+}
+export const renderMd = (body: string): string => {
+  hookOnce();
+  return DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string, {
+    ALLOWED_TAGS: MD_TAGS, ALLOWED_ATTR: MD_ATTRS, ALLOW_DATA_ATTR: false, ALLOW_ARIA_ATTR: false, SANITIZE_NAMED_PROPS: true,
+    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:)/i, // no javascript:, data:, relative or blob: URLs
+  });
+};
+/** A remote image URL that is safe to drop into CSS `url('…')` and an <img src>: plain https, no quotes/brackets/backslashes. */
+export const safeImg = (u?: string): string => { const v = (u ?? '').trim(); return /^https:\/\/[^\s"'()<>\\]+$/i.test(v) ? v : ''; };

@@ -12,3 +12,24 @@
 - Prefer **WhaleVault**: the key stays in the extension and the page only receives signatures. Use the saved key only on your own device,
   e.g. on a phone where WhaleVault is not available. A posting key cannot transfer funds or change keys, but can post, vote and claim rewards.
 - Every WhaleVault action is a separate confirmation (one per account and chain); operations of one chain/account are sent as one transaction.
+
+## Hostile content: blog customisation, posts and comments
+
+All blogs are served from ONE origin, and that origin can hold posting keys (tab storage, or `localStorage` for remembered sessions).
+Anyone can publish a blog (`?user=attacker`) or comment under someone else's post, so everything that comes from the chain is untrusted.
+A script that ran in any blog could read the keys of every account used in that browser. Layers of defence:
+
+1. **No script can be injected** - `Content-Security-Policy` (meta tag in `index.html`): `script-src 'self'` (no inline scripts, no `javascript:` URLs, no eval),
+   `form-action 'none'`, `base-uri 'none'`, `object-src 'none'`, `frame-src 'none'`.
+2. **Nothing can be sent out** - `connect-src` lists only the blockchain nodes and image/COAL hosts. Even a script that got through could not post the keys
+   anywhere else. `npm run check:csp` fails when a node used in `src/lib/chains/*.ts` is missing there - run it after adding a node.
+3. **Allow-list sanitizer** (`renderMd` in `src/lib/util.ts`): posts, comments and the owner's custom panels keep only plain content tags
+   and `href/src/alt/title/...`. No `<form>`, `<input>`, `<style>`, `<svg>`, `<iframe>`, no `style`/`class`/`id`/`on*`/`data-*` attributes (a fake "enter your key"
+   form or a full-screen overlay built from the app's own CSS classes would be phishing). Links: https/mailto only, `rel="noopener noreferrer nofollow ugc"`.
+4. **Config values are validated before use** (`src/lib/config.ts`): colours are `#hex`, fonts/layout/palette are fixed lists, `logo`/`cover` are plain https URLs
+   without quotes or brackets, the language must be one of ours; titles and descriptions are rendered as text, never HTML.
+5. **Other inputs** - `?user=` must be a valid account name, `?c=` is escaped before it is used in a selector, post thumbnails (`json_metadata.image`)
+   must be plain https URLs before they reach CSS `url()`.
+
+Known limits: remote images are loaded from any https host (the host sees the visitor's IP; referrer is stripped), GitHub Pages cannot send
+`frame-ancestors`, so clickjacking protection is not possible there, and a browser extension with page access is outside what a web page can defend against.

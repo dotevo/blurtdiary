@@ -6,6 +6,14 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)">
+  <!--
+    Content-Security-Policy (GitHub Pages cannot send headers, so it is a meta tag). Everything runs on ONE origin that can hold
+    keys, so the point is: no injected script can ever run (script-src 'self', no inline, no eval) and, even if one did, it could
+    not send anything anywhere except the blockchain nodes and image hosts listed in connect-src. Keep connect-src in sync with the
+    node lists in src/lib/chains/*.ts (npm run check:csp verifies it).
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://rpc.drakernoise.com https://blurtrpc.dagobert.uk https://rpc.beblurt.com https://rpc.blurt.blog https://api.hive.blog https://api.openhive.network https://api.deathwing.me https://hive-api.arcange.eu https://anyx.io https://api.steemit.com https://api.moecki.online https://steemd.steemworld.org https://img-upload.blurt.blog https://images.hive.blog https://steemitimages.com https://coal.blurtwallet.com; manifest-src 'self'; worker-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Blurt Diary</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="manifest" href="./manifest.webmanifest">

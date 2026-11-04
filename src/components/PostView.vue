@@ -82,7 +82,7 @@ const retry = (chain: string): void => { if (post.value) void loadChainThread(th
 async function scrollToFocus(): Promise<void> {
   if (!state.focus || loading.value) return;
   await nextTick();
-  const el = document.querySelector<HTMLElement>(`[data-ck="${state.focus}"]`);
+  const el = document.querySelector<HTMLElement>(`[data-ck="${CSS.escape(state.focus)}"]`);
   if (!el) return;
   el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl'); // restart the highlight animation
