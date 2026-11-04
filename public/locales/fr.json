@@ -203,5 +203,10 @@
  "rpcAuto": "Automatique",
  "rpcActive": "actif : {n}",
  "rpcIdle": "pas encore utilisé",
- "rpcBlurtNote": "Blurt : un nœud sans l’API étendue (ex. rpc.blurt.blog) est ignoré pour les listes d’articles et les commentaires."
+ "rpcBlurtNote": "Blurt : un nœud sans l’API étendue (ex. rpc.blurt.blog) est ignoré pour les listes d’articles et les commentaires.",
+ "feedTitle": "Fil",
+ "feedAll": "tout →",
+ "feedEmpty": "Aucun nouveau billet des personnes que vous suivez.",
+ "feedLogin": "Connectez-vous pour voir les derniers billets des personnes que vous suivez sur Blurt.",
+ "myBlog": "Mon blog"
 }

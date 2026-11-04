@@ -203,5 +203,10 @@
  "rpcAuto": "Aŭtomate",
  "rpcActive": "aktiva: {n}",
  "rpcIdle": "ankoraŭ ne uzita",
- "rpcBlurtNote": "Blurt: nodo sen la plilongigita API (ekz. rpc.blurt.blog) estas preterlasita por listoj de afiŝoj kaj komentoj."
+ "rpcBlurtNote": "Blurt: nodo sen la plilongigita API (ekz. rpc.blurt.blog) estas preterlasita por listoj de afiŝoj kaj komentoj.",
+ "feedTitle": "Fluo",
+ "feedAll": "ĉiuj →",
+ "feedEmpty": "Neniuj novaj afiŝoj de la sekvataj personoj.",
+ "feedLogin": "Ensalutu por vidi la plej novajn afiŝojn de la homoj, kiujn vi sekvas en Blurt.",
+ "myBlog": "Mia blogo"
 }

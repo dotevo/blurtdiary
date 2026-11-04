@@ -203,5 +203,10 @@
  "rpcAuto": "Automatycznie",
  "rpcActive": "aktywny: {n}",
  "rpcIdle": "jeszcze nieużywany",
- "rpcBlurtNote": "Blurt: węzeł bez rozszerzonego API (np. rpc.blurt.blog) jest pomijany przy listach wpisów i komentarzach."
+ "rpcBlurtNote": "Blurt: węzeł bez rozszerzonego API (np. rpc.blurt.blog) jest pomijany przy listach wpisów i komentarzach.",
+ "feedTitle": "Feed",
+ "feedAll": "wszystkie →",
+ "feedEmpty": "Brak nowych postów od obserwowanych osób.",
+ "feedLogin": "Zaloguj się, aby zobaczyć najnowsze posty osób, które obserwujesz na Blurt.",
+ "myBlog": "Mój blog"
 }

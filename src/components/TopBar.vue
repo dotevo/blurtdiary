@@ -20,6 +20,8 @@ watch(() => Object.values(auth.sessions).map((s) => s.chain + s.user).join(), ()
 setInterval(() => { void loadWallets(); }, 120000);
 const vpText = (id: string): string => { const v = wallets[id]?.vp; return v == null ? '' : `${v.toFixed(v < 10 ? 1 : 0)}%`; };
 const isOwner = computed(() => auth.me?.user === USER);
+/** Own blog: another blog has another config, so this is a normal page load (like following a notification to someone else's blog). */
+const myBlog = computed(() => (auth.me ? `?user=${encodeURIComponent(auth.me.user)}` : ''));
 const menuOpen = ref(false);
 const closeAll = (): void => { closeNotifs(); menuOpen.value = false; };
 const go = (h: string): void => { closeAll(); if (h) navigate(h); };
@@ -40,6 +42,7 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
       </template>
       <span v-for="c in loggedChains()" :key="'vp' + c.id" class="vp nb-lbl" :title="t('vpTitle', { c: c.name })"><ChainDot :chain="c.id" /> {{ vpText(c.id) || '–' }}</span>
       <button v-if="auth.me" class="icon" :aria-label="t('notifications')" @click="bell">🔔<span v-if="unread" class="badge">{{ unread > 9 ? '9+' : unread }}</span></button>
+      <a v-if="auth.me && !isOwner" class="btn" :href="myBlog" :title="t('myBlog')" :aria-label="t('myBlog')">🏠 <span class="nb-lbl">{{ t('myBlog') }}</span></a>
       <template v-if="isOwner">
         <a class="btn" :class="{ on: state.view === 'write' }" :href="href({ view: 'write' })" :title="t('write')" :aria-label="t('write')" @click.prevent="go(href({ view: 'write' }))">✍ <span class="nb-lbl">{{ t('write') }}</span></a>
         <a class="btn" :class="{ on: state.view === 'settings' }" :href="href({ view: 'settings' })" :title="t('settings')" :aria-label="t('settings')" @click.prevent="go(href({ view: 'settings' }))">⚙</a>
@@ -61,6 +64,7 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
         </component>
       </div>
       <div v-else class="panel menu-panel">
+        <a v-if="auth.me" class="mp-row" :href="myBlog" @click="isOwner && ($event.preventDefault(), go(href({})))">🏠 {{ t('myBlog') }} <span class="mute">@{{ auth.me.user }}</span></a>
         <div v-for="c in loggedChains()" :key="c.id" class="mp-chain">
           <ChainDot :chain="c.id" /><span class="grow"><b>@{{ auth.sessions[c.id].user }}</b>
             <span class="mute"> · {{ t('vp') }} {{ vpText(c.id) || '–' }}</span></span>

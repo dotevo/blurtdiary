@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { coalMap } from '../lib/coal';
 import { DEFAULT_PANELS } from '../lib/config';
 import { t } from '../lib/i18n';
 import { state, commentHref, href, navigate, USER } from '../lib/store';
+import { auth } from '../lib/auth';
+import { feed, feedHref, loadFeed } from '../lib/feed';
 import { favs } from '../lib/favs';
 import FavList from './FavList.vue';
 import { walletUrl } from '../lib/wallet';
 import { excerpt, fmtDate, payoutOf, payoutTitle, renderMd } from '../lib/util';
 import UserAvatar from './UserAvatar.vue';
 
+onMounted(() => void loadFeed()); // no-op when logged out or already loaded
 const list = computed(() => state.recent.filter((c) => !coalMap.value.has(c.author.toLowerCase())));
 const about = computed(() => (state.profile?.about ?? '').replace(/\[\[[^\]]*\]\]/g, ''));
 const cats = computed(() => state.cfg.cats.filter((c) => c.name.trim()));
@@ -24,6 +27,15 @@ const panels = computed(() => state.cfg.panels ?? DEFAULT_PANELS);
 <template>
   <aside class="side">
     <!-- visitor-level (not part of the owner's panel settings); on phones the same list is the ★ tab in the category bar -->
+    <div v-if="auth.me" class="card feed-card">
+      <h4>{{ t('feedTitle') }} <a class="mute feed-all" :href="href({ view: 'feed' })" @click.prevent="navigate(href({ view: 'feed' }))">{{ t('feedAll') }}</a></h4>
+      <div v-for="p in feed.posts.slice(0, 10)" :key="p.author + '/' + p.permlink" class="rc">
+        <UserAvatar :name="p.author" small />
+        <div><b>{{ p.author }}</b> <span class="mute">{{ fmtDate(p.created) }}</span>
+          <a :href="feedHref(p)">{{ p.title }}</a></div>
+      </div>
+      <span v-if="!feed.posts.length" class="mute">{{ feed.loading ? t('loading') : feed.error ? t('chainError', { c: 'Blurt' }) : t('feedEmpty') }}</span>
+    </div>
     <div v-if="favs.list.length" class="card fav-card"><h4>★ {{ t('favTitle') }}</h4><FavList /></div>
     <template v-for="(p, i) in panels" :key="i">
       <div v-if="p.id === 'about'" class="card author">

@@ -203,5 +203,10 @@
  "rpcAuto": "Automatic",
  "rpcActive": "active: {n}",
  "rpcIdle": "not used yet",
- "rpcBlurtNote": "Blurt: a node without the extended API (e.g. rpc.blurt.blog) is skipped for post lists and comments."
+ "rpcBlurtNote": "Blurt: a node without the extended API (e.g. rpc.blurt.blog) is skipped for post lists and comments.",
+ "feedTitle": "Feed",
+ "feedAll": "all →",
+ "feedEmpty": "No new posts from the people you follow.",
+ "feedLogin": "Log in to see the latest posts of the people you follow on Blurt.",
+ "myBlog": "My blog"
 }

@@ -18,6 +18,7 @@ import SideBar from './components/SideBar.vue';
 import SupportModal from './components/SupportModal.vue';
 import WriteView from './components/WriteView.vue';
 import UserAvatar from './components/UserAvatar.vue';
+import FeedView from './components/FeedView.vue';
 import FavList from './components/FavList.vue';
 import NodeSettings from './components/NodeSettings.vue';
 import { favs, isFav, toggleFav } from './lib/favs';
@@ -67,6 +68,7 @@ const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sideba
         <div v-if="state.loading" class="grid"><div v-for="i in 6" :key="i" class="card"><div class="skel-img" /><div class="card-b"><div class="skel-line w80" /><div class="skel-line" /><div class="skel-line w60" /></div></div></div>
         <SettingsView v-else-if="state.view === 'settings'" />
         <WriteView v-else-if="state.view === 'write'" />
+        <FeedView v-else-if="state.view === 'feed'" />
         <PostView v-else-if="state.post" />
         <template v-else>
           <div v-if="visible.length" class="grid"><PostCard v-for="p in visible" :key="p.permlink" :post="p" /></div>

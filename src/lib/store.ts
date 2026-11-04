@@ -27,7 +27,7 @@ export const state = reactive({
 });
 
 // ---------- URLs ----------
-export const href = (o: { cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' }): string => {
+export const href = (o: { cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' }): string => {
   const p = new URLSearchParams();
   if (USER) p.set('user', USER); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);

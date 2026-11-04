@@ -203,5 +203,10 @@
  "rpcAuto": "Automático",
  "rpcActive": "activo: {n}",
  "rpcIdle": "aún sin usar",
- "rpcBlurtNote": "Blurt: un nodo sin la API extendida (p. ej. rpc.blurt.blog) se omite en listas de entradas y comentarios."
+ "rpcBlurtNote": "Blurt: un nodo sin la API extendida (p. ej. rpc.blurt.blog) se omite en listas de entradas y comentarios.",
+ "feedTitle": "Feed",
+ "feedAll": "ver todo →",
+ "feedEmpty": "No hay publicaciones nuevas de las personas que sigues.",
+ "feedLogin": "Inicia sesión para ver las últimas publicaciones de quienes sigues en Blurt.",
+ "myBlog": "Mi blog"
 }
