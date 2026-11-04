@@ -33,7 +33,7 @@ const versionsOpen = ref(false);
 /** Where does this comment exist? Present = solid, absent on a chain whose thread we read = dashed, thread unreachable = "!". */
 const dots = computed(() => CHAINS.filter((x) => props.node.versions[x.id] || mirrorChains().some((m) => m.id === x.id) || x.id === 'blurt').map((x) => {
   const v = props.node.versions[x.id]; const th = threads[x.id];
-  const status = v ? undefined : th?.status === 'found' ? 'missing' as const : th?.status === 'error' ? 'error' as const : 'loading' as const;
+  const status = v ? undefined : th?.status === 'found' || th?.status === 'missing' ? 'missing' as const : th?.status === 'error' ? 'error' as const : 'loading' as const;
   const msg = v ? t('chainFoundAs', { c: x.name, a: v.author }) : status === 'missing' ? t('chainMissing', { c: x.name }) : status === 'error' ? t('chainError', { c: x.name }) : t('chainChecking', { c: x.name });
   return { id: x.id, status, title: msg };
 }));
