@@ -16,6 +16,8 @@ export class RpcError extends Error {
   /** true = the node answered with a JSON-RPC error (it is alive, only this call failed); false = it could not be reached. */
   constructor(message: string, readonly nodes: string[], readonly answered = false) { super(message); this.name = 'RpcError'; }
 }
+/** Hive/Steem nodes answer get_content for an unpublished post with this assert instead of an empty post. */
+export const isMissingError = (e: unknown): boolean => e instanceof RpcError && e.answered && /does not exist|not found/i.test(e.message);
 export type RpcStyle = 'legacy' | 'modern';
 
 const bodyFor = (api: string, method: string, params: unknown, direct: boolean): string =>
@@ -53,7 +55,9 @@ export async function jsonRpc<T = unknown>(pool: NodePool, api: string, method: 
     for (const init of attempts) {
       try { const r = await once<T>(url, init, pool.timeoutMs); pool.ok(url); return r; }
       catch (e) {
-        lastErr = e; console.warn('RPC node failed:', url, `${api}.${method}`, e);
+        lastErr = e;
+        if (isMissingError(e)) { pool.ok(url); throw e; } // a healthy node says the post is not there: final, no need to ask the others
+        console.warn('RPC node failed:', url, `${api}.${method}`, e);
         if (e instanceof RpcError && e.answered) { reachable = true; continue; }
         reachable = false;
         if ((e as Error).message?.startsWith('timeout')) break; // no point asking a silent node twice

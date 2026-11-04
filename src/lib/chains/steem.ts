@@ -5,7 +5,7 @@
 import { APP_DEV, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
-import { jsonRpc } from './jsonrpc';
+import { isMissingError, jsonRpc } from './jsonrpc';
 import { NodePool } from './nodes';
 import { resolveThread } from './thread';
 import type { ChainAccount, ChainAdapter } from './types';
@@ -36,7 +36,7 @@ export const steem: ChainAdapter = {
   },
   claimOp: (account, acc) => ['claim_reward_balance', { account, reward_steem: acc.reward_steem_balance ?? '0.000 STEEM', reward_sbd: acc.reward_sbd_balance ?? '0.000 SBD', reward_vests: acc.reward_vesting_balance ?? '0.000000 VESTS' }],
   async getContent(author, permlink) {
-    const p = await steem.call<Post>('condenser_api', 'get_content', [author, permlink]);
+    const p = await steem.call<Post>('condenser_api', 'get_content', [author, permlink]).catch((e) => { if (isMissingError(e)) return null; throw e; });
     return p?.author ? p : null;
   },
   // get_state returns { content: { "author/permlink": post, … } } for the whole discussion
