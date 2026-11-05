@@ -28,6 +28,7 @@
  "enterUsername": "Saisissez un nom d’utilisateur",
  "loginError": "Erreur de connexion",
  "wvMissing": "WhaleVault non détecté",
+ "wvUnsupported": "WhaleVault ne prend pas encore en charge {c} – connectez-vous avec votre clé posting.",
  "wvError": "Erreur WhaleVault",
  "keyMismatch": "Clé posting incorrecte",
  "needLogin": "Veuillez vous connecter",

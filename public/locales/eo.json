@@ -28,6 +28,7 @@
  "enterUsername": "Enigu uzantnomon",
  "loginError": "Ensaluta eraro",
  "wvMissing": "WhaleVault ne troviĝis",
+ "wvUnsupported": "WhaleVault ankoraŭ ne subtenas {c} – ensalutu per via posting-ŝlosilo.",
  "wvError": "WhaleVault-eraro",
  "keyMismatch": "Malĝusta posting-ŝlosilo",
  "needLogin": "Bonvolu ensaluti",

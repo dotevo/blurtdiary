@@ -28,6 +28,7 @@
  "enterUsername": "Introduce un usuario",
  "loginError": "Error de inicio de sesión",
  "wvMissing": "WhaleVault no detectado",
+ "wvUnsupported": "WhaleVault aún no admite {c}: inicia sesión con tu clave posting.",
  "wvError": "Error de WhaleVault",
  "keyMismatch": "Clave posting incorrecta",
  "needLogin": "Inicia sesión",

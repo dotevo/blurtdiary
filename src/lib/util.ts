@@ -14,6 +14,17 @@ export const slug = (s: string): string =>
   s.toLowerCase().replace(/ł/g, 'l').replace(/ø/g, 'o').replace(/đ/g, 'd').replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 export const toDate = (s: string): Date => new Date(s.endsWith('Z') ? s : s + 'Z');
+/** "5 minutes ago" / "2 hours ago" / "3 days ago" in the visitor's language; older than a week falls back to the plain date. */
+export function fmtAgo(s: string): string {
+  const sec = Math.round((Date.now() - toDate(s).getTime()) / 1000);
+  if (!isFinite(sec)) return '';
+  if (sec > 7 * 86400) return fmtDate(s);
+  const rtf = new Intl.RelativeTimeFormat(lang.value, { numeric: 'auto' });
+  if (sec < 45) return rtf.format(0, 'second');           // "now"
+  if (sec < 3600) return rtf.format(-Math.max(1, Math.round(sec / 60)), 'minute');
+  if (sec < 86400) return rtf.format(-Math.round(sec / 3600), 'hour');
+  return rtf.format(-Math.round(sec / 86400), 'day');
+}
 export const fmtDate = (s: string): string => toDate(s).toLocaleDateString(lang.value, { year: 'numeric', month: 'short', day: 'numeric' });
 
 export const meta = (p: Post): Record<string, unknown> => {

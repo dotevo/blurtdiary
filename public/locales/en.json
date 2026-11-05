@@ -28,6 +28,7 @@
  "enterUsername": "Enter a username",
  "loginError": "Login error",
  "wvMissing": "WhaleVault not detected",
+ "wvUnsupported": "WhaleVault does not support {c} yet – log in with your posting key.",
  "wvError": "WhaleVault error",
  "keyMismatch": "Wrong posting key",
  "needLogin": "Please log in",

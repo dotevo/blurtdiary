@@ -28,6 +28,7 @@
  "enterUsername": "Podaj nazwę użytkownika",
  "loginError": "Błąd logowania",
  "wvMissing": "Nie wykryto WhaleVault",
+ "wvUnsupported": "WhaleVault nie obsługuje jeszcze {c} – zaloguj się kluczem posting.",
  "wvError": "Błąd WhaleVault",
  "keyMismatch": "Nieprawidłowy klucz posting",
  "needLogin": "Zaloguj się",

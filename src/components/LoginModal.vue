@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { auth, loginKey, loginWhaleVault } from '../lib/auth';
-import { CHAINS, type ChainId } from '../lib/chains';
+import { CHAINS, adapter, type ChainId } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { accountOn } from '../lib/mirror';
 import { toast } from '../lib/toast';
@@ -33,8 +33,11 @@ async function run(fn: () => Promise<void>): Promise<void> {
       <div v-if="!auth.me" class="mute help">{{ t('blurtFirst') }}</div>
       <div v-else-if="chain !== 'blurt'" class="mute help">{{ t('loginOtherChain') }}</div>
       <input v-model="user" :placeholder="suggested || t('usernamePh')" autocapitalize="off">
-      <button class="pri" :disabled="busy" @click="run(() => loginWhaleVault(chain, clean()))">WhaleVault</button>
-      <span class="mute help">{{ t('wvRemembered') }}</span>
+      <template v-if="adapter(chain).vaultPrefix">
+        <button class="pri" :disabled="busy" @click="run(() => loginWhaleVault(chain, clean()))">WhaleVault</button>
+        <span class="mute help">{{ t('wvRemembered') }}</span>
+      </template>
+      <span v-else class="mute help">{{ t('wvUnsupported', { c: adapter(chain).name }) }}</span>
       <input v-model="key" type="password" :placeholder="t('keyPh')" autocomplete="off">
       <button :disabled="busy || !key" @click="run(() => loginKey(chain, clean(), key.trim(), remember))">{{ t('loginKey') }}</button>
       <span class="mute">{{ remember ? t('keyNoteSaved') : t('keyNote') }}</span>

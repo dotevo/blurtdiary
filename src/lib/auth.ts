@@ -72,8 +72,11 @@ export const wvAvailable = (): Promise<boolean> =>
     wvHandshake = resolve; setTimeout(() => resolve(false), 1500);
     document.dispatchEvent(new CustomEvent('wvHandshake', { detail: { type: 'wvHandshake', appid: 'blurtdiary', request_id: 0 } }));
   });
-export const wvSign = (chain: ChainId, user: string, message: unknown, reason: string) =>
-  wvRequest({ type: 'signBuffer', username: adapter(chain).vaultPrefix + user, message, method: 'Posting', reason, sigType: 'hex', appid: 'blurtdiary' });
+export const wvSign = (chain: ChainId, user: string, message: unknown, reason: string) => {
+  const prefix = adapter(chain).vaultPrefix;
+  if (!prefix) return Promise.resolve<WVResponse>({ success: false, message: t('wvUnsupported', { c: adapter(chain).name }) } as WVResponse);
+  return wvRequest({ type: 'signBuffer', username: prefix + user, message, method: 'Posting', reason, sigType: 'hex', appid: 'blurtdiary' });
+};
 
 /** Other chains can only be added on top of a Blurt login (Blurt is the main account). */
 const needBlurtFirst = (chain: ChainId): void => { if (chain !== PRIMARY && !auth.sessions[PRIMARY]) throw new Error(t('blurtFirst')); };

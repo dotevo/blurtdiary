@@ -9,7 +9,7 @@ import { adapter } from '../lib/chains';
 import { closeNotifs, loadNotifs, notifHref, notifIcon, notifs, toggleNotifs, unread } from '../lib/notifs';
 import { CHAINS } from '../lib/chains';
 import { claim, loadWallets, wallets, walletUrl } from '../lib/wallet';
-import { fmtDate } from '../lib/util';
+import { fmtAgo, fmtDate } from '../lib/util';
 import LangSelect from './LangSelect.vue';
 import ChainDot from './ChainDot.vue';
 import UserAvatar from './UserAvatar.vue';
@@ -65,7 +65,7 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
         <component :is="notifHref(n) ? 'a' : 'div'" v-for="n in notifs.items" :key="n.id" class="np-item" :class="{ unread: n.id > notifs.lastRead }"
           :style="{ '--c': adapter(n.chain).color }" :href="notifHref(n) || undefined" @click.prevent="go(notifHref(n))">
           <span class="np-ico"><ChainDot :chain="n.chain" /></span>
-          <span class="np-body"><span class="np-msg">{{ notifIcon(n.type) }} {{ n.msg }}</span><br><span class="mute">{{ adapter(n.chain).name }} · {{ fmtDate(n.date) }}</span></span>
+          <span class="np-body"><span class="np-msg">{{ notifIcon(n.type) }} {{ n.msg }}</span><br><span class="mute">{{ adapter(n.chain).name }} · <span :title="fmtDate(n.date)">{{ fmtAgo(n.date) }}</span></span></span>
         </component>
       </div>
       <div v-else class="panel menu-panel">

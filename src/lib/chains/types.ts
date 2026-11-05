@@ -65,8 +65,8 @@ export interface ChainAdapter {
   pool: NodePool;
   /** Account that receives the optional app-author tip on this chain (none = no tip is requested). */
   devAccount?: string;
-  /** Prefix WhaleVault expects in `username` for this chain. */
-  vaultPrefix: string;
+  /** Prefix WhaleVault expects in `username` for this chain; undefined = WhaleVault not supported (key login only). */
+  vaultPrefix?: string;
   /** Label of the staked token (BP / HP / SP) – shown with pending rewards. */
   powerSymbol: string;
   /** Image host that accepts `POST <host>/<account>/<signature>` uploads (same signing scheme on all chains); none = no upload. */
