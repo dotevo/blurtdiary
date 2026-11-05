@@ -1,4 +1,4 @@
-import { normHex } from './config';
+import { normHex, UI_OPTIONS } from './config';
 import type { BlogConfig } from './types';
 
 interface Vars { bg: string; card: string; text: string; mute: string; line: string; accent: string }
@@ -31,4 +31,9 @@ export function applyTheme(cfg: BlogConfig): void {
   if (!el) { el = document.createElement('style'); el.id = 'diary-theme'; document.head.append(el); }
   el.textContent = `:root{${decl(light)};--font:${FONTS[cfg.font ?? 'sans']}}@media(prefers-color-scheme:dark){:root{${decl(dark)}}}`;
   document.documentElement.dataset.layout = cfg.layout ?? 'grid';
+  // extra options: one attribute per non-default value (data-ui-radius="sharp" ...); CSS in style.css. Default = no attribute = the classic look.
+  for (const k of Object.keys(UI_OPTIONS)) {
+    const v = cfg.ui?.[k];
+    if (v && UI_OPTIONS[k].includes(v) && v !== UI_OPTIONS[k][0]) document.documentElement.setAttribute(`data-ui-${k}`, v); else document.documentElement.removeAttribute(`data-ui-${k}`);
+  }
 }

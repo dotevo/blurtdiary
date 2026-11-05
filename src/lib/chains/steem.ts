@@ -5,6 +5,7 @@
 import { APP_DEV, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
+import { collectStats } from './stats';
 import { isMissingError, jsonRpc } from './jsonrpc';
 import { NodePool } from './nodes';
 import { resolveThread } from './thread';
@@ -43,6 +44,7 @@ export const steem: ChainAdapter = {
   getThread: (author, permlink) => resolveThread(steem, author, permlink, async () =>
     (await steem.call<{ content?: Record<string, Post> }>('condenser_api', 'get_state', [`/tag/@${author}/${permlink}`])).content, true),
 
+  stats: (account, days, onProgress) => collectStats(steem, account, days, onProgress),
   beneficiaries: (author, _parent, tip) => (tip && steem.devAccount && author !== steem.devAccount ? sortBens([{ account: steem.devAccount, weight: DEV_WEIGHT }]) : []),
   commentOptions: (author, permlink, beneficiaries, maxPayout = '1000000.000 SBD') => ['comment_options', {
     author, permlink, max_accepted_payout: maxPayout, percent_steem_dollars: 10000, allow_votes: true, allow_curation_rewards: true,

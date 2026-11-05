@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, watch } from 'vue';
 import { auth, loginOpen } from '../lib/auth';
 import { CHAINS, PRIMARY } from '../lib/chains';
-import { CONFIG_PERMLINK, DEFAULT_PANELS, MAX_CUSTOM_PANELS, BUILTIN_PANELS, normAccount, parseTags, safeUrl } from '../lib/config';
+import { UI_OPTIONS, CONFIG_PERMLINK, DEFAULT_PANELS, MAX_CUSTOM_PANELS, BUILTIN_PANELS, normAccount, parseTags, safeUrl } from '../lib/config';
 import { LANGS, t } from '../lib/i18n';
 import { saveConfig } from '../lib/publish';
 import { href, navigate, state, USER } from '../lib/store';
@@ -20,6 +20,10 @@ const backup = JSON.parse(JSON.stringify(state.cfg));
 let saved = false;
 const busy = ref(false);
 watch(c, () => applyTheme(c), { deep: true });
+function setUi(k: string, val: string): void {
+  const ui = { ...(c.ui ?? {}) }; if (val === UI_OPTIONS[k][0]) delete ui[k]; else ui[k] = val;
+  c.ui = Object.keys(ui).length ? ui : undefined;
+}
 onBeforeUnmount(() => { if (!saved) { state.cfg = backup; applyTheme(backup); } });
 
 const pal = computed(() => PALETTES[c.palette ?? ''] ?? PALETTES.default);
@@ -134,6 +138,18 @@ const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
       <select class="sel wide" :value="c.sidebar ?? 'right'" @change="c.sidebar = ($event.target as HTMLSelectElement).value as typeof c.sidebar">
         <option value="right">{{ t('sideRight') }}</option><option value="left">{{ t('sideLeft') }}</option><option value="none">{{ t('sideNone') }}</option>
       </select>
+    </section>
+
+    <section class="card form">
+      <h3>{{ t('secUi') }}</h3>
+      <div class="mute help">{{ t('uiHelp') }}</div>
+      <template v-for="(vals, k) in UI_OPTIONS" :key="k">
+        <label class="lbl">{{ t('ui_' + k) }}</label>
+        <select class="sel wide" :value="c.ui?.[k] ?? vals[0]" @change="setUi(String(k), ($event.target as HTMLSelectElement).value)">
+          <option v-for="o in vals" :key="o" :value="o">{{ t('uiv_' + o) }}</option>
+        </select>
+      </template>
+      <div><button class="small" :disabled="!c.ui || !Object.keys(c.ui).length" @click="c.ui = undefined">{{ t('uiReset') }}</button></div>
     </section>
 
     <section class="card form">

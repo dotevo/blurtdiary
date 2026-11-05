@@ -5,6 +5,7 @@
 import { APP_DEV, COMMUNITY_WEIGHT, commentOptions as blurtCommentOptions, communityOf, DEV_WEIGHT, sortBens } from '../ben';
 import type { Beneficiary, Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
+import { collectStats } from './stats';
 import { jsonRpc } from './jsonrpc';
 import { NodePool } from './nodes';
 import { resolveThread } from './thread';
@@ -43,6 +44,7 @@ export const blurt: ChainAdapter = {
   getThread: (author, permlink) => resolveThread(blurt, author, permlink, () => blurt.call<Record<string, Post>>('bridge', 'get_discussion', { author, permlink })),
 
   /** community 3% (thread in a blurt-NNNNNN community) + app author 1% (optional) */
+  stats: (account, days, onProgress) => collectStats(blurt, account, days, onProgress),
   beneficiaries(author, parent, tip) {
     const bens: Beneficiary[] = [];
     const community = communityOf(parent);

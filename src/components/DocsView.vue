@@ -82,6 +82,16 @@ categories:
 <tr><td><code>font</code></td><td><code>sans</code>, <code>serif</code> lub <code>mono</code>.</td></tr>
 <tr><td><code>layout</code></td><td><code>grid</code> (kafelki) lub <code>list</code>.</td></tr>
 <tr><td><code>sidebar</code></td><td><code>right</code>, <code>left</code> lub <code>none</code>.</td></tr>
+<tr><td><code>radius</code></td><td><code>soft</code> (domyślnie), <code>sharp</code> lub <code>round</code> – zaokrąglenie rogów.</td></tr>
+<tr><td><code>cards</code></td><td><code>shadow</code> (domyślnie), <code>flat</code> lub <code>lifted</code>.</td></tr>
+<tr><td><code>density</code></td><td><code>normal</code>, <code>compact</code> lub <code>airy</code> – odstępy.</td></tr>
+<tr><td><code>width</code></td><td><code>normal</code>, <code>narrow</code> lub <code>wide</code> – szerokość strony.</td></tr>
+<tr><td><code>columns</code></td><td><code>auto</code>, <code>2</code>, <code>3</code> lub <code>4</code> – kolumny siatki (na telefonie zawsze 1).</td></tr>
+<tr><td><code>hero</code></td><td><code>normal</code>, <code>compact</code> lub <code>tall</code> – wysokość nagłówka.</td></tr>
+<tr><td><code>text-size</code></td><td><code>normal</code>, <code>small</code> lub <code>large</code> – tekst artykułu.</td></tr>
+<tr><td><code>headings</code></td><td><code>inherit</code>, <code>serif</code>, <code>sans</code> lub <code>mono</code> – czcionka nagłówków.</td></tr>
+<tr><td><code>thumbs</code></td><td><code>show</code> lub <code>hide</code> – obrazki na kartach.</td></tr>
+<tr><td><code>rewards</code></td><td><code>show</code> lub <code>hide</code> – kwoty nagród. (Pierwsza wartość każdej opcji = dotychczasowy wygląd; nieznane wartości są ignorowane.)</td></tr>
 <tr><td><code>logo</code></td><td>Logo w nagłówku zamiast awatara, adres <code>https://</code>.</td></tr>
 <tr><td><code>panels:</code></td><td>Panele boczne <b>w podanej kolejności</b>: <code>about</code>, <code>payouts</code> (oczekujące wypłaty), <code>comments</code> (ostatnie komentarze), <code>categories</code> (lista kategorii) albo własny panel <code>- Tytuł | tekst</code> (Markdown w jednej linii, do 500 znaków, maks. 6 własnych). Pominięty panel się nie wyświetla; <code>panels: none</code> usuwa wszystkie. Stary zapis <code>widgets: about, comments</code> nadal działa.</td></tr>
 <tr><td><code>links:</code></td><td>Lista <code>- Nazwa | https://adres</code> – wyświetlana w nagłówku.</td></tr>
@@ -237,6 +247,16 @@ categories:
 <tr><td><code>font</code></td><td><code>sans</code>, <code>serif</code> or <code>mono</code>.</td></tr>
 <tr><td><code>layout</code></td><td><code>grid</code> (tiles) or <code>list</code>.</td></tr>
 <tr><td><code>sidebar</code></td><td><code>right</code>, <code>left</code> or <code>none</code>.</td></tr>
+<tr><td><code>radius</code></td><td><code>soft</code> (default), <code>sharp</code> or <code>round</code> – corner rounding.</td></tr>
+<tr><td><code>cards</code></td><td><code>shadow</code> (default), <code>flat</code> or <code>lifted</code>.</td></tr>
+<tr><td><code>density</code></td><td><code>normal</code>, <code>compact</code> or <code>airy</code> – spacing.</td></tr>
+<tr><td><code>width</code></td><td><code>normal</code>, <code>narrow</code> or <code>wide</code> – page width.</td></tr>
+<tr><td><code>columns</code></td><td><code>auto</code>, <code>2</code>, <code>3</code> or <code>4</code> – grid columns (always 1 on phones).</td></tr>
+<tr><td><code>hero</code></td><td><code>normal</code>, <code>compact</code> or <code>tall</code> – header height.</td></tr>
+<tr><td><code>text-size</code></td><td><code>normal</code>, <code>small</code> or <code>large</code> – article text.</td></tr>
+<tr><td><code>headings</code></td><td><code>inherit</code>, <code>serif</code>, <code>sans</code> or <code>mono</code> – heading font.</td></tr>
+<tr><td><code>thumbs</code></td><td><code>show</code> or <code>hide</code> – images on cards.</td></tr>
+<tr><td><code>rewards</code></td><td><code>show</code> or <code>hide</code> – reward amounts. (The first value of every option is the classic look; unknown values are ignored.)</td></tr>
 <tr><td><code>logo</code></td><td>Header logo instead of the avatar, an <code>https://</code> URL.</td></tr>
 <tr><td><code>panels:</code></td><td>Sidebar panels <b>in the given order</b>: <code>about</code>, <code>payouts</code> (pending payouts), <code>comments</code> (recent comments), <code>categories</code> (category list) or your own panel <code>- Title | text</code> (single-line Markdown, up to 500 characters, at most 6 custom ones). A panel that is not listed is not shown; <code>panels: none</code> removes them all. The old <code>widgets: about, comments</code> line still works.</td></tr>
 <tr><td><code>links:</code></td><td>A list of <code>- Name | https://url</code> – shown in the header.</td></tr>

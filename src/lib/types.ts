@@ -19,6 +19,8 @@ export interface BlogConfig {
   font?: 'sans' | 'serif' | 'mono'; layout?: 'grid' | 'list'; sidebar?: 'right' | 'left' | 'none'; panels?: PanelCfg[];
   /** The blog owner's account names on the OTHER chains (chain id -> account). Blurt is always `?user=`. */
   accounts?: Record<string, string>;
+  /** Extra look-and-feel options (see UI_OPTIONS in config.ts). Only values that differ from the default are stored. */
+  ui?: Record<string, string>;
   links: BlogLink[]; cats: BlogCategory[];
 }
 export interface Profile { name?: string; about?: string; cover_image?: string; blog_config?: string; diary_config?: string }

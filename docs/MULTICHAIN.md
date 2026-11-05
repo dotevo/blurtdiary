@@ -83,3 +83,11 @@ they are logged in with there, but visitors only see mirrors of declared account
 - The optional 1% app-author tip (`dotevo`) is requested on every chain (same switch); remove `devAccount` from a chain file to disable it there.
 - Blurt communities are not mapped; mirrored posts drop `blurt-NNNNNN` tags and use the first remaining tag as category (e.g. `hobby`) as the root `parent_permlink`.
 - WhaleVault prefixes for Hive/Steem (`hiv:`, `stm:`) and the public node lists are best-effort; posting-key login is the verified path.
+
+## Statistics
+
+`?view=stats` shows the blog owner's earnings per chain (author / curation / beneficiary rewards, 7-365 days). The fetching is NOT in the view:
+every adapter has `stats(account, days, onProgress)`. `chains/stats.ts` implements it once from the account history and recognises amounts by
+symbol (the chain token, its dollar-like token, VESTS), so a new chain only needs `symbol`, `payoutSymbol` and `call` and sets
+`stats: (a, d, p) => collectStats(mychain, a, d, p)`. A chain with a different history API returns the same `ChainStats` shape from its own code.
+The view lists every chain that has an account for the blog owner - no change needed when a chain is added.

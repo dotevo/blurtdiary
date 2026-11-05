@@ -9,6 +9,21 @@ export type ChainAccount = { posting: { key_auths: [string, number][] } } & Reco
 /** Pending (unclaimed) rewards of an account. */
 export interface RewardInfo { has: boolean; label: string; power: string }
 
+/** Rewards of one day (amounts in the chain's token; `debt` in its dollar-like token HBD/SBD when it has one). */
+export interface StatPoint { day: string; author: number; curation: number; benefactor: number; debt: number }
+/** Earnings of one account on one chain over the last `days` days. */
+export interface ChainStats {
+  chain: ChainId; account: string; days: number;
+  /** Token the amounts are in (BLURT, HIVE, STEEM ...) and the dollar-like one for `debt` (absent when the chain has none). */
+  unit: string; debtUnit?: string;
+  points: StatPoint[]; totals: Omit<StatPoint, 'day'>;
+  /** Operations looked at, how far back the history was read, and whether it reached the start of the period. */
+  scanned: number; from: string | null; complete: boolean;
+  /** Staked (VESTS) rewards were converted with the current vesting ratio. */
+  vestsConverted: boolean;
+}
+export interface StatsProgress { scanned: number; reached: string }
+
 /** Result of looking a post up on one chain. */
 export type MirrorStatus = 'loading' | 'found' | 'missing' | 'error';
 
@@ -80,6 +95,11 @@ export interface ChainAdapter {
   getContent(author: string, permlink: string): Promise<Post | null>;
   /** The post and its whole comment tree, with the same found/missing/error distinction as `getContent`. */
   getThread(author: string, permlink: string): Promise<ChainThread>;
+  /**
+   * Earnings statistics of `account` for the last `days` days. Chains with the usual account history can return
+   * `collectStats(this, ...)` (see stats.ts); the stats view only ever calls this method.
+   */
+  stats(account: string, days: number, onProgress?: (p: StatsProgress) => void): Promise<ChainStats>;
   /** Beneficiaries for a new comment/post of `author` under `parent` on this chain. */
   beneficiaries(author: string, parent: Post, tip: boolean): Beneficiary[];
   /** The chain-specific `comment_options` operation (asset symbols and the dollar-percent field name differ). */

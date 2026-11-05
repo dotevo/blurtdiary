@@ -14,6 +14,7 @@ const go = (h: string): void => { if (h) navigate(h); };
   <nav class="bar"><div class="bar-in">
     <button class="chip fav-chip" :class="{ on: favOpen }" :title="t('favTitle')" :aria-label="t('favTitle')" @click="favOpen = !favOpen">★<span v-if="favs.list.length"> {{ favs.list.length }}</span></button>
     <a v-if="auth.me" class="chip feed-chip" :class="{ on: state.view === 'feed' }" :href="href({ view: 'feed' })" @click.prevent="go(href({ view: 'feed' }))">{{ t('feedTitle') }}</a>
+    <a class="chip" :class="{ on: state.view === 'stats' }" :href="href({ view: 'stats' })" @click.prevent="go(href({ view: 'stats' }))">📊 {{ t('statsTitle') }}</a>
     <div class="chips">
       <a class="chip" :class="{ on: !state.cat && !state.post && !state.view }" :href="href({})" @click.prevent="go(href({}))">{{ t('all') }}</a>
       <a v-for="c in cats" :key="c.id" class="chip" :class="{ on: state.cat === c.id && !state.view }" :title="c.desc" :href="href({ cat: c.id })" @click.prevent="go(href({ cat: c.id }))">{{ c.name }}</a>

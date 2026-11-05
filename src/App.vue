@@ -18,6 +18,7 @@ import SideBar from './components/SideBar.vue';
 import SupportModal from './components/SupportModal.vue';
 import WriteView from './components/WriteView.vue';
 import UserAvatar from './components/UserAvatar.vue';
+import StatsView from './components/StatsView.vue';
 import FeedView from './components/FeedView.vue';
 import FavList from './components/FavList.vue';
 import NodeSettings from './components/NodeSettings.vue';
@@ -69,6 +70,7 @@ const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sideba
         <SettingsView v-else-if="state.view === 'settings'" />
         <WriteView v-else-if="state.view === 'write'" />
         <FeedView v-else-if="state.view === 'feed'" />
+        <StatsView v-else-if="state.view === 'stats'" />
         <PostView v-else-if="state.post" />
         <template v-else>
           <div v-if="visible.length" class="grid"><PostCard v-for="p in visible" :key="p.permlink" :post="p" /></div>

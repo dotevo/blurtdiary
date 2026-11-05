@@ -23,6 +23,23 @@ export const CONFIG_PERMLINK = 'blurt-diary-config';
 export const BUILTIN_PANELS = ['about', 'payouts', 'comments', 'categories'];
 export const DEFAULT_PANELS: PanelCfg[] = [{ id: 'about' }, { id: 'payouts' }, { id: 'comments' }];
 export const MAX_CUSTOM_PANELS = 6;
+/**
+ * Extra appearance options. The FIRST value of each list is the default and means "exactly the look the blog always had", so a blog
+ * that never touches these keeps its look, and default values are never written to the config post. An unknown key or value is ignored.
+ * CSS lives in style.css under [data-ui-<key>=<value>]; there is deliberately NO free-form CSS option (the config comes from the chain).
+ */
+export const UI_OPTIONS: Record<string, string[]> = {
+  radius: ['soft', 'sharp', 'round'],
+  cards: ['shadow', 'flat', 'lifted'],
+  density: ['normal', 'compact', 'airy'],
+  width: ['normal', 'narrow', 'wide'],
+  columns: ['auto', '2', '3', '4'],
+  hero: ['normal', 'compact', 'tall'],
+  'text-size': ['normal', 'small', 'large'],
+  headings: ['inherit', 'serif', 'sans', 'mono'],
+  thumbs: ['show', 'hide'],
+  rewards: ['show', 'hide'],
+};
 export const emptyConfig = (): BlogConfig => ({ cats: [], links: [] });
 
 /** Only plain https URLs without characters that could break out of CSS url() or attributes. */
@@ -58,6 +75,10 @@ function setKey(cfg: BlogConfig, key: string, v: string): void {
     case 'layout': if (['grid', 'list'].includes(v.trim())) cfg.layout = v.trim() as BlogConfig['layout']; break;
     case 'sidebar': if (['right', 'left', 'none'].includes(v.trim())) cfg.sidebar = v.trim() as BlogConfig['sidebar']; break;
     case 'panels': if (v.trim().toLowerCase() === 'none') cfg.panels = []; break; // "panels: none" = no sidebar panels at all
+    default: { // extra appearance options; only a known value that is not the default is kept
+      const list = UI_OPTIONS[key], val = v.trim().toLowerCase();
+      if (list && list.includes(val) && val !== list[0]) (cfg.ui ??= {})[key] = val;
+    }
   }
 }
 function addCat(cfg: BlogConfig, s: string): void {
@@ -121,7 +142,8 @@ export function serializeConfig(cfg: BlogConfig): string {
     ...kv('title', cfg.title), ...kv('subtitle', cfg.subtitle), ...kv('about', cfg.about), ...kv('cover', cfg.cover), ...kv('logo', cfg.logo),
     ...kv('language', cfg.language), ...kv('footer', cfg.footer), '',
     ...kv('palette', cfg.palette), ...kv('accent', cfg.accent), ...kv('accent-dark', cfg.accentDark), ...kv('bg', cfg.bg), ...kv('bg-dark', cfg.bgDark),
-    ...kv('font', cfg.font), ...kv('layout', cfg.layout), ...kv('sidebar', cfg.sidebar), '',
+    ...kv('font', cfg.font), ...kv('layout', cfg.layout), ...kv('sidebar', cfg.sidebar),
+    ...Object.keys(UI_OPTIONS).flatMap((k) => kv(k, cfg.ui?.[k] && UI_OPTIONS[k].includes(cfg.ui[k]) && cfg.ui[k] !== UI_OPTIONS[k][0] ? cfg.ui[k] : undefined)), '',
     ...(cfg.panels?.length === 0 ? ['panels: none  ', ''] : []),
     ...(cfg.panels?.length ? ['panels:', ...cfg.panels.map((p) => (p.id === 'custom' ? `- ${(p.title ?? '').replace(/[|\n]/g, ' ').trim()} | ${(p.text ?? '').replace(/\s*\n\s*/g, ' ').trim()}` : `- ${p.id}`)), ''] : []),
     ...(Object.keys(cfg.accounts ?? {}).length ? ['chains:', ...Object.entries(cfg.accounts ?? {}).filter(([, a]) => normAccount(a)).map(([c, a]) => `- ${c} | ${normAccount(a)}`), ''] : []),

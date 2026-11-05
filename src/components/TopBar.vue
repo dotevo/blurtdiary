@@ -25,6 +25,10 @@ const myBlog = computed(() => (auth.me ? `?user=${encodeURIComponent(auth.me.use
 const menuOpen = ref(false);
 const closeAll = (): void => { closeNotifs(); menuOpen.value = false; };
 const go = (h: string): void => { closeAll(); if (h) navigate(h); };
+/** Chains with unclaimed rewards. Phones get one 🎁 chip with this count (the amounts are in the account menu), desktops one button per chain. */
+const rewardChains = computed(() => loggedChains().filter((c) => wallets[c.id]?.has));
+const rewardTitle = computed(() => rewardChains.value.map((c) => `${c.name}: ${wallets[c.id].label}`).join('\n'));
+const openRewards = (): void => { closeNotifs(); menuOpen.value = true; };
 const bell = (): void => { menuOpen.value = false; toggleNotifs(); };
 const toggleMenu = (): void => { closeNotifs(); menuOpen.value = !menuOpen.value; };
 const logout = (chain: ChainId): void => { closeAll(); setSession(chain, null); };
@@ -38,8 +42,9 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
     <span class="grow" />
     <div v-if="loggedIn" class="user-area">
       <template v-for="c in loggedChains()" :key="c.id">
-        <button v-if="wallets[c.id]?.has" class="pri claim" :disabled="wallets[c.id].busy" :title="t('claimTitle', { list: wallets[c.id].label })" @click="claim(c.id)">🎁 <ChainDot :chain="c.id" /><span class="nb-lbl"> {{ wallets[c.id].power }} {{ c.powerSymbol }}</span></button>
+        <button v-if="wallets[c.id]?.has" class="pri claim claim-d" :disabled="wallets[c.id].busy" :title="t('claimTitle', { list: wallets[c.id].label })" @click="claim(c.id)">🎁 <ChainDot :chain="c.id" /><span class="nb-lbl"> {{ wallets[c.id].power }} {{ c.powerSymbol }}</span></button>
       </template>
+      <button v-if="rewardChains.length" class="pri claim claim-m" :title="rewardTitle" :aria-label="t('rewardsPending')" @click="openRewards">🎁<span class="badge badge-n">{{ rewardChains.length }}</span></button>
       <span v-for="c in loggedChains()" :key="'vp' + c.id" class="vp nb-lbl" :title="t('vpTitle', { c: c.name })"><ChainDot :chain="c.id" /> {{ vpText(c.id) || '–' }}</span>
       <button v-if="auth.me" class="icon" :aria-label="t('notifications')" @click="bell">🔔<span v-if="unread" class="badge">{{ unread > 9 ? '9+' : unread }}</span></button>
       <a v-if="auth.me && !isOwner" class="btn" :href="myBlog" :title="t('myBlog')" :aria-label="t('myBlog')">🏠 <span class="nb-lbl">{{ t('myBlog') }}</span></a>
@@ -70,6 +75,8 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
             <span class="mute"> · {{ t('vp') }} {{ vpText(c.id) || '–' }}</span></span>
           <a class="mute" :href="walletUrl(auth.sessions[c.id].user, c.id)" target="_blank" rel="noopener">{{ t('wallet') }}</a>
           <button class="small" @click="logout(c.id)">{{ t('logout') }}</button>
+          <div v-if="wallets[c.id]?.has" class="mp-reward"><span>🎁 {{ wallets[c.id].label }}</span>
+            <button class="pri small" :disabled="wallets[c.id].busy" @click="claim(c.id)">{{ wallets[c.id].busy ? '…' : t('claimBtn') }}</button></div>
         </div>
         <div v-if="auth.me && loggedChains().length > 1" class="mute mp-note">{{ t('logoutBlurtAll') }}</div>
         <button v-if="loggedChains().length < CHAINS.length" class="mp-row" @click="addAccount">＋ {{ t('addAccount') }}</button>
