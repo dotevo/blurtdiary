@@ -35,7 +35,7 @@ same permlink, so a reader can interact from whichever chain they have an accoun
 11. **Blurt first.** Other chains can be logged in only while logged in to Blurt (greyed out otherwise); logging out of Blurt ends all sessions.
 12. **Layout.** A top bar above the logo holds language, login, voting power, rewards, notifications, write/settings and the account menu;
     the category chips are a separate bar below. Dropdowns are fixed to the viewport, scroll inside, and never overflow on phones.
-13. **Notifications** are marked with their chain (colour + dot; Blurt only for now). A link to a comment opens the root post in the blog of
+13. **Notifications** are marked with their chain (colour + dot). They are loaded from every chain the visitor is logged in on (`bridge.account_notifications`; a node without it contributes none) and merged by date; read-state is kept per chain. A link to a comment opens the root post in the blog of
     the root post's author (the page switches blogs when needed) and highlights the comment.
 
 ## Blog configuration
@@ -79,7 +79,7 @@ they are logged in with there, but visitors only see mirrors of declared account
 
 ## Known limits
 
-- Notifications, the "support old content" comment flow and the blog settings post are Blurt-only.
+- The "support old content" comment flow and the blog settings post are Blurt-only.
 - The optional 1% app-author tip (`dotevo`) is requested on every chain (same switch); remove `devAccount` from a chain file to disable it there.
 - Blurt communities are not mapped; mirrored posts drop `blurt-NNNNNN` tags and use the first remaining tag as category (e.g. `hobby`) as the root `parent_permlink`.
 - WhaleVault prefixes for Hive/Steem (`hiv:`, `stm:`) and the public node lists are best-effort; posting-key login is the verified path.

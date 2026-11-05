@@ -304,7 +304,7 @@ categories:
 <p>Comments by accounts on the COAL list (spam, scam, impersonation) are <b>blurred</b> and need a click on "I understand, show the comment". The content of such a comment (including images and links) is not loaded at all until you reveal it. Listed accounts do not appear in recent comments or notifications. The list comes from <code>coal.blurtwallet.com</code> and is cached for a day. For testing, append <code>&amp;coal=name1,name2</code> to the URL.</p>
 
 <h2 id="en-chains">Other blockchains (Hive, Steem)</h2>
-<p>Blurt is always the <b>primary</b> chain: post lists, categories, search and notifications come from Blurt only. The other chains are <i>mirrors</i> – the same posts and comments under the same permlink.</p>
+<p>Blurt is always the <b>primary</b> chain: post lists, categories and search come from Blurt only. The other chains are <i>mirrors</i> – the same posts and comments under the same permlink.</p>
 <ul>
 <li><b>Accounts</b> – in the configurator (⚙ → <i>Accounts on other blockchains</i>) enter your account names, e.g. <code>hive | my-account</code>. They are stored in the settings post on Blurt, so visitors see them too.</li>
 <li><b>Publishing</b> – a post goes to Blurt and to every chain where you are logged in with the account from the settings.</li>
@@ -314,7 +314,7 @@ categories:
 <li><b>Voting and rewards</b> – ♥ votes on every chain where you are logged in and a copy exists; the bar shows the voting power (VP) of each chain, and every chain with pending rewards has its own 🎁 button.</li>
 <li><b>Images</b> – each image is uploaded separately to the image host of every logged-in chain, and a chain's copy of the post uses that chain's own URLs.</li>
 </ul>
-<p class="mute">Notifications and the "support old content" comments work on Blurt only. Technical details: <code>docs/MULTICHAIN.md</code> in the repository.</p>
+<p class="mute">The "support old content" comments work on Blurt only. Notifications are collected from every chain you are logged in on (a node without the bridge API simply shows none); links about your own posts open here, others open on that chain's website. Technical details: <code>docs/MULTICHAIN.md</code> in the repository.</p>
 <h2 id="en-url">URL parameters</h2>
 <table>
 <tbody>

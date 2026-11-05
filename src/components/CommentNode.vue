@@ -14,6 +14,7 @@ import ChainDot from './ChainDot.vue';
 import DevTipToggle from './DevTipToggle.vue';
 import UserAvatar from './UserAvatar.vue';
 import VersionsModal from './VersionsModal.vue';
+import VotesModal from './VotesModal.vue';
 
 /**
  * One comment, merged from every chain that has it (matched by permlink).
@@ -30,6 +31,7 @@ const shown = ref(false);
 const showMirrors = computed(() => mirrorChains().length > 0);
 const differs = computed(() => versionsDiffer(props.node.versions));
 const versionsOpen = ref(false);
+const votesOpen = ref(false);
 /** Where does this comment exist? Present = solid, absent on a chain whose thread we read = dashed, thread unreachable = "!". */
 const dots = computed(() => CHAINS.filter((x) => props.node.versions[x.id] || mirrorChains().some((m) => m.id === x.id) || x.id === 'blurt').map((x) => {
   const v = props.node.versions[x.id]; const th = threads[x.id];
@@ -94,6 +96,7 @@ async function sendCopy(chain: string): Promise<void> {
     <div class="mute cm-actions">
       <!-- one click votes on every chain where we are logged in and a copy exists -->
       <a href="#" :class="{ on: votedAll(node.versions) }" :title="voteTitle" @click.prevent="toggleVoteAll(node.versions)">♥ {{ c.active_votes?.length ?? 0 }}</a>
+      <a href="#" class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click.prevent="votesOpen = true">ⓘ</a>
       <a href="#" @click.prevent="startReply">{{ t('reply') }}</a>
       <span v-if="node.children.length">{{ t('repliesCount', { n: node.children.length }) }}</span>
       <a v-if="differs" href="#" class="vdiff" :title="accounts()" @click.prevent="versionsOpen = true">⚠ {{ t('versionsDiffer') }}</a>
@@ -106,6 +109,7 @@ async function sendCopy(chain: string): Promise<void> {
       <DevTipToggle v-if="benText" :list="benText" />
     </div>
     <CommentNode v-for="r in node.children" :key="r.permlink" :node="r" :parent="node.versions" :depth="depth + 1" />
+    <VotesModal v-if="votesOpen" :versions="node.versions" @close="votesOpen = false" />
     <VersionsModal v-if="versionsOpen" :versions="node.versions" @close="versionsOpen = false" />
   </div>
 </template>

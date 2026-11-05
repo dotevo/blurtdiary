@@ -1,6 +1,6 @@
 /**
  * Melek (Blurt fork). Key login only for now: WhaleVault has no Melek support yet.
- * When it does, set `vaultPrefix` below (e.g. 'mlk:') – that is the only change needed, the login button appears by itself.
+ * When it does, set `vaultPrefix` below – that is the only change needed, the login button appears by itself.
  * Unverified assumptions are marked "(?)"; the rest is derived from the account record so unknown field names do not break it.
  */
 import { commentOptions } from '../ben';
@@ -23,7 +23,7 @@ export const melek: ChainAdapter = {
   id: 'melek', name: 'Melek', letter: 'M', color: '#8e44ad', symbol: 'MELEK', payoutSymbol: 'MELEK',
   addressPrefix: 'MELEK', chainId: '907959e559e253f0db275e467363425cc2cf4f20f7721699914d248a5547ad8b', pool: MELEK_POOL,
   devAccount: undefined, // no tip account on this chain
-  vaultPrefix: undefined, // TODO: WhaleVault prefix for Melek, once supported (login by key only until then)
+  vaultPrefix: undefined, // TODO: WhaleVault prefix for Melek once supported (key login only until then)
   powerSymbol: 'MP',
   imageHost: undefined, imageHosts: [],
 

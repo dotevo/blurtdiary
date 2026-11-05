@@ -6,7 +6,7 @@ import { t } from '../lib/i18n';
 import { setVoteWeight, voteWeight } from '../lib/settings';
 import { href, navigate, state, USER } from '../lib/store';
 import { adapter } from '../lib/chains';
-import { closeNotifs, loadNotifs, notifHref, notifIcon, notifs, toggleNotifs, unread } from '../lib/notifs';
+import { closeNotifs, isUnread, loadNotifs, notifIcon, notifLink, notifs, toggleNotifs, unread } from '../lib/notifs';
 import { CHAINS } from '../lib/chains';
 import { claim, loadWallets, wallets, walletUrl } from '../lib/wallet';
 import { fmtAgo, fmtDate } from '../lib/util';
@@ -25,6 +25,10 @@ const myBlog = computed(() => (auth.me ? `?user=${encodeURIComponent(auth.me.use
 const menuOpen = ref(false);
 const closeAll = (): void => { closeNotifs(); menuOpen.value = false; };
 const go = (h: string): void => { closeAll(); if (h) navigate(h); };
+const openNotif = (n: Parameters<typeof notifLink>[0]): void => {
+  const l = notifLink(n);
+  if (l.ext) { closeAll(); window.open(l.href, '_blank', 'noopener'); } else go(l.href);
+};
 /** Chains with unclaimed rewards. Phones get one 🎁 chip with this count (the amounts are in the account menu), desktops one button per chain. */
 const rewardChains = computed(() => loggedChains().filter((c) => wallets[c.id]?.has));
 const rewardTitle = computed(() => rewardChains.value.map((c) => `${c.name}: ${wallets[c.id].label}`).join('\n'));
@@ -62,8 +66,8 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
       <div v-if="notifs.open" class="panel notif-panel">
         <div class="np-head"><b>{{ t('notifications') }}</b><span v-if="notifs.loading" class="mute"><span class="spinner" /> {{ t('refreshing') }}</span></div>
         <div v-if="!notifs.items.length && !notifs.loading" class="mute np-empty">{{ t('noNotifs') }}</div>
-        <component :is="notifHref(n) ? 'a' : 'div'" v-for="n in notifs.items" :key="n.id" class="np-item" :class="{ unread: n.id > notifs.lastRead }"
-          :style="{ '--c': adapter(n.chain).color }" :href="notifHref(n) || undefined" @click.prevent="go(notifHref(n))">
+        <component :is="notifLink(n).href ? 'a' : 'div'" v-for="n in notifs.items" :key="n.chain + n.id" class="np-item" :class="{ unread: isUnread(n) }"
+          :style="{ '--c': adapter(n.chain).color }" :href="notifLink(n).href || undefined" @click.prevent="openNotif(n)">
           <span class="np-ico"><ChainDot :chain="n.chain" /></span>
           <span class="np-body"><span class="np-msg">{{ notifIcon(n.type) }} {{ n.msg }}</span><br><span class="mute">{{ adapter(n.chain).name }} · <span :title="fmtDate(n.date)">{{ fmtAgo(n.date) }}</span></span></span>
         </component>

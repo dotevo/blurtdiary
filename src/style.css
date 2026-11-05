@@ -304,3 +304,9 @@ main,.side{min-width:0}
 .blog-link{align-items:center}.blog-link:hover b{color:var(--accent)}.blog-link .mute{font-size:.8rem;line-height:1.35}
 .pin-badge{font-size:.75rem;color:var(--accent);font-weight:600}.month-x{font-size:.9rem;margin-left:6px}
 .follow{vertical-align:middle;margin-left:8px;font-size:.8rem}.follow.on{background:var(--bg)}.hero.cover .follow{color:#fff;background:rgba(0,0,0,.35);border-color:#fff}
+
+.vinfo{cursor:pointer;opacity:.7}.vinfo:hover{opacity:1}
+button.vinfo{padding:2px 8px}
+.votes-wrap{max-height:50vh;overflow:auto}
+.votes{width:100%;border-collapse:collapse;font-size:.9em}.votes th{text-align:left;font-weight:600;color:var(--mute,#888);cursor:help}
+.votes td,.votes th{padding:3px 6px 3px 0}.votes td:nth-child(n+2),.votes th:nth-child(n+2){text-align:right}

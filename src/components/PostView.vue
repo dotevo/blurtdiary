@@ -15,6 +15,7 @@ import ChainDot from './ChainDot.vue';
 import CommentNode from './CommentNode.vue';
 import DevTipToggle from './DevTipToggle.vue';
 import VersionsModal from './VersionsModal.vue';
+import VotesModal from './VotesModal.vue';
 
 /**
  * Blurt answers first (primary chain; the post page appears as soon as it does). Then, for the blog owner's posts, every
@@ -28,6 +29,7 @@ const body = ref('');
 const sending = ref(false);
 const sendingChain = ref('');
 const versionsOpen = ref(false);
+const votesOpen = ref(false);
 
 const merged = computed(() => mergeThreads(threads));
 const readMin = computed(() => Math.max(1, Math.round((post.value?.body.split(/\s+/).length ?? 0) / 200)));
@@ -124,6 +126,7 @@ async function sendPost(chain: string): Promise<void> {
       <div class="md post-body" v-html="renderMd(post.body)" />
       <div class="actions">
         <button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)">♥ {{ post.active_votes?.length ?? 0 }}</button>
+        <button class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click="votesOpen = true">ⓘ</button>
         <template v-for="tag in tagsOf(post)" :key="tag">
           <a v-if="catFor(tag)" class="tag" :href="href({ cat: catFor(tag)!.id })" @click.prevent="navigate(href({ cat: catFor(tag)!.id }))">#{{ tag }}</a>
           <span v-else class="tag">#{{ tag }}</span>
@@ -139,6 +142,7 @@ async function sendPost(chain: string): Promise<void> {
       </template>
       <p v-else class="mute">{{ t('loginToComment') }}</p>
       <CommentNode v-for="n in merged.nodes" :key="n.permlink" :node="n" :parent="merged.root" :depth="0" />
+      <VotesModal v-if="votesOpen" :versions="merged.root" @close="votesOpen = false" />
       <VersionsModal v-if="versionsOpen" :versions="merged.root" @close="versionsOpen = false" />
     </div>
   </div>
