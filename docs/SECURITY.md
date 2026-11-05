@@ -33,3 +33,10 @@ A script that ran in any blog could read the keys of every account used in that 
 
 Known limits: remote images are loaded from any https host (the host sees the visitor's IP; referrer is stripped), GitHub Pages cannot send
 `frame-ancestors`, so clickjacking protection is not possible there, and a browser extension with page access is outside what a web page can defend against.
+
+### Blog extras (pinned post, blogroll, archive, follow)
+
+`pinned` is reduced to a permlink (`[a-z0-9-]`) and only ever used as an RPC parameter; `blogroll` accounts must be valid account names and the description is
+rendered as text (a tag in it is shown as characters, not parsed); `?month=` must match `YYYY-MM`. The archive never downloads more than the reader
+asks for (one page of 20 posts per click, at most 15 pages when opening a month directly). Follow broadcasts one `custom_json` (`follow`) built from the validated
+account names - nothing from the blog's content goes into it.

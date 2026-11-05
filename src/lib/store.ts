@@ -14,6 +14,7 @@ const q = new URLSearchParams(location.search);
 export const USER = normAccount(q.get('user') ?? '');
 if (USER) { try { localStorage.setItem('bd-last-user', USER); } catch { /* ignore */ } } // used by the installed app (PWA) to reopen the last blog
 // ?recent=auto|replies|own|scan lets you try each "recent comments" strategy in the browser.
+const parseMonth = (m: string | null): string => (/^\d{4}-(0[1-9]|1[0-2])$/.test(m ?? '') ? m! : ''); // ?month=2026-10 – anything else is ignored
 export const RECENT_MODE = q.get('recent') ?? 'auto';
 
 export const state = reactive({
@@ -23,15 +24,17 @@ export const state = reactive({
   configPost: null as { parent_permlink: string } | null, // set when @user/blurt-diary-config exists (edit instead of create)
   posts: [] as Post[], more: true, loadingMore: false, busy: false,
   recent: [] as Post[],
+  month: parseMonth(q.get('month')), pinned: null as Post | null, // pinned: the owner's sticky post (config key `pinned`)
   cat: q.get('cat') ?? '', post: q.get('post') ?? '', focus: q.get('c') ?? '', view: q.get('view') ?? '',
   searchBroken: false, // bridge.search_posts unavailable -> fall back to scanning the latest posts
 });
 
 // ---------- URLs ----------
-export const href = (o: { cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' }): string => {
+export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' }): string => {
   const p = new URLSearchParams();
   if (USER) p.set('user', USER); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);
+  if (o.month) p.set('month', o.month);
   if (o.post) p.set('post', o.post);
   if (o.c) p.set('c', o.c);
   if (o.view) p.set('view', o.view);
@@ -53,7 +56,7 @@ export const commentHref = (c: Post): string => {
 
 function syncFromUrl(): void {
   const p = new URLSearchParams(location.search);
-  state.cat = p.get('cat') ?? ''; state.post = p.get('post') ?? ''; state.focus = p.get('c') ?? ''; state.view = p.get('view') ?? '';
+  state.month = parseMonth(p.get('month')); state.cat = p.get('cat') ?? ''; state.post = p.get('post') ?? ''; state.focus = p.get('c') ?? ''; state.view = p.get('view') ?? '';
 }
 export function navigate(h: string, replace = false): void {
   if (replace) history.replaceState({}, '', h); else history.pushState({}, '', h);
@@ -89,13 +92,21 @@ async function catRound(c: BlogCategory): Promise<void> {
   b.posts.sort((x, y) => y.created.localeCompare(x.created));
 }
 
+/** Archive view: the posts of one month, taken from what is already loaded (older pages are fetched only when that month is opened). */
+const monthMode = (): boolean => !!state.month && !currentCat();
+const oldestMonth = (): string => state.posts[state.posts.length - 1]?.created.slice(0, 7) ?? '';
+/** The pinned post goes first on the plain list; the same post is not repeated further down. */
+const withPinned = (l: Post[]): Post[] => (state.pinned ? [state.pinned, ...l.filter((p) => p.permlink !== state.pinned!.permlink)] : l);
+
 export const visible = computed(() => {
+  if (monthMode()) return state.posts.filter((p) => p.created.startsWith(state.month));
   const c = currentCat();
-  if (!c) return state.posts;
+  if (!c) return withPinned(state.posts);
   if (!state.searchBroken) return buckets[c.id]?.posts ?? [];
   return state.posts.filter((p) => tagsOf(p).some((t) => c.tags.includes(t)));
 });
 export const canMore = computed(() => {
+  if (monthMode()) return state.more && (!oldestMonth() || oldestMonth() >= state.month); // not yet past that month
   const c = currentCat();
   if (!c || state.searchBroken) return state.more;
   return c.tags.some((t) => !buckets[c.id]?.done[t]);
@@ -155,7 +166,10 @@ export const fetchPosts = (): Promise<void> => fetchPage(PAGE);
 async function scanEnough(): Promise<void> { // fallback: at most 3 pages per step
   for (let i = 0; i < 3 && state.more && visible.value.length < 9; i++) await fetchPage(PAGE);
 }
+/** Pages needed to reach `state.month` (bounded: 15 pages = 300 posts per step). Nothing is fetched for months already covered. */
+async function reachMonth(limit: number): Promise<void> { for (let i = 0; i < limit && canMore.value; i++) await fetchPage(PAGE); }
 export async function ensureEnough(): Promise<void> {
+  if (monthMode()) { await reachMonth(15); return; }
   const c = currentCat();
   if (c && !state.searchBroken) {
     try { for (let i = 0; i < 3 && canMore.value && visible.value.length < 9; i++) await catRound(c); return; }
@@ -166,6 +180,7 @@ export async function ensureEnough(): Promise<void> {
 export async function loadMore(): Promise<void> {
   state.busy = true;
   try {
+    if (monthMode()) { await reachMonth(3); return; }
     const c = currentCat();
     if (c && !state.searchBroken) {
       try { await catRound(c); return; } catch (e) { console.warn('search_posts failed', e); state.searchBroken = true; }
@@ -176,6 +191,24 @@ export async function loadMore(): Promise<void> {
       if (visible.value.length - before >= 9) break;
     }
   } finally { state.busy = false; }
+}
+
+/** Months of the posts loaded so far, newest first. The oldest one is `partial` while more pages exist (its count may still grow). */
+export const archive = computed(() => {
+  const counts = new Map<string, number>();
+  for (const p of state.posts) { const k = p.created.slice(0, 7); counts.set(k, (counts.get(k) ?? 0) + 1); }
+  const keys = [...counts.keys()];
+  return keys.map((key, i) => ({ key, count: counts.get(key)!, partial: i === keys.length - 1 && state.more }));
+});
+/** One more page of history for the archive list (20 posts) - the list never downloads more than the reader asks for. */
+export async function loadOlder(): Promise<void> { state.busy = true; try { await fetchPage(PAGE); } finally { state.busy = false; } }
+
+async function loadPinned(): Promise<void> {
+  state.pinned = null; const pl = state.cfg.pinned; if (!pl) return;
+  try {
+    const p = await rpc<Post>('condenser_api', 'get_content', [USER, pl]);
+    if (p?.author === USER && p.title && !p.parent_author && !isConfigPost(p)) state.pinned = p; // only a real root post of the owner
+  } catch (e) { console.warn('pinned post', e); }
 }
 
 function autoCats(): void { // no config post → categories from the most used tags
@@ -218,7 +251,7 @@ export async function loadRecent(): Promise<void> {
 export async function initBlog(): Promise<void> {
   if (!USER) { state.loading = false; return; }
   try {
-    await loadProfile(); await fetchPosts(); autoCats(); await ensureEnough();
+    await loadProfile(); await Promise.all([fetchPosts(), loadPinned()]); autoCats(); await ensureEnough();
     void loadRecent();
   } catch (e) { state.error = (e as Error).message; }
   state.loading = false;

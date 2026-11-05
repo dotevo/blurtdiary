@@ -20,7 +20,8 @@ import { slug } from './util';
 import type { BlogCategory, BlogConfig, PanelCfg } from './types';
 
 export const CONFIG_PERMLINK = 'blurt-diary-config';
-export const BUILTIN_PANELS = ['about', 'payouts', 'comments', 'categories'];
+export const BUILTIN_PANELS = ['about', 'payouts', 'comments', 'categories', 'archive', 'blogroll'];
+export const MAX_BLOGROLL = 20;
 export const DEFAULT_PANELS: PanelCfg[] = [{ id: 'about' }, { id: 'payouts' }, { id: 'comments' }];
 export const MAX_CUSTOM_PANELS = 6;
 /**
@@ -56,6 +57,9 @@ export const parseTags = (s: string): string[] =>
 /** Account names are 3-16 chars on every supported chain: lowercase letters, digits, dots and dashes, starting with a letter. */
 export const normAccount = (v?: string): string => { const a = (v ?? '').trim().toLowerCase().replace(/^@/, ''); return /^[a-z][a-z0-9.-]{2,15}$/.test(a) ? a : ''; };
 
+/** A post permlink (lowercase letters, digits, single dashes). Accepts "@user/permlink" and a full blog URL too and keeps the last part. */
+export const normPermlink = (v?: string): string => { const p = (v ?? '').trim().toLowerCase().replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop() ?? ''; return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p) && p.length <= 255 ? p : ''; };
+
 const clip = (s: string, n: number): string => s.replace(/\s+/g, ' ').trim().slice(0, n);
 function setKey(cfg: BlogConfig, key: string, v: string): void {
   switch (key) {
@@ -74,6 +78,7 @@ function setKey(cfg: BlogConfig, key: string, v: string): void {
     case 'font': if (['sans', 'serif', 'mono'].includes(v.trim())) cfg.font = v.trim() as BlogConfig['font']; break;
     case 'layout': if (['grid', 'list'].includes(v.trim())) cfg.layout = v.trim() as BlogConfig['layout']; break;
     case 'sidebar': if (['right', 'left', 'none'].includes(v.trim())) cfg.sidebar = v.trim() as BlogConfig['sidebar']; break;
+    case 'pinned': cfg.pinned = normPermlink(v) || undefined; break;
     case 'panels': if (v.trim().toLowerCase() === 'none') cfg.panels = []; break; // "panels: none" = no sidebar panels at all
     default: { // extra appearance options; only a known value that is not the default is kept
       const list = UI_OPTIONS[key], val = v.trim().toLowerCase();
@@ -99,6 +104,11 @@ function addPanel(cfg: BlogConfig, s: string): void {
   const title = clip(s.slice(0, i), 40), text = clip(s.slice(i + 1), 500); // custom panel: "Title | single-line Markdown"
   if ((title || text) && list.filter((p) => p.id === 'custom').length < MAX_CUSTOM_PANELS) list.push({ id: 'custom', title, text });
 }
+/** "account | short text": a recommended blog. */
+function addBlog(cfg: BlogConfig, s: string): void {
+  const [acc, ...rest] = s.split('|'); const account = normAccount(acc); const list = (cfg.blogroll ??= []);
+  if (account && list.length < MAX_BLOGROLL && !list.some((b) => b.account === account)) list.push({ account, desc: clip(rest.join('|'), 80) });
+}
 /** "hive | account": the owner's account on another chain (Blurt is implied by ?user=). */
 function addChain(cfg: BlogConfig, s: string): void {
   const i = s.indexOf('|'); if (i < 0) return;
@@ -113,7 +123,7 @@ function addLink(cfg: BlogConfig, s: string): void {
 
 export function parseConfig(text: string): BlogConfig {
   const cfg = emptyConfig();
-  let section: '' | 'links' | 'categories' | 'panels' | 'chains' = '';
+  let section: '' | 'links' | 'categories' | 'panels' | 'chains' | 'blogroll' = '';
   let legacyWidgets: string[] | undefined; // old "widgets: about, comments" line
   for (const raw of text.split(/\r?\n/)) {
     const l = raw.trim(); if (!l) continue;
@@ -121,8 +131,8 @@ export function parseConfig(text: string): BlogConfig {
     if ((m = l.match(/^#\s*(title|subtitle|accent|cover)\s*:\s*(.+)$/i))) { setKey(cfg, m[1].toLowerCase(), m[2]); continue; } // legacy
     if (l.startsWith('#')) continue;                                                                                           // headings
     if (l.startsWith('>')) { addCat(cfg, l.slice(1)); continue; }                                                              // legacy category
-    if ((m = l.match(/^(links|categories|panels|chains)\s*:\s*$/i))) { section = m[1].toLowerCase() as typeof section; continue; }
-    if (section && (m = l.match(/^[-*]\s+(.*)$/))) { if (section === 'links') addLink(cfg, m[1]); else if (section === 'panels') addPanel(cfg, m[1]); else if (section === 'chains') addChain(cfg, m[1]); else addCat(cfg, m[1]); continue; }
+    if ((m = l.match(/^(links|categories|panels|chains|blogroll)\s*:\s*$/i))) { section = m[1].toLowerCase() as typeof section; continue; }
+    if (section && (m = l.match(/^[-*]\s+(.*)$/))) { if (section === 'links') addLink(cfg, m[1]); else if (section === 'panels') addPanel(cfg, m[1]); else if (section === 'chains') addChain(cfg, m[1]); else if (section === 'blogroll') addBlog(cfg, m[1]); else addCat(cfg, m[1]); continue; }
     if ((m = l.match(/^([a-z-]+)\s*:\s*(.*)$/i))) {
       section = '';
       if (m[1].toLowerCase() === 'widgets') legacyWidgets = m[2].split(',').map((x) => x.trim().toLowerCase()).filter((x) => BUILTIN_PANELS.includes(x));
@@ -140,13 +150,14 @@ export function serializeConfig(cfg: BlogConfig): string {
     '# Blurt Diary - settings', '',
     'This post stores the settings of the blog. Edit it in the Blurt Diary configurator or by hand - keep the "key: value" lines.', '',
     ...kv('title', cfg.title), ...kv('subtitle', cfg.subtitle), ...kv('about', cfg.about), ...kv('cover', cfg.cover), ...kv('logo', cfg.logo),
-    ...kv('language', cfg.language), ...kv('footer', cfg.footer), '',
+    ...kv('language', cfg.language), ...kv('footer', cfg.footer), ...kv('pinned', cfg.pinned ? normPermlink(cfg.pinned) : undefined), '',
     ...kv('palette', cfg.palette), ...kv('accent', cfg.accent), ...kv('accent-dark', cfg.accentDark), ...kv('bg', cfg.bg), ...kv('bg-dark', cfg.bgDark),
     ...kv('font', cfg.font), ...kv('layout', cfg.layout), ...kv('sidebar', cfg.sidebar),
     ...Object.keys(UI_OPTIONS).flatMap((k) => kv(k, cfg.ui?.[k] && UI_OPTIONS[k].includes(cfg.ui[k]) && cfg.ui[k] !== UI_OPTIONS[k][0] ? cfg.ui[k] : undefined)), '',
     ...(cfg.panels?.length === 0 ? ['panels: none  ', ''] : []),
     ...(cfg.panels?.length ? ['panels:', ...cfg.panels.map((p) => (p.id === 'custom' ? `- ${(p.title ?? '').replace(/[|\n]/g, ' ').trim()} | ${(p.text ?? '').replace(/\s*\n\s*/g, ' ').trim()}` : `- ${p.id}`)), ''] : []),
     ...(Object.keys(cfg.accounts ?? {}).length ? ['chains:', ...Object.entries(cfg.accounts ?? {}).filter(([, a]) => normAccount(a)).map(([c, a]) => `- ${c} | ${normAccount(a)}`), ''] : []),
+    ...(cfg.blogroll?.length ? ['blogroll:', ...cfg.blogroll.filter((b) => normAccount(b.account)).map((b) => `- ${normAccount(b.account)}${b.desc.trim() ? ' | ' + b.desc.replace(/[|\n]/g, ' ').trim() : ''}`), ''] : []),
     ...(cfg.links.length ? ['links:', ...cfg.links.map((l) => `- ${l.label} | ${l.url}`), ''] : []),
     ...(cats.length ? ['categories:', ...cats.map((c) => `- ${c.name} | ${c.tags.join(', ')}${c.desc ? ' | ' + c.desc : ''}`), ''] : []),
   ].join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';

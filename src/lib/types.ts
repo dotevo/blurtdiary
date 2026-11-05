@@ -21,6 +21,10 @@ export interface BlogConfig {
   accounts?: Record<string, string>;
   /** Extra look-and-feel options (see UI_OPTIONS in config.ts). Only values that differ from the default are stored. */
   ui?: Record<string, string>;
+  /** Permlink of one of the owner's posts shown first on the main list (a "sticky" post). */
+  pinned?: string;
+  /** Blogs the owner recommends (sidebar panel `blogroll`): Blurt account + short text. Rendered as text, never HTML. */
+  blogroll?: { account: string; desc: string }[];
   links: BlogLink[]; cats: BlogCategory[];
 }
 export interface Profile { name?: string; about?: string; cover_image?: string; blog_config?: string; diary_config?: string }

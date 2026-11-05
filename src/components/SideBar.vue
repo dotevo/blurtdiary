@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
+import { lang } from '../lib/i18n';
 import { coalMap } from '../lib/coal';
 import { DEFAULT_PANELS } from '../lib/config';
 import { t } from '../lib/i18n';
-import { state, commentHref, href, navigate, USER } from '../lib/store';
+import { archive, loadOlder, state, commentHref, href, navigate, USER } from '../lib/store';
 import { auth } from '../lib/auth';
 import { feed, feedHref, loadFeed } from '../lib/feed';
 import { favs } from '../lib/favs';
@@ -22,6 +23,8 @@ const pending = computed(() => {
   return { n: l.length, sum: l.reduce((s, p) => s + payoutOf(p), 0) };
 });
 // the panels the blog owner chose, in the order they chose
+const blogs = computed(() => state.cfg.blogroll ?? []);
+const monthLabel = (m: string): string => new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7) - 1, 1)).toLocaleDateString(lang.value, { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const panels = computed(() => state.cfg.panels ?? DEFAULT_PANELS);
 </script>
 <template>
@@ -63,6 +66,21 @@ const panels = computed(() => state.cfg.panels ?? DEFAULT_PANELS);
           </div>
         </div>
         <span v-if="!list.length" class="mute">{{ t('noComments') }}</span>
+      </div>
+
+      <div v-else-if="p.id === 'archive' && archive.length" class="card">
+        <h4>{{ t('archive') }}</h4>
+        <div class="cat-list arch">
+          <a v-for="m in archive" :key="m.key" :class="{ on: state.month === m.key }" :href="href({ month: m.key })" :title="m.partial ? t('archivePartial') : ''" @click.prevent="navigate(href({ month: m.key }))">{{ monthLabel(m.key) }} <span class="mute">({{ m.count }}{{ m.partial ? '+' : '' }})</span></a>
+        </div>
+        <button v-if="state.more" class="small arch-more" :disabled="state.busy || state.loadingMore" @click="loadOlder">{{ state.busy || state.loadingMore ? t('loading') : t('archiveMore') }}</button>
+      </div>
+
+      <div v-else-if="p.id === 'blogroll' && blogs.length" class="card">
+        <h4>{{ t('blogroll') }}</h4>
+        <a v-for="b in blogs" :key="b.account" class="rc blog-link" :href="`?user=${encodeURIComponent(b.account)}`">
+          <UserAvatar :name="b.account" small /><div><b>@{{ b.account }}</b><div v-if="b.desc" class="mute">{{ b.desc }}</div></div>
+        </a>
       </div>
 
       <div v-else-if="p.id === 'categories' && cats.length" class="card">

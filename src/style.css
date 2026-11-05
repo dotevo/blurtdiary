@@ -292,3 +292,15 @@ main,.side{min-width:0}
 [data-ui-headings=mono] :is(h1,h2,h3){font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 [data-ui-thumbs=hide] .card .thumb{display:none}
 [data-ui-rewards=hide] main .pay,[data-ui-rewards=hide] .side .pay{display:none}
+
+/* Feed and Statistics: quiet tabs at the right end of the bar, so the categories stay first */
+.bar-tabs{display:flex;gap:2px;flex:none;margin-left:4px;padding-left:8px;border-left:1px solid var(--line)}
+.tab{white-space:nowrap;padding:4px 9px;border-radius:8px;font-size:.84rem;color:var(--mute)}.tab:hover{color:var(--text);background:var(--bg)}
+.tab.on{color:var(--accent);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent);border-radius:8px 8px 0 0}
+@media(max-width:700px){.tab-lbl{display:none}.tab{padding:4px 8px;font-size:1rem}}
+
+/* archive, blogroll, pinned post, follow */
+.arch{flex-direction:column;align-items:flex-start;gap:2px}.arch a{padding:3px 0;text-transform:capitalize}.arch .mute{text-transform:none}.arch-more{margin-top:8px}
+.blog-link{align-items:center}.blog-link:hover b{color:var(--accent)}.blog-link .mute{font-size:.8rem;line-height:1.35}
+.pin-badge{font-size:.75rem;color:var(--accent);font-weight:600}.month-x{font-size:.9rem;margin-left:6px}
+.follow{vertical-align:middle;margin-left:8px;font-size:.8rem}.follow.on{background:var(--bg)}.hero.cover .follow{color:#fff;background:rgba(0,0,0,.35);border-color:#fff}

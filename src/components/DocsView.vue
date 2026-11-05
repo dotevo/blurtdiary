@@ -76,6 +76,8 @@ categories:
 <tr><td><code>cover</code></td><td>Obraz w nagłówku, adres <code>https://</code>. Bez niego używany jest obraz okładki z profilu.</td></tr>
 <tr><td><code>language</code></td><td>Domyślny język bloga: <code>pl</code>, <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>eo</code>. Czytelnik, który wybrał własny język, zawsze go zachowuje.</td></tr>
 <tr><td><code>footer</code></td><td>Tekst w stopce.</td></tr>
+<tr><td><code>pinned</code></td><td>Permlink jednego z Twoich wpisów, który wyświetla się <b>jako pierwszy</b> na głównej liście (przypięty, z oznaczeniem 📌).</td></tr>
+<tr><td><code>blogroll:</code></td><td>Polecane blogi, po jednym w linii: <code>- konto | krótki opis</code> (do 20). Pokazują się w panelu bocznym <code>blogroll</code>. Opis to zwykły tekst.</td></tr>
 <tr><td><code>palette</code></td><td><code>default</code>, <code>paper</code>, <code>ocean</code>, <code>forest</code>, <code>rose</code>, <code>graphite</code>. Każda paleta ma wersję jasną i ciemną.</td></tr>
 <tr><td><code>accent</code>, <code>accent-dark</code></td><td>Kolor akcentu w motywie jasnym i ciemnym (<code>#rrggbb</code>). Bez <code>accent-dark</code> używany jest <code>accent</code>.</td></tr>
 <tr><td><code>bg</code>, <code>bg-dark</code></td><td>Kolor tła w motywie jasnym i ciemnym.</td></tr>
@@ -93,7 +95,7 @@ categories:
 <tr><td><code>thumbs</code></td><td><code>show</code> lub <code>hide</code> – obrazki na kartach.</td></tr>
 <tr><td><code>rewards</code></td><td><code>show</code> lub <code>hide</code> – kwoty nagród. (Pierwsza wartość każdej opcji = dotychczasowy wygląd; nieznane wartości są ignorowane.)</td></tr>
 <tr><td><code>logo</code></td><td>Logo w nagłówku zamiast awatara, adres <code>https://</code>.</td></tr>
-<tr><td><code>panels:</code></td><td>Panele boczne <b>w podanej kolejności</b>: <code>about</code>, <code>payouts</code> (oczekujące wypłaty), <code>comments</code> (ostatnie komentarze), <code>categories</code> (lista kategorii) albo własny panel <code>- Tytuł | tekst</code> (Markdown w jednej linii, do 500 znaków, maks. 6 własnych). Pominięty panel się nie wyświetla; <code>panels: none</code> usuwa wszystkie. Stary zapis <code>widgets: about, comments</code> nadal działa.</td></tr>
+<tr><td><code>panels:</code></td><td>Panele boczne <b>w podanej kolejności</b>: <code>about</code>, <code>payouts</code> (oczekujące wypłaty), <code>comments</code> (ostatnie komentarze), <code>categories</code> (lista kategorii), <code>archive</code> (archiwum miesięcy – pokazuje tylko to, co już wczytano; „Pokaż starsze miesiące" dociąga kolejne 20 wpisów), <code>blogroll</code> (polecane blogi) albo własny panel <code>- Tytuł | tekst</code> (Markdown w jednej linii, do 500 znaków, maks. 6 własnych). Pominięty panel się nie wyświetla; <code>panels: none</code> usuwa wszystkie. Stary zapis <code>widgets: about, comments</code> nadal działa.</td></tr>
 <tr><td><code>links:</code></td><td>Lista <code>- Nazwa | https://adres</code> – wyświetlana w nagłówku.</td></tr>
 <tr><td><code>categories:</code></td><td>Lista <code>- Nazwa | tag1, tag2 | opis</code>.</td></tr>
 </tbody>
@@ -241,6 +243,8 @@ categories:
 <tr><td><code>cover</code></td><td>Header image, an <code>https://</code> URL. Without it the profile's cover image is used.</td></tr>
 <tr><td><code>language</code></td><td>Default blog language: <code>pl</code>, <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>eo</code>. A reader who picked their own language always keeps it.</td></tr>
 <tr><td><code>footer</code></td><td>Footer text.</td></tr>
+<tr><td><code>pinned</code></td><td>Permlink of one of your posts that is shown <b>first</b> on the main list (pinned, marked 📌).</td></tr>
+<tr><td><code>blogroll:</code></td><td>Recommended blogs, one per line: <code>- account | short description</code> (up to 20). Shown in the <code>blogroll</code> sidebar panel. The description is plain text.</td></tr>
 <tr><td><code>palette</code></td><td><code>default</code>, <code>paper</code>, <code>ocean</code>, <code>forest</code>, <code>rose</code>, <code>graphite</code>. Every palette has a light and a dark version.</td></tr>
 <tr><td><code>accent</code>, <code>accent-dark</code></td><td>Accent colour in the light and dark theme (<code>#rrggbb</code>). Without <code>accent-dark</code>, <code>accent</code> is used.</td></tr>
 <tr><td><code>bg</code>, <code>bg-dark</code></td><td>Background colour in the light and dark theme.</td></tr>
@@ -258,7 +262,7 @@ categories:
 <tr><td><code>thumbs</code></td><td><code>show</code> or <code>hide</code> – images on cards.</td></tr>
 <tr><td><code>rewards</code></td><td><code>show</code> or <code>hide</code> – reward amounts. (The first value of every option is the classic look; unknown values are ignored.)</td></tr>
 <tr><td><code>logo</code></td><td>Header logo instead of the avatar, an <code>https://</code> URL.</td></tr>
-<tr><td><code>panels:</code></td><td>Sidebar panels <b>in the given order</b>: <code>about</code>, <code>payouts</code> (pending payouts), <code>comments</code> (recent comments), <code>categories</code> (category list) or your own panel <code>- Title | text</code> (single-line Markdown, up to 500 characters, at most 6 custom ones). A panel that is not listed is not shown; <code>panels: none</code> removes them all. The old <code>widgets: about, comments</code> line still works.</td></tr>
+<tr><td><code>panels:</code></td><td>Sidebar panels <b>in the given order</b>: <code>about</code>, <code>payouts</code> (pending payouts), <code>comments</code> (recent comments), <code>categories</code> (category list), <code>archive</code> (months – built from the posts already loaded; "Show older months" fetches 20 more posts), <code>blogroll</code> (recommended blogs) or your own panel <code>- Title | text</code> (single-line Markdown, up to 500 characters, at most 6 custom ones). A panel that is not listed is not shown; <code>panels: none</code> removes them all. The old <code>widgets: about, comments</code> line still works.</td></tr>
 <tr><td><code>links:</code></td><td>A list of <code>- Name | https://url</code> – shown in the header.</td></tr>
 <tr><td><code>categories:</code></td><td>A list of <code>- Name | tag1, tag2 | description</code>.</td></tr>
 </tbody>

@@ -12,7 +12,8 @@ export const feed = reactive({ posts: [] as Post[], loading: false, more: true, 
 
 async function fetchFeed(account: string, last?: Post): Promise<Post[]> {
   const cursor = last ? { start_author: last.author, start_permlink: last.permlink } : {};
-  const ok = (r: unknown): r is Post[] => Array.isArray(r);
+  // a node returning something odd must never break the page: keep only entries that look like posts
+  const ok = (r: unknown): r is Post[] => Array.isArray(r) && r.every((p) => p && typeof p.author === 'string' && typeof p.permlink === 'string' && typeof p.created === 'string');
   try {
     const r = await rpc<Post[]>('bridge', 'get_account_posts', { sort: 'feed', account, limit: PAGE, ...cursor });
     if (ok(r) && (r.length || last)) return r;

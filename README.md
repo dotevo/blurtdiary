@@ -14,7 +14,7 @@ For a custom domain / user site set the repo variable `VITE_BASE=/`.
 
 ## Blog configuration
 The owner logs in on their own blog (`?user=theirname`) and clicks **⚙** — the configurator (title, description, cover, language, light/dark
-palettes and colours, font, layout, sidebar, ten more look options (corners, cards, spacing, width, columns, header, text size, headings, images, reward amounts), categories, links, accounts on other blockchains) previews changes live, and **Save** publishes a
+palettes and colours, font, layout, sidebar, a pinned post, recommended blogs, a monthly archive, a Follow button (on-chain), ten more look options (corners, cards, spacing, width, columns, header, text size, headings, images, reward amounts), categories, links, accounts on other blockchains) previews changes live, and **Save** publishes a
 readable post `@theirname/blurt-diary-config` (payout disabled). The blog finds it by its fixed permlink, so nothing has to be added to the
 profile and a *posting* key is enough. The full format, manual editing and all parameters are described in
 **`src/components/DocsView.vue`** (`?view=docs`, "Documentation" link in the footer).

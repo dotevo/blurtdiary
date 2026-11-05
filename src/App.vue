@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { loginOpen } from './lib/auth';
 import { safeUrl } from './lib/config';
-import { t } from './lib/i18n';
+import { lang, t } from './lib/i18n';
 import { support } from './lib/support';
 import { canMore, href, initBlog, loadMore, navigate, state, USER, visible } from './lib/store';
 import { toastMsg } from './lib/toast';
@@ -23,6 +23,7 @@ import FeedView from './components/FeedView.vue';
 import FavList from './components/FavList.vue';
 import NodeSettings from './components/NodeSettings.vue';
 import { favs, isFav, toggleFav } from './lib/favs';
+import { follow, setFollow } from './lib/follow';
 
 const who = ref('');
 onMounted(initBlog);
@@ -30,6 +31,7 @@ const reload = (): void => window.location.reload();
 const openUser = (): void => { if (who.value.trim()) window.location.search = '?user=' + encodeURIComponent(who.value.trim()); };
 const cover = () => safeUrl(state.cfg.cover) || safeUrl(state.profile?.cover_image);
 const logo = (): string => safeUrl(state.cfg.logo);
+const monthLabel = (m: string): string => new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7) - 1, 1)).toLocaleDateString(lang.value, { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const wide = computed(() => state.view === 'write' || state.view === 'settings');
 const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sidebar ?? 'right'}`));
 </script>
@@ -55,7 +57,8 @@ const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sideba
         <div>
           <h1><a :href="href({})" @click.prevent="navigate(href({}))">{{ state.cfg.title ?? state.profile?.name ?? '@' + USER }}</a>
             <button class="star" :class="{ on: isFav(USER) }" :title="isFav(USER) ? t('favUnfollow') : t('favFollow')" :aria-label="isFav(USER) ? t('favUnfollow') : t('favFollow')" :aria-pressed="isFav(USER)"
-              @click="toggleFav(USER, state.cfg.title ?? state.profile?.name)">{{ isFav(USER) ? '★' : '☆' }}</button></h1>
+              @click="toggleFav(USER, state.cfg.title ?? state.profile?.name)">{{ isFav(USER) ? '★' : '☆' }}</button>
+            <button v-if="follow.state !== 'unknown'" class="small follow" :class="{ on: follow.state === 'yes' }" :disabled="follow.busy" :title="t('followTitle')" @click="setFollow(follow.state !== 'yes')">{{ follow.state === 'yes' ? '✓ ' + t('following') : '＋ ' + t('follow') }}</button></h1>
           <div class="mute">{{ state.cfg.subtitle ?? '@' + USER }}</div>
           <div v-if="state.cfg.links.length" class="hero-links">
             <template v-for="(l, i) in state.cfg.links" :key="i"><a v-if="safeUrl(l.url)" :href="safeUrl(l.url)" target="_blank" rel="noopener noreferrer">{{ l.label }}</a></template>
@@ -73,6 +76,7 @@ const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sideba
         <StatsView v-else-if="state.view === 'stats'" />
         <PostView v-else-if="state.post" />
         <template v-else>
+          <h2 v-if="state.month" class="feed-h">{{ monthLabel(state.month) }} <a class="mute month-x" :href="href({})" :title="t('all')" @click.prevent="navigate(href({}))">✕</a></h2>
           <div v-if="visible.length" class="grid"><PostCard v-for="p in visible" :key="p.permlink" :post="p" /></div>
           <div v-else-if="!(state.busy || state.loadingMore)" class="center mute">{{ t('noPosts') }}</div>
           <div v-if="canMore" class="center">

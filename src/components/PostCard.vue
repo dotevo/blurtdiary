@@ -2,9 +2,11 @@
 import { computed } from 'vue';
 import type { Post } from '../lib/types';
 import { excerpt, fmtDate, payoutOf, payoutTitle, thumbOf, votesOf } from '../lib/util';
-import { href, navigate, USER } from '../lib/store';
+import { href, navigate, state, USER } from '../lib/store';
+import { t } from '../lib/i18n';
 import { feedHref } from '../lib/feed';
 const props = defineProps<{ post: Post }>();
+const pinned = computed(() => !!state.pinned && state.pinned.permlink === props.post.permlink && !state.cat && !state.month);
 const foreign = computed(() => props.post.author !== USER); // feed card of someone else: open it in that author's blog
 const link = computed(() => (foreign.value ? feedHref(props.post) : href({ post: props.post.permlink })));
 const go = (e: Event): void => { if (!foreign.value) { e.preventDefault(); navigate(link.value); } };
@@ -17,6 +19,7 @@ const hue = computed(() => [...props.post.title].reduce((s, ch) => s + ch.charCo
     <a v-else class="thumb ph" :href="link" :style="{ '--h': hue }" @click="go">{{ (post.title[0] || '•').toUpperCase() }}</a>
     <div class="card-b">
       <div v-if="foreign" class="mute feed-by">@{{ post.author }}</div>
+      <div v-if="pinned" class="pin-badge">📌 {{ t('pinned') }}</div>
       <h3><a :href="link" @click="go">{{ post.title }}</a></h3>
       <p>{{ excerpt(post.body) }}</p>
       <div class="meta">

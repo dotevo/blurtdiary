@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, watch } from 'vue';
 import { auth, loginOpen } from '../lib/auth';
 import { CHAINS, PRIMARY } from '../lib/chains';
-import { UI_OPTIONS, CONFIG_PERMLINK, DEFAULT_PANELS, MAX_CUSTOM_PANELS, BUILTIN_PANELS, normAccount, parseTags, safeUrl } from '../lib/config';
+import { UI_OPTIONS, CONFIG_PERMLINK, DEFAULT_PANELS, MAX_CUSTOM_PANELS, BUILTIN_PANELS, MAX_BLOGROLL, normAccount, normPermlink, parseTags, safeUrl } from '../lib/config';
 import { LANGS, t } from '../lib/i18n';
 import { saveConfig } from '../lib/publish';
 import { href, navigate, state, USER } from '../lib/store';
@@ -42,7 +42,7 @@ const setColor = (k: ColorKey, v: string): void => { c[k] = v; };
 // sidebar panels: an ordered list; built-in ones by id, custom ones with a title and text
 if (!c.panels) c.panels = DEFAULT_PANELS.map((x) => ({ ...x })); // make the implicit default explicit so it can be edited
 const panelsList = computed(() => c.panels ?? []);
-const panelLabel = (id: string): string => ({ about: t('about'), payouts: t('pendingPayouts'), comments: t('recentComments'), categories: t('secCategories') }[id] ?? id);
+const panelLabel = (id: string): string => ({ about: t('about'), payouts: t('pendingPayouts'), comments: t('recentComments'), categories: t('secCategories'), archive: t('archive'), blogroll: t('blogroll') }[id] ?? id);
 const missingBuiltin = computed(() => BUILTIN_PANELS.filter((id) => !panelsList.value.some((p) => p.id === id)));
 const customCount = computed(() => panelsList.value.filter((p) => p.id === 'custom').length);
 const addBuiltin = (id: string): void => { c.panels!.push({ id }); };
@@ -67,12 +67,16 @@ function setAccount(id: string, v: string): void {
   c.accounts = Object.keys(next).length ? next : undefined;
 }
 const accountBad = (id: string): boolean => !!accountOf(id) && !normAccount(accountOf(id));
+// recommended blogs
+const addBlog = (): void => { (c.blogroll ??= []).push({ account: '', desc: '' }); };
 // links
 const addLink = (): void => { c.links.push({ label: '', url: 'https://' }); };
 
 async function save(): Promise<void> {
   busy.value = true;
   c.links = c.links.filter((l) => l.label.trim() && safeUrl(l.url));
+  c.pinned = normPermlink(c.pinned) || undefined;
+  if (c.blogroll) { const seen = new Set<string>(); c.blogroll = c.blogroll.map((b) => ({ account: normAccount(b.account), desc: b.desc })).filter((b) => b.account && !seen.has(b.account) && seen.add(b.account)); if (!c.blogroll.length) c.blogroll = undefined; }
   if (c.accounts) { for (const k of Object.keys(c.accounts)) if (!normAccount(c.accounts[k])) delete c.accounts[k]; if (!Object.keys(c.accounts).length) c.accounts = undefined; }
   c.cats = c.cats.filter((x) => x.name.trim());
   try { await saveConfig(); saved = true; toast(t('saved')); navigate(href({})); }
@@ -107,6 +111,8 @@ const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
         <option v-for="l in LANGS" :key="l.code" :value="l.code">{{ l.label }}</option>
       </select>
       <label class="lbl">{{ t('fFooter') }}</label><input v-model="c.footer" maxlength="200">
+      <label class="lbl">{{ t('fPinned') }}</label><input v-model="c.pinned" :class="{ bad: c.pinned && !normPermlink(c.pinned) }" :placeholder="t('pinnedPh')" autocapitalize="off">
+      <div class="mute help">{{ t('pinnedHelp') }}</div>
     </section>
 
     <section class="card form">
@@ -197,6 +203,16 @@ const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
         <label class="lbl">{{ x.name }}</label>
         <input :value="accountOf(x.id)" :class="{ bad: accountBad(x.id) }" :placeholder="t('cfgChainPh', { c: x.name })" autocapitalize="off" @input="setAccount(x.id, ($event.target as HTMLInputElement).value)">
       </template>
+    </section>
+
+    <section class="card form">
+      <h3>{{ t('blogroll') }}</h3>
+      <div class="mute help">{{ t('blogrollHelp') }}</div>
+      <div v-for="(b, i) in c.blogroll ?? []" :key="i" class="row-edit">
+        <div class="cols two"><input v-model="b.account" :class="{ bad: b.account && !normAccount(b.account) }" :placeholder="t('blogAccount')" autocapitalize="off" maxlength="17"><input v-model="b.desc" :placeholder="t('blogDesc')" maxlength="80"></div>
+        <div class="rbtn"><button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.blogroll!.splice(i, 1)">✕</button></div>
+      </div>
+      <button :disabled="(c.blogroll?.length ?? 0) >= MAX_BLOGROLL" @click="addBlog">+ {{ t('addBlog') }}</button>
     </section>
 
     <section class="card form">
