@@ -5,6 +5,7 @@ import { t } from './i18n';
 import { mirrorEverywhere } from './mirror';
 import type { ImageMap } from './upload';
 import { state, USER } from './store';
+import { promoFooter, FOOTER_MD, APP_URL } from './settings';
 import { slug } from './util';
 import type { Operation, Post } from './types';
 
@@ -32,8 +33,10 @@ export interface PublishResult { permlink: string; mirrored: string[]; failed: R
 export async function publishPost(p: NewPost): Promise<PublishResult> {
   const me = auth.me?.user;
   if (!me) throw new Error(t('needLogin'));
-  const title = p.title.trim(), body = p.body.trim(), community = p.community.trim().toLowerCase();
-  if (!title || !body) throw new Error(t('needTitleBody'));
+  const title = p.title.trim(), community = p.community.trim().toLowerCase();
+  const text = p.body.trim();
+  if (!title || !text) throw new Error(t('needTitleBody'));
+  const body = promoFooter.value && !text.includes(APP_URL) ? text + FOOTER_MD : text;
   if (community && !COMMUNITY_RE.test(community)) throw new Error(t('communityInvalid'));
   const { primary, tags } = buildTags(p.tagsText, community);
   const permlink = `${slug(title).slice(0, 60) || 'post'}-${Date.now().toString(36)}`;

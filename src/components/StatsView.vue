@@ -21,7 +21,7 @@ const sum = (s: { author: number; curation: number; benefactor: number }): numbe
         <template v-for="d in [statsState.chains[c.id].data!]" :key="d.chain">
           <div class="stat-tot"><span class="big">{{ sum(d.totals).toFixed(3) }} {{ d.unit }}</span>
             <span v-if="d.debtUnit && d.totals.debt > 0" class="mute"> + {{ d.totals.debt.toFixed(3) }} {{ d.debtUnit }}</span></div>
-          <div class="legend"><span><i class="sw s-author" />{{ t('statsAuthor') }} {{ d.totals.author.toFixed(3) }}</span><span><i class="sw s-curation" />{{ t('statsCuration') }} {{ d.totals.curation.toFixed(3) }}</span><span><i class="sw s-benef" />{{ t('statsBenefactor') }} {{ d.totals.benefactor.toFixed(3) }}</span></div>
+          <div class="legend"><span><i class="lsw s-author" />{{ t('statsAuthor') }} {{ d.totals.author.toFixed(3) }}</span><span><i class="lsw s-curation" />{{ t('statsCuration') }} {{ d.totals.curation.toFixed(3) }}</span><span><i class="lsw s-benef" />{{ t('statsBenefactor') }} {{ d.totals.benefactor.toFixed(3) }}</span></div>
           <div v-if="sum(d.totals) <= 0 && d.totals.debt <= 0" class="mute">{{ t('statsEmpty') }}</div>
           <EarningsChart :points="d.points" :unit="d.unit" :days="statsState.days" />
           <div class="mute stat-note">

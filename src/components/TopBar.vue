@@ -66,7 +66,7 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
       <div v-if="notifs.open" class="panel notif-panel">
         <div class="np-head"><b>{{ t('notifications') }}</b><span v-if="notifs.loading" class="mute"><span class="spinner" /> {{ t('refreshing') }}</span></div>
         <div v-if="!notifs.items.length && !notifs.loading" class="mute np-empty">{{ t('noNotifs') }}</div>
-        <component :is="notifLink(n).href ? 'a' : 'div'" v-for="n in notifs.items" :key="n.chain + n.id" class="np-item" :class="{ unread: isUnread(n) }"
+        <component :is="notifLink(n).href ? 'a' : 'div'" v-for="n in notifs.items" :key="n.chain + (n.src ?? '') + n.id" class="np-item" :class="{ unread: isUnread(n) }"
           :style="{ '--c': adapter(n.chain).color }" :href="notifLink(n).href || undefined" @click.prevent="openNotif(n)">
           <span class="np-ico"><ChainDot :chain="n.chain" /></span>
           <span class="np-body"><span class="np-msg">{{ notifIcon(n.type) }} {{ n.msg }}</span><br><span class="mute">{{ adapter(n.chain).name }} · <span :title="fmtDate(n.date)">{{ fmtAgo(n.date) }}</span></span></span>

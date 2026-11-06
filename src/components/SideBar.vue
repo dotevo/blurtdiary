@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
+import { CHAINS } from '../lib/chains';
+import { loadPending, pendingRows } from '../lib/pending';
+import ChainDot from './ChainDot.vue';
 import { lang } from '../lib/i18n';
 import { coalMap } from '../lib/coal';
 import { DEFAULT_PANELS } from '../lib/config';
@@ -18,10 +21,12 @@ const list = computed(() => state.recent.filter((c) => !coalMap.value.has(c.auth
 const about = computed(() => (state.profile?.about ?? '').replace(/\[\[[^\]]*\]\]/g, ''));
 const cats = computed(() => state.cfg.cats.filter((c) => c.name.trim()));
 // pending (not yet paid out) rewards of the posts loaded so far
+// one row for every chain the blog has an account on (Blurt + the accounts of the `chains:` setting)
 const pending = computed(() => {
-  const l = state.posts.filter((p) => p.is_paidout === false);
-  return { n: l.length, sum: l.reduce((s, p) => s + payoutOf(p), 0) };
+  const rows = CHAINS.filter((c) => pendingRows[c.id]).map((c) => ({ c, r: pendingRows[c.id] }));
+  return { rows, any: rows.some((x) => x.r.n > 0 || x.r.state !== 'ok') };
 });
+watch(() => [JSON.stringify(state.cfg.accounts ?? {}), auth.me?.user].join('|'), () => void loadPending(), { immediate: true });
 // the panels the blog owner chose, in the order they chose
 const blogs = computed(() => state.cfg.blogroll ?? []);
 const monthLabel = (m: string): string => new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7) - 1, 1)).toLocaleDateString(lang.value, { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -48,10 +53,12 @@ const panels = computed(() => state.cfg.panels ?? DEFAULT_PANELS);
         <p v-if="state.cfg.about || about" class="mute about">{{ state.cfg.about || about }}</p>
       </div>
 
-      <div v-else-if="p.id === 'payouts' && pending.n" class="card">
+      <div v-else-if="p.id === 'payouts' && pending.any" class="card">
         <h4>{{ t('pendingPayouts') }}</h4>
-        <div><span class="pay big">{{ pending.sum.toFixed(3) }} BLURT</span></div>
-        <div class="mute">{{ t('inLatest', { n: pending.n }) }}</div>
+        <div v-for="x in pending.rows" :key="x.c.id" class="pend-row" :title="'@' + x.r.account">
+          <ChainDot :chain="x.c.id" /> <span class="pay" :class="{ big: pending.rows.length === 1 }">{{ x.r.state === 'error' ? '–' : x.r.sum.toFixed(3) }} {{ x.c.payoutSymbol }}</span>
+          <span class="mute"> · {{ x.r.state === 'loading' && !x.r.n ? t('loading') : x.r.state === 'error' ? t('chainError', { c: x.c.name }) : t('inLatest', { n: x.r.n }) }}</span>
+        </div>
       </div>
 
       <div v-else-if="p.id === 'comments'" class="card">

@@ -30,13 +30,17 @@ const pal = computed(() => PALETTES[c.palette ?? ''] ?? PALETTES.default);
 const eff = computed(() => ({
   accent: c.accent ?? pal.value.light.accent, accentDark: c.accentDark ?? c.accent ?? pal.value.dark.accent,
   bg: c.bg ?? pal.value.light.bg, bgDark: c.bgDark ?? pal.value.dark.bg,
+  text: c.text ?? pal.value.light.text, textDark: c.textDark ?? pal.value.dark.text,
+  card: c.card ?? pal.value.light.card, cardDark: c.cardDark ?? pal.value.dark.card,
+  line: c.line ?? pal.value.light.line, lineDark: c.lineDark ?? pal.value.dark.line,
 }));
-type ColorKey = 'accent' | 'accentDark' | 'bg' | 'bgDark';
+type ColorKey = 'accent' | 'accentDark' | 'bg' | 'bgDark' | 'text' | 'textDark' | 'card' | 'cardDark' | 'line' | 'lineDark';
 const colors: { key: ColorKey; label: string }[] = [
   { key: 'accent', label: 'fAccent' }, { key: 'accentDark', label: 'fAccentDark' }, { key: 'bg', label: 'fBg' }, { key: 'bgDark', label: 'fBgDark' },
+  { key: 'text', label: 'fText' }, { key: 'textDark', label: 'fTextDark' }, { key: 'card', label: 'fCard' }, { key: 'cardDark', label: 'fCardDark' }, { key: 'line', label: 'fLine' }, { key: 'lineDark', label: 'fLineDark' },
 ];
 const palLabel = (k: string): string => t('pal' + k[0].toUpperCase() + k.slice(1));
-function pickPalette(k: string): void { c.palette = k; c.accent = c.accentDark = c.bg = c.bgDark = undefined; }
+function pickPalette(k: string): void { c.palette = k; c.accent = c.accentDark = c.bg = c.bgDark = c.text = c.textDark = c.card = c.cardDark = c.line = c.lineDark = undefined; }
 const setColor = (k: ColorKey, v: string): void => { c[k] = v; };
 
 // sidebar panels: an ordered list; built-in ones by id, custom ones with a title and text

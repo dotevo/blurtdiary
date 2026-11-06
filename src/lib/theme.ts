@@ -25,8 +25,10 @@ const decl = (v: Vars): string => `--bg:${v.bg};--card:${v.card};--text:${v.text
 /** Applies the blog's colours/font/layout. Colours are validated hex values only (the config comes from the chain). */
 export function applyTheme(cfg: BlogConfig): void {
   const p = Object.prototype.hasOwnProperty.call(PALETTES, cfg.palette ?? '') ? PALETTES[cfg.palette!] : PALETTES.default; // hasOwn: 'constructor', '__proto__' ... are not palettes
-  const light: Vars = { ...p.light, accent: normHex(cfg.accent) || p.light.accent, bg: normHex(cfg.bg) || p.light.bg };
-  const dark: Vars = { ...p.dark, accent: normHex(cfg.accentDark) || normHex(cfg.accent) || p.dark.accent, bg: normHex(cfg.bgDark) || p.dark.bg };
+  const light: Vars = { ...p.light, accent: normHex(cfg.accent) || p.light.accent, bg: normHex(cfg.bg) || p.light.bg,
+    text: normHex(cfg.text) || p.light.text, card: normHex(cfg.card) || p.light.card, line: normHex(cfg.line) || p.light.line };
+  const dark: Vars = { ...p.dark, accent: normHex(cfg.accentDark) || normHex(cfg.accent) || p.dark.accent, bg: normHex(cfg.bgDark) || p.dark.bg,
+    text: normHex(cfg.textDark) || p.dark.text, card: normHex(cfg.cardDark) || p.dark.card, line: normHex(cfg.lineDark) || p.dark.line };
   let el = document.getElementById('diary-theme') as HTMLStyleElement | null;
   if (!el) { el = document.createElement('style'); el.id = 'diary-theme'; document.head.append(el); }
   el.textContent = `:root{${decl(light)};--font:${FONTS[cfg.font ?? 'sans']}}@media(prefers-color-scheme:dark){:root{${decl(dark)}}}`;

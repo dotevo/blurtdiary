@@ -12,3 +12,10 @@ const DK = 'bd-devtip';
 /** "Dev tip": 1% of the rewards of comments/posts made through this site goes to the app author. On by default, can be switched off. */
 export const devTip = ref((() => { try { return localStorage.getItem(DK) !== 'false'; } catch { return true; } })());
 export function setDevTip(on: boolean): void { devTip.value = on; try { localStorage.setItem(DK, String(on)); } catch { /* ignore */ } }
+
+const FK = 'bd-promo-footer';
+export const APP_URL = 'https://dotevo.github.io/blurtdiary';
+/** Small "posted with Blurt Diary" line under new posts (it travels to every chain the post is mirrored to). On by default, can be switched off. */
+export const promoFooter = ref((() => { try { return localStorage.getItem(FK) !== 'false'; } catch { return true; } })());
+export function setPromoFooter(on: boolean): void { promoFooter.value = on; try { localStorage.setItem(FK, String(on)); } catch { /* ignore */ } }
+export const FOOTER_MD = `\n\n---\n<sub>Posted with [Blurt Diary](${APP_URL})</sub>`;

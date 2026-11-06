@@ -75,6 +75,12 @@ function setKey(cfg: BlogConfig, key: string, v: string): void {
     case 'accent-dark': cfg.accentDark = normHex(v) || undefined; break;
     case 'bg': cfg.bg = normHex(v) || undefined; break;
     case 'bg-dark': cfg.bgDark = normHex(v) || undefined; break;
+    case 'text': cfg.text = normHex(v) || undefined; break;
+    case 'text-dark': cfg.textDark = normHex(v) || undefined; break;
+    case 'card': cfg.card = normHex(v) || undefined; break;
+    case 'card-dark': cfg.cardDark = normHex(v) || undefined; break;
+    case 'line': cfg.line = normHex(v) || undefined; break;
+    case 'line-dark': cfg.lineDark = normHex(v) || undefined; break;
     case 'font': if (['sans', 'serif', 'mono'].includes(v.trim())) cfg.font = v.trim() as BlogConfig['font']; break;
     case 'layout': if (['grid', 'list'].includes(v.trim())) cfg.layout = v.trim() as BlogConfig['layout']; break;
     case 'sidebar': if (['right', 'left', 'none'].includes(v.trim())) cfg.sidebar = v.trim() as BlogConfig['sidebar']; break;
@@ -152,6 +158,7 @@ export function serializeConfig(cfg: BlogConfig): string {
     ...kv('title', cfg.title), ...kv('subtitle', cfg.subtitle), ...kv('about', cfg.about), ...kv('cover', cfg.cover), ...kv('logo', cfg.logo),
     ...kv('language', cfg.language), ...kv('footer', cfg.footer), ...kv('pinned', cfg.pinned ? normPermlink(cfg.pinned) : undefined), '',
     ...kv('palette', cfg.palette), ...kv('accent', cfg.accent), ...kv('accent-dark', cfg.accentDark), ...kv('bg', cfg.bg), ...kv('bg-dark', cfg.bgDark),
+    ...kv('text', cfg.text), ...kv('text-dark', cfg.textDark), ...kv('card', cfg.card), ...kv('card-dark', cfg.cardDark), ...kv('line', cfg.line), ...kv('line-dark', cfg.lineDark),
     ...kv('font', cfg.font), ...kv('layout', cfg.layout), ...kv('sidebar', cfg.sidebar),
     ...Object.keys(UI_OPTIONS).flatMap((k) => kv(k, cfg.ui?.[k] && UI_OPTIONS[k].includes(cfg.ui[k]) && cfg.ui[k] !== UI_OPTIONS[k][0] ? cfg.ui[k] : undefined)), '',
     ...(cfg.panels?.length === 0 ? ['panels: none  ', ''] : []),

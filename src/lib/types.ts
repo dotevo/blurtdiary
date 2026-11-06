@@ -16,6 +16,8 @@ export interface PanelCfg { id: string; title?: string; text?: string }
 export interface BlogConfig {
   title?: string; subtitle?: string; about?: string; cover?: string; logo?: string; language?: string; footer?: string;
   palette?: string; accent?: string; accentDark?: string; bg?: string; bgDark?: string;
+  /** More colours (all optional; absent = the palette's own): text, cards/panels, borders – each for the light and the dark theme. */
+  text?: string; textDark?: string; card?: string; cardDark?: string; line?: string; lineDark?: string;
   font?: 'sans' | 'serif' | 'mono'; layout?: 'grid' | 'list'; sidebar?: 'right' | 'left' | 'none'; panels?: PanelCfg[];
   /** The blog owner's account names on the OTHER chains (chain id -> account). Blurt is always `?user=`. */
   accounts?: Record<string, string>;
