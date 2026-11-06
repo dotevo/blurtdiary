@@ -18,4 +18,7 @@ export const APP_URL = 'https://dotevo.github.io/blurtdiary';
 /** Small "posted with Blurt Diary" line under new posts (it travels to every chain the post is mirrored to). On by default, can be switched off. */
 export const promoFooter = ref((() => { try { return localStorage.getItem(FK) !== 'false'; } catch { return true; } })());
 export function setPromoFooter(on: boolean): void { promoFooter.value = on; try { localStorage.setItem(FK, String(on)); } catch { /* ignore */ } }
-export const FOOTER_MD = `\n\n---\n<sub>Posted with [Blurt Diary](${APP_URL})</sub>`;
+/** The footer text leads to the AUTHOR's blog in the app (their Blurt account name is the blog address). Added once, only when switched on. */
+export const withFooter = (text: string, blogUser: string | undefined): string =>
+  !promoFooter.value || text.includes(APP_URL) ? text
+    : `${text}\n\n---\n<sub>[Posted with Blurt Diary${blogUser ? ` · @${blogUser}'s blog` : ''}](${APP_URL}/${blogUser ? `?user=${encodeURIComponent(blogUser)}` : ''})</sub>`;

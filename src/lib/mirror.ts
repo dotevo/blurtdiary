@@ -9,6 +9,7 @@
  *  7. Copies are merged by permlink; when the text differs between chains the reader can compare versions.
  *     Account names may differ per chain, so the owner's names are kept in the blog configuration.
  */
+import { withFooter } from './settings';
 import { auth, broadcast, sessionOf } from './auth';
 import { adapter, CHAINS, PRIMARY, type ChainAdapter, type ChainThread } from './chains';
 import { errorThread, missingThread } from './chains/thread';
@@ -122,7 +123,7 @@ async function sendTo(targets: ChainAdapter[], parent: Record<string, Post>, per
 /** New comment / reply under `parent` (its copies on every chain), to every chain we are logged in to. */
 export function sendComment(parent: Record<string, Post>, text: string): Promise<SendResult> {
   const permlink = `re-${primaryOf(parent).author.replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`;
-  return sendTo(commentTargets(parent), parent, permlink, text);
+  return sendTo(commentTargets(parent), parent, permlink, withFooter(text, auth.me?.user));
 }
 
 /** My own copy of a comment (the version whose author is my account on that chain). */

@@ -18,6 +18,28 @@ export { isUnread };
 export const unread = computed(() => notifs.items.filter(isUnread).length);
 const stamp = (n: Notif): number => Date.parse(/Z|[+-]\d\d:?\d\d$/.test(n.date) ? n.date : n.date + 'Z') || 0;
 
+/**
+ * The same thing happening on several chains (one person voting on, or replying to, the same permlink on Blurt, Hive, … within 5 minutes)
+ * is ONE entry with several chain dots. Notifications without a link (transfers) are never merged.
+ */
+export interface NotifGroup { items: Notif[]; lead: Notif; chains: string[]; unread: boolean }
+const GROUP_MS = 5 * 60 * 1000;
+const keyOfNotif = (n: Notif): string | null => {
+  const m = n.url?.replace(/^@/, '').match(/^[^/]+\/(.+)$/); const who = n.msg.match(/^@([a-z0-9.-]+)/)?.[1];
+  return m && who ? `${n.type}|${who}|${m[1]}` : null;
+};
+export const notifGroups = computed<NotifGroup[]>(() => {
+  const groups: { key: string | null; items: Notif[] }[] = [];
+  for (const n of notifs.items) { // items are sorted newest first
+    const k = keyOfNotif(n);
+    const g = k ? groups.find((x) => x.key === k && !x.items.some((i) => i.chain === n.chain) && Math.abs(stamp(x.items[0]) - stamp(n)) <= GROUP_MS) : undefined;
+    if (g) g.items.push(n); else groups.push({ key: k, items: [n] });
+  }
+  return groups.map(({ items }) => {
+    const sorted = [...items].sort((a, b) => CHAINS.findIndex((c) => c.id === a.chain) - CHAINS.findIndex((c) => c.id === b.chain)); // Blurt first
+    return { items: sorted, lead: sorted[0], chains: sorted.map((i) => i.chain), unread: sorted.some(isUnread) };
+  });
+});
 const coalOk = (n: Notif): boolean => { const a = n.msg?.match(/^@([a-z0-9.-]+)/)?.[1]; return !(a && coalMap.value.has(a)); }; // COAL accounts (mention spam etc.) are dropped
 type Hist = [number, { op: [string, Record<string, unknown>]; timestamp: string }];
 /**

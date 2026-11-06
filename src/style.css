@@ -312,3 +312,6 @@ button.vinfo{padding:2px 8px}
 .votes td,.votes th{padding:3px 6px 3px 0}.votes td:nth-child(n+2),.votes th:nth-child(n+2){text-align:right}
 
 .pend-row{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;margin:2px 0}
+
+.np-head{z-index:3}.panel{isolation:isolate}
+.np-ico{display:flex;flex-direction:column;gap:3px;align-items:center}

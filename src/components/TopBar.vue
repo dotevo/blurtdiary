@@ -6,7 +6,7 @@ import { t } from '../lib/i18n';
 import { setVoteWeight, voteWeight } from '../lib/settings';
 import { href, navigate, state, USER } from '../lib/store';
 import { adapter } from '../lib/chains';
-import { closeNotifs, isUnread, loadNotifs, notifIcon, notifLink, notifs, toggleNotifs, unread } from '../lib/notifs';
+import { closeNotifs, loadNotifs, notifGroups, notifIcon, notifLink, notifs, toggleNotifs, unread } from '../lib/notifs';
 import { CHAINS } from '../lib/chains';
 import { claim, loadWallets, wallets, walletUrl } from '../lib/wallet';
 import { fmtAgo, fmtDate } from '../lib/util';
@@ -66,10 +66,10 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
       <div v-if="notifs.open" class="panel notif-panel">
         <div class="np-head"><b>{{ t('notifications') }}</b><span v-if="notifs.loading" class="mute"><span class="spinner" /> {{ t('refreshing') }}</span></div>
         <div v-if="!notifs.items.length && !notifs.loading" class="mute np-empty">{{ t('noNotifs') }}</div>
-        <component :is="notifLink(n).href ? 'a' : 'div'" v-for="n in notifs.items" :key="n.chain + (n.src ?? '') + n.id" class="np-item" :class="{ unread: isUnread(n) }"
-          :style="{ '--c': adapter(n.chain).color }" :href="notifLink(n).href || undefined" @click.prevent="openNotif(n)">
-          <span class="np-ico"><ChainDot :chain="n.chain" /></span>
-          <span class="np-body"><span class="np-msg">{{ notifIcon(n.type) }} {{ n.msg }}</span><br><span class="mute">{{ adapter(n.chain).name }} · <span :title="fmtDate(n.date)">{{ fmtAgo(n.date) }}</span></span></span>
+        <component :is="notifLink(g.lead).href ? 'a' : 'div'" v-for="g in notifGroups" :key="g.items.map((i) => i.chain + (i.src ?? '') + i.id).join()" class="np-item" :class="{ unread: g.unread }"
+          :style="{ '--c': adapter(g.lead.chain).color }" :href="notifLink(g.lead).href || undefined" @click.prevent="openNotif(g.lead)">
+          <span class="np-ico"><ChainDot v-for="c in g.chains" :key="c" :chain="c" /></span>
+          <span class="np-body"><span class="np-msg">{{ notifIcon(g.lead.type) }} {{ g.lead.msg }}</span><br><span class="mute">{{ g.chains.map((c) => adapter(c).name).join(' + ') }} · <span :title="fmtDate(g.lead.date)">{{ fmtAgo(g.lead.date) }}</span></span></span>
         </component>
       </div>
       <div v-else class="panel menu-panel">
