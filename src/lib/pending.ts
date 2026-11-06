@@ -9,13 +9,25 @@ export interface PendingRow { chain: string; account: string; sum: number; n: nu
 export const pendingRows = reactive<Record<string, PendingRow>>({});
 let runId = 0;
 
+/**
+ * The account's latest posts, whichever way the node can tell. Nodes differ (Hive: bridge; Steem: tags plugin; Melek: only the old
+ * date-based call, whose date must fit in 32 bits – year 2038 – so "now + 1 day" is used). The first method that returns posts wins;
+ * only when every method fails is it an error.
+ */
 async function latestPosts(chain: string, account: string): Promise<Post[]> {
   const c = adapter(chain);
-  try {
-    return await c.call<Post[]>('condenser_api', 'get_discussions_by_author_before_date', [account, '', '2100-01-01T00:00:00', 20]);
-  } catch { // a node without that call: the blog feed instead
-    return c.call<Post[]>('condenser_api', 'get_discussions_by_blog', [{ tag: account, limit: 20 }]);
+  const soon = new Date(Date.now() + 86400000).toISOString().slice(0, 19);
+  const tries: (() => Promise<Post[]>)[] = [
+    () => c.call<Post[]>('bridge', 'get_account_posts', { sort: 'posts', account, limit: 20 }),
+    () => c.call<Post[]>('condenser_api', 'get_discussions_by_blog', [{ tag: account, limit: 20 }]),
+    () => c.call<Post[]>('condenser_api', 'get_discussions_by_author_before_date', [account, '', soon, 20]),
+  ];
+  let lastErr: unknown = null, ok = false;
+  for (const f of tries) {
+    try { const r = await f(); if (Array.isArray(r)) { ok = true; if (r.length) return r; } } catch (e) { lastErr = e; }
   }
+  if (ok) return [];
+  throw lastErr ?? new Error('no posts');
 }
 
 export async function loadPending(): Promise<void> {
