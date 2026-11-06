@@ -3,6 +3,7 @@
  * When it does, set `vaultPrefix` below – that is the only change needed, the login button appears by itself.
  * Unverified assumptions are marked "(?)"; the rest is derived from the account record so unknown field names do not break it.
  */
+import { firstPosts, viaBlog, viaAuthorDate, viaHistory } from './posts';
 import { commentOptions } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
@@ -55,6 +56,7 @@ export const melek: ChainAdapter = {
   // no bridge API: the discussion call is skipped and the thread is walked with get_content_replies
   getThread: (author, permlink) => resolveThread(melek, author, permlink, async () => null, true),
 
+  latestPosts: (account) => firstPosts(melek, account, [viaBlog, viaAuthorDate, viaHistory()]),
   stats: (account, days, onProgress) => collectStats(melek, account, days, onProgress),
   beneficiaries: () => [],
   commentOptions: (author, permlink, beneficiaries, maxPayout = '1000000.000 MELEK') => commentOptions(author, permlink, beneficiaries, maxPayout), // (?) Blurt-style op

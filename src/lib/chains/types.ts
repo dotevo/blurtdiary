@@ -99,6 +99,11 @@ export interface ChainAdapter {
    * Earnings statistics of `account` for the last `days` days. Chains with the usual account history can return
    * `collectStats(this, ...)` (see stats.ts); the stats view only ever calls this method.
    */
+  /**
+   * The account's latest root posts (newest first) as this chain's node can deliver them – used for the pending payouts panel.
+   * Each chain picks its own methods (`firstPosts` in posts.ts); the caller filters `is_paidout === false`.
+   */
+  latestPosts(account: string): Promise<Post[]>;
   stats(account: string, days: number, onProgress?: (p: StatsProgress) => void): Promise<ChainStats>;
   /** Beneficiaries for a new comment/post of `author` under `parent` on this chain. */
   beneficiaries(author: string, parent: Post, tip: boolean): Beneficiary[];

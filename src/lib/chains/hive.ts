@@ -2,6 +2,7 @@
  * Hive. Same JSON-RPC shapes as Blurt for the calls we use, but: HIVE/HBD assets, `percent_hbd`, chain id and the
  * STM key prefix. Communities (`hive-NNNNNN`) are a different namespace than Blurt's, so no community beneficiary is added.
  */
+import { firstPosts, viaBridge, viaBlog } from './posts';
 import { APP_DEV, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
@@ -43,6 +44,7 @@ export const hive: ChainAdapter = {
   // Hive has the bridge API on its public nodes; `observer` is required by some of them
   getThread: (author, permlink) => resolveThread(hive, author, permlink, () => hive.call<Record<string, Post>>('bridge', 'get_discussion', { author, permlink, observer: '' }), true),
 
+  latestPosts: (account) => firstPosts(hive, account, [viaBridge, viaBlog]),
   stats: (account, days, onProgress) => collectStats(hive, account, days, onProgress),
   beneficiaries: (author, _parent, tip) => (tip && hive.devAccount && author !== hive.devAccount ? sortBens([{ account: hive.devAccount, weight: DEV_WEIGHT }]) : []),
   commentOptions: (author, permlink, beneficiaries, maxPayout = '1000000.000 HBD') => ['comment_options', {
