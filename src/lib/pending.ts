@@ -1,7 +1,7 @@
 import { reactive } from 'vue';
 import { CHAINS } from './chains';
 import { accountOn } from './mirror';
-import { payoutOf } from './util';
+import { isPending, payoutOf } from './util';
 
 /** Pending (not yet paid out) rewards of the blog's account on every chain it has an account on. HOW a chain lists the account's posts is the chain adapter's business (`latestPosts`). */
 export interface PendingRow { chain: string; account: string; sum: number; n: number; state: 'ok' | 'loading' | 'error' }
@@ -16,7 +16,7 @@ export async function loadPending(): Promise<void> {
     const account = accountOn(c.id) as string;
     let row: PendingRow;
     try {
-      const open = (await c.latestPosts(account)).filter((p) => p?.author === account && p.is_paidout === false);
+      const open = (await c.latestPosts(account)).filter((p) => p?.author === account && isPending(p));
       row = { chain: c.id, account, sum: open.reduce((s, p) => s + payoutOf(p), 0), n: open.length, state: 'ok' };
     } catch { row = { chain: c.id, account, sum: 0, n: 0, state: 'error' }; }
     if (id === runId) pendingRows[c.id] = row; // a newer run took over otherwise

@@ -7,7 +7,7 @@ export interface Post {
   children?: number; net_votes?: number;
   stats?: { total_votes?: number };
   active_votes?: { voter: string; percent?: number; rshares?: number | string }[];
-  url?: string; depth?: number; is_paidout?: boolean; author_payout_value?: string; root_permlink?: string; root_author?: string; parent_author?: string; parent_permlink?: string;
+  url?: string; depth?: number; is_paidout?: boolean; cashout_time?: string; author_payout_value?: string; root_permlink?: string; root_author?: string; parent_author?: string; parent_permlink?: string;
 }
 export interface BlogCategory { id: string; name: string; desc: string; tags: string[] }
 export interface BlogLink { label: string; url: string }

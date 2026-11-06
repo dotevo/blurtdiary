@@ -20,7 +20,7 @@ const post = computed(() => props.versions[cur.value]);
 const sym = computed(() => CHAINS.find((c) => c.id === cur.value)?.payoutSymbol ?? '');
 const rows = computed(() => {
   const p = post.value; if (!p) return { items: [], more: 0, known: false };
-  const votes = (p.active_votes ?? []).map((v) => ({ voter: String(v.voter), pct: v.percent == null ? null : num(v.percent) / 100, rs: v.rshares == null ? null : num(v.rshares) }));
+  const votes = (p.active_votes ?? []).map((v) => ({ voter: String(v.voter), pct: !v.percent ? null : num(v.percent) / 100 /* 0 = not reported (Melek sends 0) */, rs: v.rshares == null ? null : num(v.rshares) }));
   const known = votes.length > 0 && votes.every((v) => v.rs != null);
   const total = known ? votes.reduce((s, v) => s + (v.rs as number), 0) : 0;
   const pay = payoutOf(p);

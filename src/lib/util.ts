@@ -33,6 +33,15 @@ export const meta = (p: Post): Record<string, unknown> => {
 export const tagsOf = (p: Post): string[] => ((meta(p).tags as string[] | undefined) ?? []).map((t) => String(t).toLowerCase());
 export const payoutOf = (p: Post): number =>
   p.payout != null ? num(p.payout) : num(p.pending_payout_value) + num(p.total_payout_value) + num(p.curator_payout_value);
+/**
+ * Still waiting for its payout. Hivemind (`bridge`) says so with `is_paidout`; the plain condenser output of Steem, Melek and co has no such
+ * field, only `cashout_time` (in the future while pending, 1969-12-31 once paid) – so both are understood.
+ */
+export const isPending = (p: Post): boolean => {
+  if (typeof p.is_paidout === 'boolean') return !p.is_paidout;
+  const c = p.cashout_time ? toDate(p.cashout_time).getTime() : NaN;
+  return Number.isFinite(c) && c > Date.now();
+};
 export const payoutTitle = (p: Post): string =>
   p.is_paidout ? t('paidTitle', { a: p.author_payout_value ?? '?', c: p.curator_payout_value ?? '?' }) : t('pendingTitle', { v: p.pending_payout_value ?? p.payout ?? '?' });
 /** Past the 7-day payout window (or already paid out): the chain no longer accepts votes on it. */
