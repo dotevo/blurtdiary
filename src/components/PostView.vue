@@ -138,7 +138,7 @@ async function sendPost(chain: string): Promise<void> {
         <textarea v-model="body" rows="3" :placeholder="t('addComment')" />
         <div class="mute target-note">{{ targets.length ? t('willSendTo', { list: targetNote }) : t('noTargets') }}</div>
         <div class="actions"><button class="pri" :disabled="sending" @click="send">{{ t('send') }}</button></div>
-        <DevTipToggle v-if="benText" :list="benText" />
+        <DevTipToggle :list="benText" />
       </template>
       <p v-else class="mute">{{ t('loginToComment') }}</p>
       <CommentNode v-for="n in merged.nodes" :key="n.permlink" :node="n" :parent="merged.root" :depth="0" />

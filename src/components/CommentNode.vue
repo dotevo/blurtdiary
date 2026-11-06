@@ -9,7 +9,7 @@ import { toggleVoteAll, votedAll } from '../lib/actions';
 import { t } from '../lib/i18n';
 import { applyResult, chainsOf, commentTargets, describeResult, mirrorableChains, mirrorChains, mirrorComment, primaryOf, sendComment, versionsDiffer, type MNode } from '../lib/mirror';
 import { toast } from '../lib/toast';
-import { excerpt, fmtDate, payoutOf, payoutTitle, renderMd } from '../lib/util';
+import { excerpt, fmtDate, payoutOf, payoutTitle, renderMd, stripFooter } from '../lib/util';
 import ChainDot from './ChainDot.vue';
 import DevTipToggle from './DevTipToggle.vue';
 import UserAvatar from './UserAvatar.vue';
@@ -91,7 +91,7 @@ async function sendCopy(chain: string): Promise<void> {
         <button @click="shown = true">{{ t('coalShow') }}</button>
       </div>
     </template>
-    <div v-else class="md" v-html="renderMd(c.body)" />
+    <div v-else class="md" v-html="renderMd(stripFooter(c.body))" />
 
     <div class="mute cm-actions">
       <!-- one click votes on every chain where we are logged in and a copy exists -->
@@ -106,7 +106,7 @@ async function sendCopy(chain: string): Promise<void> {
       <textarea v-model="text" rows="3" :placeholder="t('replyPh', { a: c.author })" />
       <div class="mute target-note">{{ targets.length ? t('willSendTo', { list: targetNote }) : t('noTargets') }}</div>
       <div class="actions"><button class="pri" :disabled="sending || !text.trim()" @click="sendReply">{{ t('send') }}</button><button @click="replying = false">{{ t('cancel') }}</button></div>
-      <DevTipToggle v-if="benText" :list="benText" />
+      <DevTipToggle :list="benText" />
     </div>
     <CommentNode v-for="r in node.children" :key="r.permlink" :node="r" :parent="node.versions" :depth="depth + 1" />
     <VotesModal v-if="votesOpen" :versions="node.versions" @close="votesOpen = false" />

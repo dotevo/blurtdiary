@@ -9,7 +9,7 @@ export const COMMUNITY_WEIGHT = 300;  // 3%
 /** Community account of a thread (`blurt-123456`), taken from the parent post/comment. */
 export const communityOf = (p: Post): string | undefined => {
   const c = p.community_name ?? p.category;
-  return c?.startsWith('blurt-') ? c : undefined;
+  return c && /^blurt-\d+$/.test(c) ? c : undefined; // communities are blurt-<number>; a tag like "blurt-diary" is not one
 };
 
 /** Same rules as BlurtForum's prepareBeneficiaries: community 3% (if the thread is in one) + app author 1%. */

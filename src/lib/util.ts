@@ -60,8 +60,11 @@ export function rootOf(c: Post): { author: string; permlink: string } | null {
   const m = c.url?.match(/@([^/#]+)\/([^/#]+)/);
   return m ? { author: m[1], permlink: m[2] } : null;
 }
+/** The "Posted with Blurt Diary" footer (settings.ts `withFooter`) means nothing inside this very front end, so comments are shown without it. */
+const FOOTER_RE = /\n*(?:---\n)?<sub>\[Posted with Blurt Diary[^\]]*\]\(https:\/\/dotevo\.github\.io\/blurtdiary\/[^)\s]*\)<\/sub>\s*$/;
+export const stripFooter = (b: string): string => (b ?? '').replace(FOOTER_RE, '');
 export const excerpt = (b: string): string =>
-  b.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, '')
+  stripFooter(b).replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, '')
     .replace(/https?:\/\/\S+/g, '').replace(/[#>*_`~|-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
 /**
  * Markdown/HTML from the chain (posts, comments, the owner's panels) is untrusted: anybody can publish anything, and every blog
