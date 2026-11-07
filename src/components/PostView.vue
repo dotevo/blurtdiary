@@ -6,6 +6,7 @@ import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
 import { applyResult, canMirrorPost, chainsOf, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
+import { accountsOf, ownerOf } from '../lib/known';
 import { href, navigate, postParam, postRef, state, USER } from '../lib/store';
 import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
 import { toast } from '../lib/toast';
@@ -58,10 +59,29 @@ async function load(): Promise<void> {
   Object.keys(threads).forEach((k) => delete threads[k]);
   const { author, permlink } = postRef(state.post);
   if (fchain.value) {
-    const fth = await adapter(fchain.value).getThread(author, permlink);
-    post.value = fth.status === 'found' ? fth.root! : null;
-    if (post.value) threads[fchain.value] = fth;
+    const fc = fchain.value;
+    const fth = await adapter(fc).getThread(author, permlink);
+    const froot = fth.status === 'found' ? fth.root! : null;
+    if (froot && (froot.depth ?? 0) > 0) {
+      // a comment (a notification from this chain) -> its root post, the comment highlighted
+      const r = rootOf(froot);
+      if (r) { navigate(href({ post: postParam(r.author, r.permlink), chain: fc, c: `${author}/${permlink}` }), true); return; }
+    }
+    // whose post is it? Our own account on this chain, or an account that a Blurt blog we have visited declared as its owner's
+    const owner = !froot ? undefined : auth.me && froot.author === auth.sessions[fc]?.user ? auth.me.user : ownerOf(fc, froot.author);
+    if (froot && owner) {
+      // the Blurt copy (the source of truth) shows the whole discussion of all chains
+      const bt = await adapter('blurt').getThread(owner, froot.permlink);
+      if (bt.status === 'found') { navigate(href({ post: postParam(owner, froot.permlink), c: state.focus }), true); return; }
+    }
+    post.value = froot;
+    if (froot) threads[fc] = fth;
     loading.value = false;
+    // no Blurt copy: still look for the same permlink on the owner's other chains so the thread is complete
+    if (froot && owner) {
+      const accs = owner === auth.me?.user ? Object.fromEntries(CHAINS.map((c) => [c.id, auth.sessions[c.id]?.user])) : accountsOf(owner);
+      for (const c of CHAINS) if (c.id !== fc && c.id !== 'blurt' && accs[c.id]) void loadChainThread(threads, c.id, froot.permlink, accs[c.id]);
+    }
     void scrollToFocus();
     return;
   }

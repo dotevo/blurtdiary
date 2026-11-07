@@ -1,3 +1,4 @@
+import { rememberAccounts } from './known';
 import { reactive, computed } from 'vue';
 import { rpc } from './rpc';
 import { CONFIG_PERMLINK, emptyConfig, normAccount, parseConfig } from './config';
@@ -145,6 +146,7 @@ async function loadProfile(): Promise<void> {
   }
   document.title = (state.cfg.title ?? prof.name ?? '@' + USER) + ' – Blurt Diary';
   touchFav(USER, state.cfg.title ?? prof.name);
+  rememberAccounts(USER, state.cfg.accounts);
   applyTheme(state.cfg);
   const dl = state.cfg.language as Lang | undefined; // the blog's default language applies only until the visitor picks their own
   if (dl && !langSaved() && LANGS.some((l) => l.code === dl)) await loadLanguage(dl);

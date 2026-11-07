@@ -103,15 +103,14 @@ export function closeNotifs(): void { if (notifs.open) { notifs.open = false; ma
 
 /** url is "@author/permlink" – a post or a comment; the diary resolves comments to their root post and highlights them. */
 /**
- * Where a notification leads. Blurt: the diary page. Another chain: the diary page when it is about the user's own post (the mirror
- * has the same permlink on Blurt), otherwise that chain's own web page (opened in a new tab) – we may not have that thread on Blurt.
+ * Where a notification leads: always a page of this front end (another chain's items open in the `?chain=` reader).
  */
 export function notifLink(n: Notif): { href: string; ext: boolean } {
   const m = n.url?.replace(/^@/, '').match(/^([^/]+)\/(.+)$/);
   if (!m) return { href: '', ext: false };
   if (n.chain === PRIMARY) return { href: href({ post: postParam(m[1], m[2]), c: `${m[1]}/${m[2]}` }), ext: false };
-  if (m[1] === auth.sessions[n.chain]?.user && auth.me) return { href: href({ post: postParam(auth.me.user, m[2]) }), ext: false };
-  return { href: adapter(n.chain).postUrl(m[1], m[2]), ext: true };
+  // another chain: read in our own page; the page resolves a comment to its root post and prefers the Blurt copy (whole thread)
+  return { href: href({ post: postParam(m[1], m[2]), chain: n.chain, ...(m[1] === auth.sessions[n.chain]?.user ? {} : { c: `${m[1]}/${m[2]}` }) }), ext: false };
 }
 export const notifHref = (n: Notif): string => notifLink(n).href;
 export const notifIcon = (t: string): string =>

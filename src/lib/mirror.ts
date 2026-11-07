@@ -78,8 +78,7 @@ export function mergeThreads(threads: Record<string, ChainThread>): { root: Reco
 }
 
 // ---------- looking posts up on the other chains ----------
-export async function loadChainThread(threads: Record<string, ChainThread>, chain: string, permlink: string): Promise<void> {
-  const account = accountOn(chain);
+export async function loadChainThread(threads: Record<string, ChainThread>, chain: string, permlink: string, account: string | undefined = accountOn(chain)): Promise<void> {
   if (!account) { threads[chain] = missingThread(chain); return; }
   threads[chain] = { chain, status: 'loading', kids: {} };
   // hard deadline: whatever the nodes do, the badge ends up as found / missing / error, never "checking" forever
