@@ -7,7 +7,7 @@ import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
 import { applyResult, canMirrorPost, chainsOf, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { accountsOf, ownerOf } from '../lib/known';
-import { href, navigate, postParam, postRef, state, USER } from '../lib/store';
+import { href, navigate, openTag, postParam, postRef, state, tagHref, USER } from '../lib/store';
 import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
 import { toast } from '../lib/toast';
 import type { Post } from '../lib/types';
@@ -159,8 +159,7 @@ async function sendPost(chain: string): Promise<void> {
         <button class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click="votesOpen = true">ⓘ</button>
         <template v-for="tag in tagsOf(post)" :key="tag">
           <a v-if="catFor(tag) && !fchain" class="tag" :href="href({ cat: catFor(tag)!.id })" @click.prevent="navigate(href({ cat: catFor(tag)!.id }))">#{{ tag }}</a>
-          <a v-else-if="loggedIn" class="tag" :href="href({ view: 'world', tab: 'tags', tag })" :title="t('tagOnAll')" @click.prevent="navigate(href({ view: 'world', tab: 'tags', tag }))">#{{ tag }}</a>
-          <span v-else class="tag">#{{ tag }}</span>
+          <a v-else class="tag" :href="tagHref(tag)" :title="t('tagOnAll')" @click.prevent="openTag(tag)">#{{ tag }}</a>
         </template>
       </div>
       <h3>{{ t('comments', { n: post.children ?? 0 }) }} <span v-if="checking" class="spinner" role="status" :aria-label="t('checkingChains')" :title="t('checkingChains')" /></h3>

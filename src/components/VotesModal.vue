@@ -30,6 +30,11 @@ const rows = computed(() => {
   }).sort((a, b) => (b.rs ?? 0) - (a.rs ?? 0));
   return { items: items.slice(0, MAX_ROWS), more: Math.max(0, items.length - MAX_ROWS), known };
 });
+const bens = computed(() => {
+  const list = (post.value?.beneficiaries ?? []).map((b) => ({ account: String(b.account), pct: num(b.weight) / 100 })).filter((b) => b.pct > 0);
+  const rest = Math.max(0, 100 - list.reduce((s, b) => s + b.pct, 0));
+  return { list, rest };
+});
 const f = (n: number | null, d: number, suffix = ''): string => (n == null ? 'â€“' : n.toFixed(d) + suffix);
 </script>
 <template>
@@ -50,6 +55,16 @@ const f = (n: number | null, d: number, suffix = ''): string => (n == null ? 'â€
           </tbody>
         </table>
         <div v-if="rows.more" class="mute">{{ t('votesMore', { n: rows.more }) }}</div>
+      </div>
+      <div class="bens">
+        <b>{{ t('benTitle') }}</b>
+        <div v-if="!bens.list.length" class="mute">{{ t('benNone') }}</div>
+        <table v-else class="votes">
+          <tbody>
+            <tr><td>@{{ post?.author }} ({{ t('benAuthor') }})</td><td>{{ bens.rest.toFixed(2).replace(/\.?0+$/, '') }}%</td></tr>
+            <tr v-for="b in bens.list" :key="b.account"><td>@{{ b.account }}</td><td>{{ b.pct.toFixed(2).replace(/\.?0+$/, '') }}%</td></tr>
+          </tbody>
+        </table>
       </div>
       <div class="mute help">{{ rows.known ? t('votesNote') : t('votesNoStrength') }}</div>
       <button @click="emit('close')">{{ t('close') }}</button>

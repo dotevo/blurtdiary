@@ -2,8 +2,7 @@
 import { computed } from 'vue';
 import { adapter } from '../lib/chains';
 import { t } from '../lib/i18n';
-import { auth } from '../lib/auth';
-import { href, navigate, USER } from '../lib/store';
+import { href, navigate, openTag, tagHref, USER } from '../lib/store';
 import type { WItem } from '../lib/world';
 import { excerpt, fmtDate, payoutOf, payoutTitle, tagsOf, thumbOf, votesOf } from '../lib/util';
 import ChainDot from './ChainDot.vue';
@@ -23,7 +22,6 @@ const sym = computed(() => adapter(chain.value).payoutSymbol);
 const tags = computed(() => tagsOf(p.value).slice(0, 4));
 const img = computed(() => thumbOf(p.value));
 const hue = computed(() => [...p.value.title].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 360);
-const tagHref = (tag: string): string => href({ view: 'world', tab: 'tags', tag });
 </script>
 <template>
   <article class="card hoverable wcard">
@@ -36,7 +34,7 @@ const tagHref = (tag: string): string => href({ view: 'world', tab: 'tags', tag 
       </div>
       <h3><a :href="link" @click="go">{{ p.title }}</a></h3>
       <p>{{ excerpt(p.body) }}</p>
-      <div v-if="auth.me && tags.length" class="wc-tags"><a v-for="tag in tags" :key="tag" class="tag" :href="tagHref(tag)" @click.prevent="navigate(tagHref(tag))">#{{ tag }}</a></div>
+      <div v-if="tags.length" class="wc-tags"><a v-for="tag in tags" :key="tag" class="tag" :href="tagHref(tag)" @click.prevent="openTag(tag)">#{{ tag }}</a></div>
       <div class="meta">
         <span>{{ fmtDate(p.created) }}</span>
         <span class="pay" :title="payoutTitle(p)">{{ payoutOf(p).toFixed(3) }} {{ sym }}</span>

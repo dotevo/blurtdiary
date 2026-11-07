@@ -38,6 +38,15 @@ const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sideba
 
 <template>
   <DocsView v-if="state.view === 'docs'" />
+  <!-- no blog: tag pages and posts read from one chain (a tag's address has no user, so every blog leads to the same page) -->
+  <template v-else-if="!USER && (state.view === 'world' || (state.post && state.chain))">
+    <TopBar />
+    <div class="wrap wide"><main>
+      <p><a class="mute" :href="href({})" @click.prevent="navigate(href({}))">Blurt Diary</a></p>
+      <WorldView v-if="state.view === 'world'" />
+      <PostView v-else />
+    </main></div>
+  </template>
   <div v-else-if="!USER" class="center">
     <h1>Blurt Diary</h1><p class="mute">{{ t('enterUser') }}</p>
     <form style="max-width:280px;margin:auto" @submit.prevent="openUser"><input v-model="who" :placeholder="t('userPlaceholder')" autofocus></form>

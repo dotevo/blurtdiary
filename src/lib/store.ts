@@ -46,6 +46,12 @@ export const href = (o: { month?: string; cat?: string; post?: string; c?: strin
   if (RECENT_MODE !== 'auto') p.set('recent', RECENT_MODE);
   return '?' + p;
 };
+/**
+ * A tag's page has no `user`: it is the same page whoever's blog you came from (one address per tag, nothing duplicated for search engines).
+ * From inside a blog that is a normal page load, because the blog (USER) is fixed when the page starts.
+ */
+export const tagHref = (tag: string): string => { const p = new URLSearchParams({ view: 'world', tab: 'tags', tag }); return '?' + p; };
+export const openTag = (tag: string): void => { if (USER) window.location.href = tagHref(tag); else navigate(tagHref(tag)); };
 /** `post` param = "permlink" (post of USER) or "author/permlink" (someone else's). */
 export const postParam = (author: string, permlink: string): string => (author === USER ? permlink : `${author}/${permlink}`);
 export const postRef = (p: string): { author: string; permlink: string } => {

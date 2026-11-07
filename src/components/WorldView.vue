@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { auth, loggedChains, loginOpen } from '../lib/auth';
 import { adapter } from '../lib/chains';
 import { t } from '../lib/i18n';
-import { href, navigate, state } from '../lib/store';
+import { href, navigate, openTag, state, tagHref } from '../lib/store';
 import { followed, followTag, isFollowedTag, MAX_FOLLOWED_TAGS, normTag, TAG_RE, unfollowTag } from '../lib/tags';
 import { loadWorldFeed, loadWorldFollowed, loadWorldTag, reloadWorldFeed, reloadWorldTag, worldFeed, worldFeedMore, worldFollowed, worldTag, worldTagMore, type WList } from '../lib/world';
 import ChainDot from './ChainDot.vue';
@@ -17,9 +17,10 @@ const tab = computed<'feed' | 'tags'>(() => (state.view === 'feed' ? 'feed' : st
 const tag = computed(() => (TAG_RE.test(normTag(state.tag)) ? normTag(state.tag) : ''));
 const newTag = ref(''); const tagMsg = ref('');
 const goTab = (x: 'feed' | 'tags'): void => navigate(href({ view: 'world', tab: x }));
-const goTag = (x: string): void => navigate(href({ view: 'world', tab: 'tags', tag: x }));
+const goTag = (x: string): void => openTag(x);
 
 watch([tab, tag, () => followed.tags.join(), () => auth.me?.user], () => {
+  if (tag.value) document.title = `#${tag.value} – Blurt Diary`;
   if (tab.value === 'feed') { if (loggedChains().length) void loadWorldFeed(); }
   else if (tag.value) void loadWorldTag(tag.value);
   else if (followed.tags.length) void loadWorldFollowed(followed.tags);
@@ -42,7 +43,7 @@ const feedFrom = computed(() => loggedChains());
 </script>
 <template>
   <section class="world">
-    <div class="tabs world-tabs">
+    <div class="tabs world-tabs" v-if="auth.me || !tag">
       <button :class="{ pri: tab === 'feed' }" @click="goTab('feed')">📰 {{ t('feedTitle') }}</button>
       <button :class="{ pri: tab === 'tags' }" @click="goTab('tags')"># {{ t('tagsTab') }}</button>
       <span class="grow" />
@@ -71,7 +72,7 @@ const feedFrom = computed(() => loggedChains());
         <div v-if="!auth.me && !feedFrom.length" class="center"><p class="mute">{{ t('tagsLogin') }}</p><button class="pri" @click="loginOpen = true">{{ t('login') }}</button></div>
         <template v-else>
           <div class="chips">
-            <a v-for="x in followed.tags" :key="x" class="tag chip" :href="href({ view: 'world', tab: 'tags', tag: x })" @click.prevent="goTag(x)">#{{ x }}</a>
+            <a v-for="x in followed.tags" :key="x" class="tag chip" :href="tagHref(x)" @click.prevent="goTag(x)">#{{ x }}</a>
             <span v-if="!followed.tags.length" class="mute help">{{ t('tagsNone') }}</span>
           </div>
           <form class="tag-add" @submit.prevent="addTag"><input v-model="newTag" :placeholder="t('tagAddPh')" autocapitalize="off" maxlength="33"><button class="small" :disabled="!newTag.trim()">{{ t('tagAdd') }}</button></form>
