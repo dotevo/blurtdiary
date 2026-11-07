@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { auth } from '../lib/auth';
 import { t } from '../lib/i18n';
 import { href, navigate, state } from '../lib/store';
 import { favOpen, favs } from '../lib/favs';
@@ -18,7 +17,6 @@ const go = (h: string): void => { if (h) navigate(h); };
       <a v-for="c in cats" :key="c.id" class="chip" :class="{ on: state.cat === c.id && !state.view }" :title="c.desc" :href="href({ cat: c.id })" @click.prevent="go(href({ cat: c.id }))">{{ c.name }}</a>
     </div>
     <div class="bar-tabs">
-      <a v-if="auth.me" class="tab" :class="{ on: state.view === 'feed' }" :href="href({ view: 'feed' })" :title="t('feedTitle')" @click.prevent="go(href({ view: 'feed' }))">📰<span class="tab-lbl"> {{ t('feedTitle') }}</span></a>
       <a class="tab" :class="{ on: state.view === 'stats' }" :href="href({ view: 'stats' })" :title="t('statsTitle')" @click.prevent="go(href({ view: 'stats' }))">📊<span class="tab-lbl"> {{ t('statsTitle') }}</span></a>
     </div>
   </div></nav>

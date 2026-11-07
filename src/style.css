@@ -323,3 +323,10 @@ button.vinfo{padding:2px 8px}
 .imp-main{min-width:0;overflow-wrap:anywhere}.imp-item button{flex:none}
 
 .imp-item.done{opacity:.6}.imp-item.done:hover{opacity:1}.imp-badge{color:var(--accent);font-weight:600}
+
+.world-tabs{margin-bottom:10px}.wf-chain{display:inline-flex;gap:4px;align-items:center;margin-right:10px}
+.tag-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.tag-head h2{margin:0}
+.tag-add{display:flex;gap:6px;margin:8px 0}.tag-add input{max-width:260px}
+.world .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.world .chip{text-decoration:none}
+.wc-by{display:flex;gap:6px;align-items:center}.wc-tags{display:flex;gap:6px;flex-wrap:wrap;font-size:.8rem;margin:4px 0}.wc-tags .tag{text-decoration:none}
+a.tag{text-decoration:none}

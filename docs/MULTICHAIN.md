@@ -91,3 +91,9 @@ every adapter has `stats(account, days, onProgress)`. `chains/stats.ts` implemen
 symbol (the chain token, its dollar-like token, VESTS), so a new chain only needs `symbol`, `payoutSymbol` and `call` and sets
 `stats: (a, d, p) => collectStats(mychain, a, d, p)`. A chain with a different history API returns the same `ChainStats` shape from its own code.
 The view lists every chain that has an account for the blog owner - no change needed when a chain is added.
+
+## World views (Feed and Tags – logged-in readers)
+The blog stays Blurt-only and private to its owner. Separately, the top bar offers two reading views for anyone logged in (`?view=world&tab=feed|tags[&tag=x]`):
+- **Feed** – the accounts you follow, asked on every chain you are logged in to (with that chain's own account), merged by date. The same post on several chains (same author + permlink) is one card with several chain dots; a post that exists only on Hive/Steem/… opens in the in-app reader of that chain (`?post=author/permlink&chain=hive`, read from that chain only).
+- **Tags** – clicking a `#tag` lists its newest posts on *all* chains (reading is public). A tag can be followed; followed tags are private, kept only in this browser (`bd-wtags-<user>`), and the Tags tab shows their newest posts together (first page of each tag on each chain – a bounded number of requests).
+How a chain lists a feed or a tag is the chain adapter's job (`feedPosts`, `tagPosts` in `src/lib/chains/*.ts`, built from the methods in `posts.ts`); `src/lib/world.ts` only merges the pages. A chain whose node cannot do a listing is reported as a quiet warning, the others still show.

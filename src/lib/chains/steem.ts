@@ -2,7 +2,7 @@
  * Steem. The oldest of the family: STEEM/SBD assets and `percent_steem_dollars`. For the discussion we use
  * condenser_api.get_state (supported by every steemd node) instead of the bridge API, which is not available everywhere.
  */
-import { firstPosts, viaBlog, viaAuthorDate, viaHistory } from './posts';
+import { feedCondenser, firstList, firstPosts, tagCondenser, viaBlog, viaAuthorDate, viaHistory } from './posts';
 import { APP_DEV, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
@@ -45,6 +45,8 @@ export const steem: ChainAdapter = {
   getThread: (author, permlink) => resolveThread(steem, author, permlink, async () =>
     (await steem.call<{ content?: Record<string, Post> }>('condenser_api', 'get_state', [`/tag/@${author}/${permlink}`])).content, true),
 
+  feedPosts: (account, cur = {}) => firstList(steem, account, cur, [feedCondenser]),
+  tagPosts: (tag, cur = {}) => firstList(steem, tag, cur, [tagCondenser]),
   latestPosts: (account) => firstPosts(steem, account, [viaBlog, viaAuthorDate, viaHistory()]),
   stats: (account, days, onProgress) => collectStats(steem, account, days, onProgress),
   beneficiaries: (author, _parent, tip) => (tip && steem.devAccount && author !== steem.devAccount ? sortBens([{ account: steem.devAccount, weight: DEV_WEIGHT }]) : []),

@@ -39,3 +39,25 @@ export async function firstPosts(c: ChainAdapter, account: string, methods: Post
   if (answered) return [];
   throw lastErr ?? new Error('no posts');
 }
+
+// ---------- listings for the "world" views (feed of followed accounts, posts of a tag) ----------
+export interface Cursor { start_author?: string; start_permlink?: string }
+export const PAGE = 15;
+export type ListMethod<A> = (c: ChainAdapter, arg: A, cur: Cursor) => Promise<Post[]>;
+
+const looksLikePosts = (r: unknown): r is Post[] => Array.isArray(r) && r.every((p) => p && typeof p.author === 'string' && typeof p.permlink === 'string' && typeof p.created === 'string');
+/** Same "first method that answers" rule as `firstPosts`, for any listing. A page after the first may legitimately be empty. */
+export async function firstList<A>(c: ChainAdapter, arg: A, cur: Cursor, methods: ListMethod<A>[]): Promise<Post[]> {
+  let lastErr: unknown = null, answered = false;
+  for (const m of methods) {
+    try { const r = await m(c, arg, cur); if (looksLikePosts(r)) { answered = true; if (r.length || cur.start_author) return r; } } catch (e) { lastErr = e; }
+  }
+  if (answered) return [];
+  throw lastErr ?? new Error('no posts');
+}
+/** Feed of the accounts `account` follows. */
+export const feedBridge: ListMethod<string> = (c, account, cur) => c.call<Post[]>('bridge', 'get_account_posts', { sort: 'feed', account, limit: PAGE, ...cur });
+export const feedCondenser: ListMethod<string> = (c, account, cur) => c.call<Post[]>('condenser_api', 'get_discussions_by_feed', [{ tag: account, limit: PAGE, ...cur }]);
+/** Newest posts with a tag. */
+export const tagBridge: ListMethod<string> = (c, tag, cur) => c.call<Post[]>('bridge', 'get_ranked_posts', { sort: 'created', tag, limit: PAGE, ...cur });
+export const tagCondenser: ListMethod<string> = (c, tag, cur) => c.call<Post[]>('condenser_api', 'get_discussions_by_created', [{ tag, limit: PAGE, ...cur }]);

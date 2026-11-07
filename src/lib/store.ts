@@ -26,11 +26,12 @@ export const state = reactive({
   recent: [] as Post[],
   month: parseMonth(q.get('month')), pinned: null as Post | null, // pinned: the owner's sticky post (config key `pinned`)
   cat: q.get('cat') ?? '', post: q.get('post') ?? '', focus: q.get('c') ?? '', view: q.get('view') ?? '',
+  chain: q.get('chain') ?? '', tab: q.get('tab') ?? '', tag: q.get('tag') ?? '', // world views: a post that lives on another chain / feed|tags tab / the tag shown
   searchBroken: false, // bridge.search_posts unavailable -> fall back to scanning the latest posts
 });
 
 // ---------- URLs ----------
-export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' }): string => {
+export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world'; chain?: string; tab?: 'feed' | 'tags'; tag?: string }): string => {
   const p = new URLSearchParams();
   if (USER) p.set('user', USER); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);
@@ -38,6 +39,9 @@ export const href = (o: { month?: string; cat?: string; post?: string; c?: strin
   if (o.post) p.set('post', o.post);
   if (o.c) p.set('c', o.c);
   if (o.view) p.set('view', o.view);
+  if (o.chain) p.set('chain', o.chain);
+  if (o.tab) p.set('tab', o.tab);
+  if (o.tag) p.set('tag', o.tag);
   if (RECENT_MODE !== 'auto') p.set('recent', RECENT_MODE);
   return '?' + p;
 };
@@ -57,6 +61,7 @@ export const commentHref = (c: Post): string => {
 function syncFromUrl(): void {
   const p = new URLSearchParams(location.search);
   state.month = parseMonth(p.get('month')); state.cat = p.get('cat') ?? ''; state.post = p.get('post') ?? ''; state.focus = p.get('c') ?? ''; state.view = p.get('view') ?? '';
+  state.chain = p.get('chain') ?? ''; state.tab = p.get('tab') ?? ''; state.tag = p.get('tag') ?? '';
 }
 export function navigate(h: string, replace = false): void {
   if (replace) history.replaceState({}, '', h); else history.pushState({}, '', h);

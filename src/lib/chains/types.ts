@@ -1,4 +1,5 @@
 import type { Beneficiary, Operation, Post } from '../types';
+import type { Cursor } from './posts';
 import type { NodePool } from './nodes';
 
 /** Identifier of a supported blockchain: 'blurt' (primary), 'hive', 'steem'. The registry in index.ts is the source of truth. */
@@ -104,6 +105,10 @@ export interface ChainAdapter {
    * Each chain picks its own methods (`firstPosts` in posts.ts); the caller filters `is_paidout === false`.
    */
   latestPosts(account: string): Promise<Post[]>;
+  /** Latest posts of the accounts `account` follows, one page (continue with the last post as cursor). Each chain lists its own methods. */
+  feedPosts(account: string, cur?: Cursor): Promise<Post[]>;
+  /** Newest posts that carry `tag`, one page. */
+  tagPosts(tag: string, cur?: Cursor): Promise<Post[]>;
   stats(account: string, days: number, onProgress?: (p: StatsProgress) => void): Promise<ChainStats>;
   /** Beneficiaries for a new comment/post of `author` under `parent` on this chain. */
   beneficiaries(author: string, parent: Post, tip: boolean): Beneficiary[];

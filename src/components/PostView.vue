@@ -2,7 +2,7 @@
 import { computed, nextTick, provide, reactive, ref, watch } from 'vue';
 import { auth, loginOpen } from '../lib/auth';
 import { benLabel, beneficiariesFor } from '../lib/ben';
-import { adapter, type ChainThread } from '../lib/chains';
+import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
 import { applyResult, canMirrorPost, chainsOf, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
@@ -43,7 +43,9 @@ const voteTitle = computed(() => Object.entries(merged.value.root).map(([c, p]) 
 const checking = computed(() => mirrored.value && mirrorChains().some((c) => !threads[c.id] || threads[c.id].status === 'loading'));
 const payoutChains = computed(() => chainsOf(merged.value.root)); // rewards of every chain that has a copy
 const postDiffers = computed(() => versionsDiffer(merged.value.root, true));
-const mirrored = computed(() => !!post.value && post.value.author === USER && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
+/** A post read from another chain (`?chain=hive`): it has no Blurt copy, so it is shown from that chain only. */
+const fchain = computed(() => (state.chain && state.chain !== 'blurt' && CHAINS.some((c) => c.id === state.chain) ? state.chain : ''));
+const mirrored = computed(() => !fchain.value && !!post.value && post.value.author === USER && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
 
 const badges = computed<BadgeItem[]>(() => mirrored.value ? [{ id: 'blurt', name: 'Blurt' }, ...mirrorChains()].map((c) => {
   const th = threads[c.id]; const account = accountOn(c.id);
@@ -55,6 +57,14 @@ async function load(): Promise<void> {
   loading.value = true;
   Object.keys(threads).forEach((k) => delete threads[k]);
   const { author, permlink } = postRef(state.post);
+  if (fchain.value) {
+    const fth = await adapter(fchain.value).getThread(author, permlink);
+    post.value = fth.status === 'found' ? fth.root! : null;
+    if (post.value) threads[fchain.value] = fth;
+    loading.value = false;
+    void scrollToFocus();
+    return;
+  }
   const th = await adapter('blurt').getThread(author, permlink);
   const root = th.status === 'found' ? th.root! : null;
   const isComment = !!root && (root.depth ?? 0) > 0;
@@ -73,7 +83,7 @@ async function load(): Promise<void> {
   if (root && mirrored.value) for (const c of mirrorChains()) void loadChainThread(threads, c.id, permlink); // parallel, filled in as they answer
   void scrollToFocus();
 }
-watch(() => state.post, load, { immediate: true });
+watch(() => [state.post, state.chain], load, { immediate: true });
 // logging in to another chain while the post is open: look the post up there too
 watch(() => mirrorChains().map((c) => c.id).join(), () => {
   if (post.value && mirrored.value) for (const c of mirrorChains()) if (!threads[c.id]) void loadChainThread(threads, c.id, post.value.permlink);
@@ -128,7 +138,8 @@ async function sendPost(chain: string): Promise<void> {
         <button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)">♥ {{ post.active_votes?.length ?? 0 }}</button>
         <button class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click="votesOpen = true">ⓘ</button>
         <template v-for="tag in tagsOf(post)" :key="tag">
-          <a v-if="catFor(tag)" class="tag" :href="href({ cat: catFor(tag)!.id })" @click.prevent="navigate(href({ cat: catFor(tag)!.id }))">#{{ tag }}</a>
+          <a v-if="catFor(tag) && !fchain" class="tag" :href="href({ cat: catFor(tag)!.id })" @click.prevent="navigate(href({ cat: catFor(tag)!.id }))">#{{ tag }}</a>
+          <a v-else-if="loggedIn" class="tag" :href="href({ view: 'world', tab: 'tags', tag })" :title="t('tagOnAll')" @click.prevent="navigate(href({ view: 'world', tab: 'tags', tag }))">#{{ tag }}</a>
           <span v-else class="tag">#{{ tag }}</span>
         </template>
       </div>
