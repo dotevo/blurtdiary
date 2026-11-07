@@ -1,8 +1,8 @@
 /**
  * Voting on content past its 7-day payout window – ported from BlurtForum's useSupport.ts.
- *  1. look for a fresh (< 7 days) support comment by the voter under the post, with the SAME beneficiaries as the post
+ *  1. look for a fresh (< 7 days) support comment by the voter under the post, with the beneficiaries `supportBens(post)` (post's own + the rest to its author)
  *  2a. found  -> vote on it
- *  2b. missing -> post "Supporting original content by @author" with the original post's beneficiaries, then vote on it
+ *  2b. missing -> post "Supporting original content by @author" with `supportBens(post)`, then vote on it
  *  3. best-effort (separate broadcast) vote on the original post as well
  */
 import { reactive } from 'vue';
@@ -20,20 +20,33 @@ export const support = reactive({
   existingAuthor: null as string | null, existingPermlink: null as string | null,
 });
 
-function sameBens(c: Beneficiary[], p: Beneficiary[], author: string): boolean {
-  if (!p.length) return c.length === 1 && c[0].account === author && c[0].weight === 10000;
-  if (c.length !== p.length) return false;
-  const a = sortBens(c), b = sortBens(p);
-  return a.every((x, i) => x.account === b[i].account && x.weight === b[i].weight);
+/**
+ * Beneficiaries of a support comment: whatever the original post pays out to others (e.g. 3% community) stays the same, and EVERYTHING ELSE
+ * goes to the original author – the supporter keeps nothing. (The post's own list alone only adds up to 3%; the missing 97% would then
+ * be paid to the commenter.)
+ */
+export function supportBens(post: Post): Beneficiary[] {
+  const bens = (post.beneficiaries ?? []).map((b) => ({ account: b.account, weight: b.weight }));
+  const rest = 10000 - bens.reduce((s, b) => s + b.weight, 0);
+  if (rest > 0) {
+    const own = bens.find((b) => b.account === post.author);
+    if (own) own.weight += rest; else bens.push({ account: post.author, weight: rest });
+  }
+  return sortBens(bens);
 }
+const sameBens = (c: Beneficiary[], want: Beneficiary[]): boolean => {
+  if (c.length !== want.length) return false;
+  const a = sortBens(c);
+  return a.every((x, i) => x.account === want[i].account && x.weight === want[i].weight);
+};
 
 export async function triggerSupport(post: Post): Promise<void> {
   const me = auth.me?.user;
   if (!me) { loginOpen.value = true; return; }
   let children: Post[] = [];
   try { children = await rpc<Post[]>('condenser_api', 'get_content_replies', [post.author, post.permlink]); } catch (e) { console.warn('Support scan failed', e); }
-  const pBens = post.beneficiaries ?? [];
-  const existing = children.find((c) => c.author === me && Date.now() - toDate(c.created).getTime() < WEEK && sameBens(c.beneficiaries ?? [], pBens, post.author));
+  const pBens = supportBens(post);
+  const existing = children.find((c) => c.author === me && Date.now() - toDate(c.created).getTime() < WEEK && sameBens(c.beneficiaries ?? [], pBens));
   Object.assign(support, {
     show: true, loading: false, author: post.author, permlink: post.permlink, beneficiaries: pBens, body: '', status: '', isError: false,
     existingAuthor: existing?.author ?? null, existingPermlink: existing?.permlink ?? null,
@@ -56,7 +69,7 @@ export async function submitSupport(): Promise<void> {
     } else {
       support.status = t('supporting');
       const permlink = `support-${support.author.replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`;
-      const bens = support.beneficiaries.length ? sortBens(support.beneficiaries) : [{ account: support.author, weight: 10000 }];
+      const bens = sortBens(support.beneficiaries); // already complete: sums to 100%, the original author gets the remainder
       await broadcast([
         ['comment', { parent_author: support.author, parent_permlink: support.permlink, author: me, permlink, title: '',
           body: `Supporting original content by @${support.author}\n\n${support.body}`.trim(),
