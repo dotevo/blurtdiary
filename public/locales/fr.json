@@ -29,6 +29,7 @@
  "loginError": "Erreur de connexion",
  "wvMissing": "WhaleVault non détecté",
  "votesTitle": "Votes",
+ "mixedPost": "La page affichait des données mélangées, rien n'a été envoyé. Rechargement de l'article.",
  "benTitle": "Bénéficiaires",
  "benNone": "Aucun – l'auteur reçoit toute la part de l'auteur",
  "benAuthor": "auteur",

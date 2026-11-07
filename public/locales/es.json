@@ -29,6 +29,7 @@
  "loginError": "Error de inicio de sesión",
  "wvMissing": "WhaleVault no detectado",
  "votesTitle": "Votos",
+ "mixedPost": "La página mostraba datos mezclados, así que no se envió nada. Recargando la entrada.",
  "benTitle": "Beneficiarios",
  "benNone": "Ninguno – el autor recibe toda la parte del autor",
  "benAuthor": "autor",

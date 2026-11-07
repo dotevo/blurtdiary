@@ -29,6 +29,7 @@
  "loginError": "Błąd logowania",
  "wvMissing": "Nie wykryto WhaleVault",
  "votesTitle": "Głosy",
+ "mixedPost": "Strona pokazywała pomieszane dane, więc nic nie wysłano. Ładuję wpis ponownie.",
  "benTitle": "Beneficjenci",
  "benNone": "Brak – autor dostaje całą część autorską",
  "benAuthor": "autor",

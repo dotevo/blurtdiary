@@ -29,6 +29,7 @@
  "loginError": "Anmeldefehler",
  "wvMissing": "WhaleVault nicht erkannt",
  "votesTitle": "Stimmen",
+ "mixedPost": "Die Seite zeigte gemischte Daten, daher wurde nichts gesendet. Beitrag wird neu geladen.",
  "benTitle": "Begünstigte",
  "benNone": "Keine – der Autor erhält den ganzen Autorenanteil",
  "benAuthor": "Autor",

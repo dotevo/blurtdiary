@@ -29,6 +29,7 @@
  "loginError": "Login error",
  "wvMissing": "WhaleVault not detected",
  "votesTitle": "Votes",
+ "mixedPost": "The page showed mixed data, so nothing was sent. Reloading the post.",
  "benTitle": "Beneficiaries",
  "benNone": "None – the author gets the whole author share",
  "benAuthor": "author",

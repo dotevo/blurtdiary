@@ -54,13 +54,22 @@ const badges = computed<BadgeItem[]>(() => mirrored.value ? [{ id: 'blurt', name
     canSend: !!post.value && canMirrorPost(c.id, post.value, threads), sending: sendingChain.value === c.id };
 }) : []);
 
+/**
+ * Opening another post while the previous one is still loading must not let the old answers land in the new post's threads
+ * (that mixed two posts and could send a comment to the wrong one). Every load has a number; writes of an outdated load are dropped.
+ */
+let seq = 0;
+const guard = (my: number): Record<string, ChainThread> => new Proxy(threads, { set: (t, k, v) => { if (my === seq) Reflect.set(t, k, v); return true; } });
+
 async function load(): Promise<void> {
+  const my = ++seq; const g = guard(my);
   loading.value = true;
   Object.keys(threads).forEach((k) => delete threads[k]);
   const { author, permlink } = postRef(state.post);
   if (fchain.value) {
     const fc = fchain.value;
     const fth = await adapter(fc).getThread(author, permlink);
+    if (my !== seq) return;
     const froot = fth.status === 'found' ? fth.root! : null;
     if (froot && (froot.depth ?? 0) > 0) {
       // a comment (a notification from this chain) -> its root post, the comment highlighted
@@ -72,6 +81,7 @@ async function load(): Promise<void> {
     if (froot && owner) {
       // the Blurt copy (the source of truth) shows the whole discussion of all chains
       const bt = await adapter('blurt').getThread(owner, froot.permlink);
+      if (my !== seq) return;
       if (bt.status === 'found') { navigate(href({ post: postParam(owner, froot.permlink), c: state.focus }), true); return; }
     }
     post.value = froot;
@@ -80,12 +90,13 @@ async function load(): Promise<void> {
     // no Blurt copy: still look for the same permlink on the owner's other chains so the thread is complete
     if (froot && owner) {
       const accs = owner === auth.me?.user ? Object.fromEntries(CHAINS.map((c) => [c.id, auth.sessions[c.id]?.user])) : accountsOf(owner);
-      for (const c of CHAINS) if (c.id !== fc && c.id !== 'blurt' && accs[c.id]) void loadChainThread(threads, c.id, froot.permlink, accs[c.id]);
+      for (const c of CHAINS) if (c.id !== fc && c.id !== 'blurt' && accs[c.id]) void loadChainThread(g, c.id, froot.permlink, accs[c.id]);
     }
     void scrollToFocus();
     return;
   }
   const th = await adapter('blurt').getThread(author, permlink);
+  if (my !== seq) return;
   const root = th.status === 'found' ? th.root! : null;
   const isComment = !!root && (root.depth ?? 0) > 0;
   if (root && (isComment || root.author !== USER)) {
@@ -100,16 +111,16 @@ async function load(): Promise<void> {
   post.value = root;
   if (root) threads.blurt = th;
   loading.value = false;
-  if (root && mirrored.value) for (const c of mirrorChains()) void loadChainThread(threads, c.id, permlink); // parallel, filled in as they answer
+  if (root && mirrored.value) for (const c of mirrorChains()) void loadChainThread(g, c.id, permlink); // parallel, filled in as they answer
   void scrollToFocus();
 }
 watch(() => [state.post, state.chain], load, { immediate: true });
 // logging in to another chain while the post is open: look the post up there too
 watch(() => mirrorChains().map((c) => c.id).join(), () => {
-  if (post.value && mirrored.value) for (const c of mirrorChains()) if (!threads[c.id]) void loadChainThread(threads, c.id, post.value.permlink);
+  if (post.value && mirrored.value) for (const c of mirrorChains()) if (!threads[c.id]) void loadChainThread(guard(seq), c.id, post.value.permlink);
 });
 watch(() => state.focus, () => { void scrollToFocus(); });
-const retry = (chain: string): void => { if (post.value) void loadChainThread(threads, chain, post.value.permlink); };
+const retry = (chain: string): void => { if (post.value) void loadChainThread(guard(seq), chain, post.value.permlink); };
 
 async function scrollToFocus(): Promise<void> {
   if (!state.focus || loading.value) return;
@@ -125,17 +136,20 @@ async function send(): Promise<void> {
   if (!loggedIn.value) { loginOpen.value = true; return; }
   const text = body.value.trim(); if (!text || sending.value) return;
   if (!targets.value.length) { toast(t('noTargets')); loginOpen.value = true; return; }
+  // every chain's copy must be this very post (same permlink); anything else means the page is in a mixed state – never send then
+  const root = merged.value.root; const my = seq;
+  if (Object.values(root).some((p) => p.permlink !== post.value!.permlink)) { toast(t('mixedPost')); void load(); return; }
   sending.value = true;
-  const res = await sendComment(merged.value.root, text);
-  applyResult(threads, merged.value.root, res);
-  if (Object.keys(res.ok).length) body.value = '';
+  const res = await sendComment(root, text);
+  if (my === seq) { applyResult(threads, root, res); if (Object.keys(res.ok).length) body.value = ''; }
   toast(describeResult(res, t('commentSent')));
   sending.value = false;
 }
 async function sendPost(chain: string): Promise<void> {
   if (!post.value) return;
   sendingChain.value = chain;
-  try { await mirrorPost(chain, post.value); toast(t('postSentTo', { c: adapter(chain).name })); await loadChainThread(threads, chain, post.value.permlink); }
+  const my = seq; const sent = post.value;
+  try { await mirrorPost(chain, sent); toast(t('postSentTo', { c: adapter(chain).name })); await loadChainThread(guard(my), chain, sent.permlink); }
   catch (e) { toast((e as Error).message); }
   sendingChain.value = '';
 }
