@@ -3,6 +3,7 @@
  * order (see `pending` in blurt.ts / hive.ts / steem.ts / melek.ts). Nothing here is chain specific.
  */
 import type { Post } from '../types';
+import { rootOf } from '../util';
 import type { ChainAdapter } from './types';
 
 export type PostsMethod = (c: ChainAdapter, account: string) => Promise<Post[]>;
@@ -59,5 +60,34 @@ export async function firstList<A>(c: ChainAdapter, arg: A, cur: Cursor, methods
 export const feedBridge: ListMethod<string> = (c, account, cur) => c.call<Post[]>('bridge', 'get_account_posts', { sort: 'feed', account, limit: PAGE, ...cur });
 export const feedCondenser: ListMethod<string> = (c, account, cur) => c.call<Post[]>('condenser_api', 'get_discussions_by_feed', [{ tag: account, limit: PAGE, ...cur }]);
 /** Newest posts with a tag. */
-export const tagBridge: ListMethod<string> = (c, tag, cur) => c.call<Post[]>('bridge', 'get_ranked_posts', { sort: 'created', tag, limit: PAGE, ...cur });
-export const tagCondenser: ListMethod<string> = (c, tag, cur) => c.call<Post[]>('condenser_api', 'get_discussions_by_created', [{ tag, limit: PAGE, ...cur }]);
+/** How a tag's posts are ordered: newest first, "hot", or "trending" (the node's own ranking; names are the same in `bridge.get_ranked_posts` and `condenser_api.get_discussions_by_<sort>`). */
+export type Sort = 'created' | 'hot' | 'trending';
+export const SORTS: Sort[] = ['created', 'hot', 'trending'];
+export interface TagArg { tag: string; sort: Sort }
+export const tagBridge: ListMethod<TagArg> = (c, a, cur) => c.call<Post[]>('bridge', 'get_ranked_posts', { sort: a.sort, tag: a.tag, limit: PAGE, ...cur });
+export const tagCondenser: ListMethod<TagArg> = (c, a, cur) => c.call<Post[]>('condenser_api', `get_discussions_by_${a.sort}`, [{ tag: a.tag, limit: PAGE, ...cur }]);
+// ---------- recent replies to an account's posts (the "recent comments" panel for the blog's accounts on other chains) ----------
+export type RepliesMethod = (c: ChainAdapter, account: string) => Promise<Post[]>;
+/** Hivemind: replies to the account's comments and posts; only the threads rooted in its own posts count. */
+export const repliesBridge: RepliesMethod = async (c, account) => {
+  const rows = await c.call<Post[]>('bridge', 'get_account_posts', { sort: 'replies', account, limit: 30 });
+  return rows.filter((x) => rootOf(x)?.author === account);
+};
+/** Any node: the replies under the account's latest posts. */
+export const repliesScan: RepliesMethod = async (c, account) => {
+  const posts = (await c.latestPosts(account)).slice(0, 8);
+  const rs = await Promise.all(posts.map((p) => c.call<Post[]>('condenser_api', 'get_content_replies', [p.author, p.permlink]).catch(() => [] as Post[])));
+  return rs.flat();
+};
+export async function recentReplies(c: ChainAdapter, account: string, methods: RepliesMethod[]): Promise<Post[]> {
+  let lastErr: unknown = null, answered = false;
+  for (const m of methods) {
+    try { const r = await m(c, account); if (Array.isArray(r)) { answered = true; if (r.length) return r.sort((a, b) => b.created.localeCompare(a.created)).slice(0, 12); } } catch (e) { lastErr = e; }
+  }
+  if (answered) return [];
+  throw lastErr ?? new Error('no replies');
+}
+
+/** An account's own posts (profile page), one page after `cur`. */
+export const accBridge: ListMethod<string> = (c, account, cur) => c.call<Post[]>('bridge', 'get_account_posts', { sort: 'posts', account, limit: PAGE, ...cur });
+export const accBlog: ListMethod<string> = (c, account, cur) => c.call<Post[]>('condenser_api', 'get_discussions_by_blog', [{ tag: account, limit: PAGE, ...cur }]);

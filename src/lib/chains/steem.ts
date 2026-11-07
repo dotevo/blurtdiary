@@ -2,7 +2,7 @@
  * Steem. The oldest of the family: STEEM/SBD assets and `percent_steem_dollars`. For the discussion we use
  * condenser_api.get_state (supported by every steemd node) instead of the bridge API, which is not available everywhere.
  */
-import { feedCondenser, firstList, firstPosts, tagCondenser, viaBlog, viaAuthorDate, viaHistory } from './posts';
+import { feedCondenser, firstList, recentReplies, repliesScan, accBlog, firstPosts, tagCondenser, viaBlog, viaAuthorDate, viaHistory } from './posts';
 import { APP_DEV, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
@@ -46,7 +46,9 @@ export const steem: ChainAdapter = {
     (await steem.call<{ content?: Record<string, Post> }>('condenser_api', 'get_state', [`/tag/@${author}/${permlink}`])).content, true),
 
   feedPosts: (account, cur = {}) => firstList(steem, account, cur, [feedCondenser]),
-  tagPosts: (tag, cur = {}) => firstList(steem, tag, cur, [tagCondenser]),
+  recentReplies: (account) => recentReplies(steem, account, [repliesScan]),
+  accountPosts: (account, cur = {}) => firstList(steem, account, cur, [accBlog]),
+  tagPosts: (tag, cur = {}, sort = 'created') => firstList(steem, { tag, sort }, cur, [tagCondenser]),
   latestPosts: (account) => firstPosts(steem, account, [viaBlog, viaAuthorDate, viaHistory()]),
   stats: (account, days, onProgress) => collectStats(steem, account, days, onProgress),
   beneficiaries: (author, _parent, tip) => (tip && steem.devAccount && author !== steem.devAccount ? sortBens([{ account: steem.devAccount, weight: DEV_WEIGHT }]) : []),

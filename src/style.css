@@ -332,3 +332,34 @@ button.vinfo{padding:2px 8px}
 a.tag{text-decoration:none}
 .comm-pick{font:inherit;width:100%;padding:8px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)}
 .bens{margin:10px 0}
+.who{color:inherit;text-decoration:none}.who:hover{text-decoration:underline}
+.prof-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.prof-head .grow{flex:1;min-width:180px}.prof-act{display:flex;gap:8px;align-items:center}
+.sortbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.more-sentinel{min-height:40px;padding:12px 0}
+
+/* phone: page links in a bottom bar, bigger targets; the top bar keeps language, rewards, bell and the account */
+.bnav{display:none}
+@media(max-width:700px){
+  .topbar .navbtn{display:none}
+  .topbar .acc .who{display:none}
+  .topbar .icon,.topbar .claim,.topbar .acc{min-width:44px;min-height:38px}
+  .topbar .icon{font-size:1.15rem}
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  .bnav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:6px 2px;font-size:.72rem;color:var(--muted,inherit);text-decoration:none;text-align:center;line-height:1.1}
+  .bnav a .bi{font-size:1.35rem;line-height:1}
+  .bnav a.on{color:var(--accent);font-weight:600}
+  .sortbar .small,.chainbar .small{min-height:38px;padding:6px 12px}
+}
+.chainbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;align-items:center}
+.chainbar .small{display:inline-flex;gap:6px;align-items:center}
+.chainbar .small.off{opacity:.45}
+
+/* phone: content / panels as two panes (tabs on top, swipe sideways) */
+.pane-tabs{display:none}
+@media(max-width:860px){
+  .pane-tabs{display:flex;position:sticky;top:var(--tb-h);z-index:20;margin:-12px -10px 12px;background:var(--card);border-bottom:1px solid var(--line)}
+  .pane-tabs button{flex:1;min-height:44px;border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;font-weight:500}
+  .pane-tabs button.on{border-bottom-color:var(--accent);color:var(--accent);font-weight:700}
+  .wrap.pane-side>main{display:none}
+  .wrap.pane-main>.side{display:none}
+}

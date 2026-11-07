@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { adapter } from '../lib/chains';
 import { t } from '../lib/i18n';
-import { href, navigate, openTag, tagHref, USER } from '../lib/store';
+import { href, navigate, openProfile, openTag, profileHref, tagHref, USER } from '../lib/store';
 import type { WItem } from '../lib/world';
 import { excerpt, fmtDate, payoutOf, payoutTitle, tagsOf, thumbOf, votesOf } from '../lib/util';
 import ChainDot from './ChainDot.vue';
@@ -30,7 +30,7 @@ const hue = computed(() => [...p.value.title].reduce((s, ch) => s + ch.charCodeA
     <div class="card-b">
       <div class="mute feed-by wc-by">
         <span class="mchains"><ChainDot v-for="c in item.chains" :key="c" :chain="c" :title="t('fromChain', { c: adapter(c).name })" /></span>
-        @{{ p.author }}
+        <a class="who" :href="profileHref(p.author, chain)" :title="t('profileOpen')" @click.prevent="openProfile(p.author, chain)">@{{ p.author }}</a>
       </div>
       <h3><a :href="link" @click="go">{{ p.title }}</a></h3>
       <p>{{ excerpt(p.body) }}</p>

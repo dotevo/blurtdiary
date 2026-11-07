@@ -7,7 +7,7 @@ import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
 import { applyResult, canMirrorPost, chainsOf, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { accountsOf, ownerOf } from '../lib/known';
-import { href, navigate, openTag, postParam, postRef, state, tagHref, USER } from '../lib/store';
+import { href, navigate, openProfile, openTag, profileHref, postParam, postRef, state, tagHref, USER } from '../lib/store';
 import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
 import { toast } from '../lib/toast';
 import type { Post } from '../lib/types';
@@ -162,7 +162,7 @@ async function sendPost(chain: string): Promise<void> {
     <div v-if="thumbOf(post)" class="thumb hero-img" :style="{ backgroundImage: `url('${thumbOf(post)}')` }" />
     <div class="art-in">
       <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
-      <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }}</div>
+      <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }} · <a class="who" :href="profileHref(post.author, fchain || 'blurt')" @click.prevent="openProfile(post.author, fchain || 'blurt')">{{ t('profileOpen') }}</a></div>
       <h1>{{ post.title }}</h1>
       <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <template v-for="x in payoutChains" :key="x.id"><span class="pay" :title="payoutTitle(merged.root[x.id])"><ChainDot v-if="payoutChains.length > 1" :chain="x.id" /> {{ payoutOf(merged.root[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></div>
       <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />

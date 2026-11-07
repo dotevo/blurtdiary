@@ -2,7 +2,7 @@
  * Hive. Same JSON-RPC shapes as Blurt for the calls we use, but: HIVE/HBD assets, `percent_hbd`, chain id and the
  * STM key prefix. Communities (`hive-NNNNNN`) are a different namespace than Blurt's, so no community beneficiary is added.
  */
-import { feedBridge, feedCondenser, firstList, firstPosts, tagBridge, tagCondenser, viaBridge, viaBlog } from './posts';
+import { feedBridge, feedCondenser, firstList, recentReplies, repliesBridge, repliesScan, accBlog, accBridge, firstPosts, tagBridge, tagCondenser, viaBridge, viaBlog } from './posts';
 import { APP_DEV, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
@@ -45,7 +45,9 @@ export const hive: ChainAdapter = {
   getThread: (author, permlink) => resolveThread(hive, author, permlink, () => hive.call<Record<string, Post>>('bridge', 'get_discussion', { author, permlink, observer: '' }), true),
 
   feedPosts: (account, cur = {}) => firstList(hive, account, cur, [feedBridge, feedCondenser]),
-  tagPosts: (tag, cur = {}) => firstList(hive, tag, cur, [tagBridge, tagCondenser]),
+  recentReplies: (account) => recentReplies(hive, account, [repliesBridge, repliesScan]),
+  accountPosts: (account, cur = {}) => firstList(hive, account, cur, [accBridge, accBlog]),
+  tagPosts: (tag, cur = {}, sort = 'created') => firstList(hive, { tag, sort }, cur, [tagBridge, tagCondenser]),
   latestPosts: (account) => firstPosts(hive, account, [viaBridge, viaBlog]),
   stats: (account, days, onProgress) => collectStats(hive, account, days, onProgress),
   beneficiaries: (author, _parent, tip) => (tip && hive.devAccount && author !== hive.devAccount ? sortBens([{ account: hive.devAccount, weight: DEV_WEIGHT }]) : []),

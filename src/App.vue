@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { loginOpen } from './lib/auth';
 import { safeUrl } from './lib/config';
 import { lang, t } from './lib/i18n';
@@ -20,6 +20,7 @@ import WriteView from './components/WriteView.vue';
 import UserAvatar from './components/UserAvatar.vue';
 import StatsView from './components/StatsView.vue';
 import WorldView from './components/WorldView.vue';
+import ProfileView from './components/ProfileView.vue';
 import FavList from './components/FavList.vue';
 import NodeSettings from './components/NodeSettings.vue';
 import { favs, isFav, toggleFav } from './lib/favs';
@@ -33,17 +34,43 @@ const cover = () => safeUrl(state.cfg.cover) || safeUrl(state.profile?.cover_ima
 const logo = (): string => safeUrl(state.cfg.logo);
 const monthLabel = (m: string): string => new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7) - 1, 1)).toLocaleDateString(lang.value, { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const wide = computed(() => state.view === 'write' || state.view === 'settings');
-const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sidebar ?? 'right'}`));
+const hasSide = computed(() => !state.loading && !wide.value && state.cfg.sidebar !== 'none');
+const wrapClass = computed(() => [wide.value ? 'wide' : `side-${state.cfg.sidebar ?? 'right'}`, hasSide.value ? `pane-${pane.value}` : '']);
+
+/**
+ * Phones show one column, so the side panels (recent comments, feed, archive …) would sit below an endless list. Instead the page has two panes,
+ * "content" and "panels": tabs at the top, and a swipe left/right switches. Each pane keeps its own scroll position.
+ */
+const pane = ref<'main' | 'side'>('main');
+const scrolls = { main: 0, side: 0 };
+async function showPane(p: 'main' | 'side'): Promise<void> {
+  if (p === pane.value) return;
+  scrolls[pane.value] = window.scrollY; pane.value = p;
+  await nextTick(); window.scrollTo(0, scrolls[p]);
+}
+watch(() => [state.post, state.view, state.cat, state.month], () => { pane.value = 'main'; scrolls.main = 0; });
+let t0: { x: number; y: number } | null = null;
+const SKIP = 'pre,table,code,textarea,input,select,.chips,.tabs,.cat-bar,.bar,.panel,[contenteditable]'; // things that scroll sideways or take drags themselves
+const onStart = (e: TouchEvent): void => { t0 = e.touches.length === 1 && !(e.target as Element).closest?.(SKIP) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; };
+const onEnd = (e: TouchEvent): void => {
+  if (!t0 || !hasSide.value || window.innerWidth > 860) return;
+  const dx = e.changedTouches[0].clientX - t0.x, dy = e.changedTouches[0].clientY - t0.y; t0 = null;
+  if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+  void showPane(dx < 0 ? 'side' : 'main');
+};
+onMounted(() => { document.addEventListener('touchstart', onStart, { passive: true }); document.addEventListener('touchend', onEnd, { passive: true }); });
+onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); document.removeEventListener('touchend', onEnd); });
 </script>
 
 <template>
   <DocsView v-if="state.view === 'docs'" />
   <!-- no blog: tag pages and posts read from one chain (a tag's address has no user, so every blog leads to the same page) -->
-  <template v-else-if="!USER && (state.view === 'world' || (state.post && state.chain))">
+  <template v-else-if="!USER && (state.view === 'world' || state.view === 'profile' || (state.post && state.chain))">
     <TopBar />
     <div class="wrap wide"><main>
       <p><a class="mute" :href="href({})" @click.prevent="navigate(href({}))">Blurt Diary</a></p>
       <WorldView v-if="state.view === 'world'" />
+      <ProfileView v-else-if="state.view === 'profile'" />
       <PostView v-else />
     </main></div>
   </template>
@@ -77,11 +104,16 @@ const wrapClass = computed(() => (wide.value ? 'wide' : `side-${state.cfg.sideba
     </header>
     <NavBar />
     <div class="wrap" :class="wrapClass">
+      <div v-if="hasSide" class="pane-tabs" role="tablist">
+        <button role="tab" :aria-selected="pane === 'main'" :class="{ on: pane === 'main' }" @click="showPane('main')">📄 {{ t('paneMain') }}</button>
+        <button role="tab" :aria-selected="pane === 'side'" :class="{ on: pane === 'side' }" @click="showPane('side')">💬 {{ t('paneSide') }}</button>
+      </div>
       <main>
         <div v-if="state.loading" class="grid"><div v-for="i in 6" :key="i" class="card"><div class="skel-img" /><div class="card-b"><div class="skel-line w80" /><div class="skel-line" /><div class="skel-line w60" /></div></div></div>
         <SettingsView v-else-if="state.view === 'settings'" />
         <WriteView v-else-if="state.view === 'write'" />
         <WorldView v-else-if="state.view === 'feed' || state.view === 'world'" />
+        <ProfileView v-else-if="state.view === 'profile'" />
         <StatsView v-else-if="state.view === 'stats'" />
         <PostView v-else-if="state.post" />
         <template v-else>

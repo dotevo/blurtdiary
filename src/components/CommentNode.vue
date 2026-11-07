@@ -6,6 +6,7 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { coalMap } from '../lib/coal';
 import { toggleVoteAll, votedAll } from '../lib/actions';
+import { openProfile, profileHref } from '../lib/store';
 import { t } from '../lib/i18n';
 import { applyResult, chainsOf, commentTargets, describeResult, mirrorableChains, mirrorChains, mirrorComment, primaryOf, sendComment, versionsDiffer, type MNode } from '../lib/mirror';
 import { toast } from '../lib/toast';
@@ -77,7 +78,7 @@ async function sendCopy(chain: string): Promise<void> {
 <template>
   <div class="cm" :class="{ flat: depth >= 5 }" :data-ck="`${c.author}/${c.permlink}`">
     <div class="cm-head">
-      <UserAvatar :name="c.author" small /> <b>{{ c.author }}</b>
+      <UserAvatar :name="c.author" small /> <a class="who" :href="profileHref(c.author, chains[0]?.id ?? 'blurt')" :title="t('profileOpen')" @click.prevent="openProfile(c.author, chains[0]?.id ?? 'blurt')"><b>{{ c.author }}</b></a>
       <span v-if="showMirrors" class="cm-chains"><ChainDot v-for="d in dots" :key="d.id" :chain="d.id" :status="d.status" :title="d.title" /></span>
       <span v-if="coal" class="warn" :title="coal.reason + (coal.notes ? ' — ' + coal.notes : '')">⚠ COAL</span>
       <span class="mute">{{ fmtDate(c.created) }} · <template v-for="x in chains" :key="x.id"><span class="pay" :title="payoutTitle(node.versions[x.id])"><ChainDot v-if="chains.length > 1" :chain="x.id" /> {{ payoutOf(node.versions[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></span>

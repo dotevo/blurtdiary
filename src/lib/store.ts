@@ -27,7 +27,7 @@ export const state = reactive({
   recent: [] as Post[],
   month: parseMonth(q.get('month')), pinned: null as Post | null, // pinned: the owner's sticky post (config key `pinned`)
   cat: q.get('cat') ?? '', post: q.get('post') ?? '', focus: q.get('c') ?? '', view: q.get('view') ?? '',
-  chain: q.get('chain') ?? '', tab: q.get('tab') ?? '', tag: q.get('tag') ?? '', // world views: a post that lives on another chain / feed|tags tab / the tag shown
+  account: normAccount(q.get('account') ?? ''), chain: q.get('chain') ?? '', tab: q.get('tab') ?? '', tag: q.get('tag') ?? '', // world views: a post that lives on another chain / feed|tags tab / the tag shown
   searchBroken: false, // bridge.search_posts unavailable -> fall back to scanning the latest posts
 });
 
@@ -51,6 +51,9 @@ export const href = (o: { month?: string; cat?: string; post?: string; c?: strin
  * From inside a blog that is a normal page load, because the blog (USER) is fixed when the page starts.
  */
 export const tagHref = (tag: string): string => { const p = new URLSearchParams({ view: 'world', tab: 'tags', tag }); return '?' + p; };
+/** An account's profile on one chain: its posts and (when logged in there) a follow button. Like a tag page it has no `user`. */
+export const profileHref = (account: string, chain: string): string => '?' + new URLSearchParams({ view: 'profile', account, chain });
+export const openProfile = (account: string, chain: string): void => { if (USER) window.location.href = profileHref(account, chain); else navigate(profileHref(account, chain)); };
 export const openTag = (tag: string): void => { if (USER) window.location.href = tagHref(tag); else navigate(tagHref(tag)); };
 /** `post` param = "permlink" (post of USER) or "author/permlink" (someone else's). */
 export const postParam = (author: string, permlink: string): string => (author === USER ? permlink : `${author}/${permlink}`);
@@ -68,7 +71,7 @@ export const commentHref = (c: Post): string => {
 function syncFromUrl(): void {
   const p = new URLSearchParams(location.search);
   state.month = parseMonth(p.get('month')); state.cat = p.get('cat') ?? ''; state.post = p.get('post') ?? ''; state.focus = p.get('c') ?? ''; state.view = p.get('view') ?? '';
-  state.chain = p.get('chain') ?? ''; state.tab = p.get('tab') ?? ''; state.tag = p.get('tag') ?? '';
+  state.account = normAccount(p.get('account') ?? ''); state.chain = p.get('chain') ?? ''; state.tab = p.get('tab') ?? ''; state.tag = p.get('tag') ?? '';
 }
 export function navigate(h: string, replace = false): void {
   if (replace) history.replaceState({}, '', h); else history.pushState({}, '', h);
