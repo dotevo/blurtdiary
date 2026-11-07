@@ -1,4 +1,5 @@
 import { auth, broadcast } from './auth';
+import { isHttpUrl, rememberImported } from './rss';
 import { beneficiariesFor, commentOptions } from './ben';
 import { CONFIG_PERMLINK, parseTags, serializeConfig } from './config';
 import { t } from './i18n';
@@ -21,7 +22,7 @@ export function buildTags(tagsText: string, community: string): { primary: strin
   return { primary, tags };
 }
 
-export interface NewPost { title: string; body: string; tagsText: string; community: string; images?: ImageMap }
+export interface NewPost { title: string; body: string; tagsText: string; community: string; images?: ImageMap; /** link of the article this post was imported from (RSS import) */ source?: string }
 
 export interface PublishResult { permlink: string; mirrored: string[]; failed: Record<string, string> }
 
@@ -42,7 +43,7 @@ export async function publishPost(p: NewPost): Promise<PublishResult> {
   const permlink = `${slug(title).slice(0, 60) || 'post'}-${Date.now().toString(36)}`;
   const bens = beneficiariesFor(me, { author: me, permlink, title, body: '', created: '', community_name: community || undefined });
   const image = body.match(/!\[[^\]]*\]\((https?:[^)\s]+)/)?.[1];
-  const meta = { app: 'blurtdiary/1.0', format: 'markdown', tags, community: community || undefined, image: image ? [image] : undefined };
+  const meta = { app: 'blurtdiary/1.0', format: 'markdown', tags, community: community || undefined, image: image ? [image] : undefined, rss_source: p.source && isHttpUrl(p.source) ? p.source.slice(0, 500) : undefined };
   await broadcast([
     ['comment', { parent_author: '', parent_permlink: primary, author: me, permlink, title, body, json_metadata: JSON.stringify(meta) }],
     commentOptions(me, permlink, bens),
@@ -51,6 +52,7 @@ export async function publishPost(p: NewPost): Promise<PublishResult> {
   const optimistic: Post = { author: me, permlink, title, body, created: new Date().toISOString().slice(0, 19), json_metadata: JSON.stringify(meta),
     children: 0, active_votes: [], payout: 0, is_paidout: false, pending_payout_value: '0.000 BLURT', category: primary, community_name: community || undefined, beneficiaries: bens };
   if (me === USER) state.posts.unshift(optimistic);
+  if (p.source && isHttpUrl(p.source)) rememberImported(p.source, permlink);
   const m = await mirrorEverywhere(optimistic, p.images);
   return { permlink, mirrored: m.ok, failed: m.failed };
 }

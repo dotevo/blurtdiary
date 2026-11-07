@@ -22,3 +22,8 @@ export function setPromoFooter(on: boolean): void { promoFooter.value = on; try 
 export const withFooter = (text: string, blogUser: string | undefined): string =>
   !promoFooter.value || text.includes(APP_URL) ? text
     : `${text}\n\n---\n<sub>[Posted with Blurt Diary${blogUser ? ` · @${blogUser}'s blog` : ''}](${APP_URL}/${blogUser ? `?user=${encodeURIComponent(blogUser)}` : ''})</sub>`;
+
+const RK = 'bd-rss-footer';
+/** Source line under posts imported from a feed. On by default. */
+export const rssFooter = ref((() => { try { return localStorage.getItem(RK) !== 'false'; } catch { return true; } })());
+export function setRssFooter(on: boolean): void { rssFooter.value = on; try { localStorage.setItem(RK, String(on)); } catch { /* ignore */ } }

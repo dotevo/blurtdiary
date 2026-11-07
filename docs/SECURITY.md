@@ -40,3 +40,6 @@ Known limits: remote images are loaded from any https host (the host sees the vi
 rendered as text (a tag in it is shown as characters, not parsed); `?month=` must match `YYYY-MM`. The archive never downloads more than the reader
 asks for (one page of 20 posts per click, at most 15 pages when opening a month directly). Follow broadcasts one `custom_json` (`follow`) built from the validated
 account names - nothing from the blog's content goes into it.
+
+## RSS import (editor → "Import")
+A browser cannot read a foreign feed directly and the CSP only allows a fixed list of hosts, so feeds are fetched through public CORS proxies listed in `RSS_PROXY_NODES` (`src/lib/rss.ts`, also in `connect-src`; `npm run check:csp` checks both). The proxy sees only the public feed URL. Feed content is untrusted: parsed as XML (nothing executes), links/images made absolute and limited to http(s), cleaned with DOMPurify, converted to Markdown (turndown) and shown through the same allow-list renderer as any post. An imported post only fills the editor; nothing is published until the owner presses Publish. To use your own proxy, change `RSS_PROXY_NODES` and the CSP host together.

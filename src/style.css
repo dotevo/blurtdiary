@@ -315,3 +315,11 @@ button.vinfo{padding:2px 8px}
 
 .np-head{z-index:3}.panel{isolation:isolate}
 .np-ico{display:flex;flex-direction:column;gap:3px;align-items:center}
+
+.import{display:flex;flex-direction:column;gap:8px}
+.imp-row{display:flex;gap:8px}.imp-row input{flex:1;min-width:0}
+.imp-footer{display:flex;gap:6px;align-items:center;font-size:.9rem}.imp-footer input{width:auto}
+.imp-item{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.imp-main{min-width:0;overflow-wrap:anywhere}.imp-item button{flex:none}
+
+.imp-item.done{opacity:.6}.imp-item.done:hover{opacity:1}.imp-badge{color:var(--accent);font-weight:600}

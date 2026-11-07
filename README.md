@@ -46,3 +46,6 @@ call '{"jsonrpc":"2.0","id":1,"method":"bridge.account_notifications","params":{
 # E) replies under one post (permlink from test 1)
 call '{"jsonrpc":"2.0","id":1,"method":"call","params":["condenser_api","get_content_replies",["dotevo","PERMLINK"]]}'
 ```
+
+### Import from RSS / Atom
+In the editor, the **Import** tab loads a feed (your own WordPress or any site), lists its entries and puts the chosen one into the editor (title, Markdown body, tags from categories). A "source" line linking to the original is added at the end (feeds often carry only a summary) and can be switched off. See `docs/SECURITY.md` for how the feed is fetched.

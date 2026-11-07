@@ -10,24 +10,33 @@ import { toast } from '../lib/toast';
 import { uploadEverywhere, type ImageMap } from '../lib/upload';
 import { renderMd } from '../lib/util';
 import DevTipToggle from './DevTipToggle.vue';
+import ImportView from './ImportView.vue';
 
 const owner = computed(() => auth.me?.user === USER);
 const DRAFT = `bd-draft-${USER}`;
 const images = ref<ImageMap>({}); // Blurt image URL -> the same image on the other chains (uploaded separately to each host)
 const title = ref(''); const body = ref(''); const tagsText = ref(''); const community = ref('');
 const tab = ref<'edit' | 'preview'>('edit');
+const mode = ref<'write' | 'import'>('write');
+const source = ref(''); // article this draft was imported from (kept with the draft, sent as json_metadata.rss_source)
+/** A post picked in the import mode lands in the editor, to be checked and published like any other. */
+function onImport(p: { title: string; body: string; tags: string; source: string }): void {
+  if ((title.value.trim() || body.value.trim()) && !window.confirm(t('rssOverwrite'))) return;
+  title.value = p.title; body.value = p.body; tagsText.value = p.tags; images.value = {}; source.value = p.source;
+  mode.value = 'write'; tab.value = 'edit'; toast(t('rssImported'));
+}
 const busy = ref(false); const uploading = ref(false); let published = false;
 const ta = ref<HTMLTextAreaElement | null>(null); const fileInput = ref<HTMLInputElement | null>(null);
 
 // ---- draft kept in this browser (restored on open, saved while typing)
 try {
   const d = JSON.parse(localStorage.getItem(DRAFT) ?? 'null');
-  if (d) { title.value = d.title ?? ''; body.value = d.body ?? ''; tagsText.value = d.tagsText ?? ''; community.value = d.community ?? ''; images.value = d.images ?? {}; }
+  if (d) { title.value = d.title ?? ''; body.value = d.body ?? ''; tagsText.value = d.tagsText ?? ''; community.value = d.community ?? ''; images.value = d.images ?? {}; source.value = typeof d.source === 'string' ? d.source : ''; }
 } catch { /* ignore */ }
 const saveDraft = (): void => {
   if (published) return;
   try {
-    if (title.value || body.value || tagsText.value || community.value) localStorage.setItem(DRAFT, JSON.stringify({ title: title.value, body: body.value, tagsText: tagsText.value, community: community.value, images: images.value }));
+    if (title.value || body.value || tagsText.value || community.value) localStorage.setItem(DRAFT, JSON.stringify({ title: title.value, body: body.value, tagsText: tagsText.value, community: community.value, images: images.value, source: source.value }));
     else localStorage.removeItem(DRAFT);
   } catch { /* ignore */ }
 };
@@ -71,7 +80,7 @@ async function submit(): Promise<void> {
   if (busy.value) return;
   busy.value = true;
   try {
-    const r = await publishPost({ title: title.value, body: body.value, tagsText: tagsText.value, community: comm.value, images: images.value });
+    const r = await publishPost({ title: title.value, body: body.value, tagsText: tagsText.value, community: comm.value, images: images.value, source: source.value });
     published = true; try { localStorage.removeItem(DRAFT); } catch { /* ignore */ }
     const failed = Object.entries(r.failed).map(([c, e]) => `${c} (${e})`);
     toast(failed.length ? t('postPublishedPartial', { fail: failed.join(', ') }) : t('postPublished')); navigate(href({}));
@@ -89,6 +98,12 @@ async function submit(): Promise<void> {
   <div v-else class="article"><div class="art-in form">
     <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
     <h1>{{ t('newPost') }}</h1>
+    <div class="tabs mode-tabs">
+      <button :class="{ pri: mode === 'write' }" @click="mode = 'write'">✏️ {{ t('modeWrite') }}</button>
+      <button :class="{ pri: mode === 'import' }" @click="mode = 'import'">📥 {{ t('modeImport') }}</button>
+    </div>
+    <ImportView v-show="mode === 'import'" @import="onImport" />
+    <template v-if="mode === 'write'">
     <input v-model="title" class="title-in" :placeholder="t('titlePh')" maxlength="255">
 
     <div class="tabs">
@@ -116,6 +131,7 @@ async function submit(): Promise<void> {
     </div>
     <div class="mute help">{{ t('draftNote') }}</div>
     <div class="actions"><button class="pri" :disabled="busy || uploading" @click="submit">{{ busy ? t('publishing') : t('publish') }}</button></div>
+    </template>
 
     <!-- very bottom: dev tip switch -->
     <DevTipToggle :list="benText" />
