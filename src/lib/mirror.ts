@@ -35,7 +35,8 @@ export const accountOn = (chain: string): string | undefined => {
   return auth.me?.user === USER ? sessionOf(chain)?.user : undefined;
 };
 /** Other chains the blog owner declared accounts on. */
-export const mirrorChains = (): ChainAdapter[] => CHAINS.filter((c) => c.id !== PRIMARY && accountOn(c.id));
+/** The blog's mirror chains. None while a post of ANOTHER chain is being read (`?chain=steem`): it has no copies to check, show or send to. */
+export const mirrorChains = (): ChainAdapter[] => (state.chain && state.chain !== PRIMARY ? [] : CHAINS.filter((c) => c.id !== PRIMARY && accountOn(c.id)));
 
 // ---------- merged comment tree ----------
 /** One comment (or the post's replies) as it exists on one or more chains, matched by permlink. */
