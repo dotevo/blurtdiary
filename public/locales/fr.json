@@ -111,6 +111,7 @@
  "tags": "Tags",
  "tagsHelp": "Jusqu’à 5 tags séparés par des virgules ou des espaces (a–z, 0–9, tiret). Le premier tag est la catégorie du billet.",
  "communityLabel": "Communauté (facultatif)",
+ "communityPick": "— choisir parmi vos abonnements —",
  "communityHelp": "Saisissez le compte de la communauté, p. ex. blurt-179874. Laissez vide pour publier uniquement sur votre blog. 3 % des récompenses vont alors à la communauté.",
  "communityInvalid": "La communauté doit avoir la forme blurt-123456",
  "publish": "Publier",

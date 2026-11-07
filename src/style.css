@@ -330,3 +330,4 @@ button.vinfo{padding:2px 8px}
 .world .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.world .chip{text-decoration:none}
 .wc-by{display:flex;gap:6px;align-items:center}.wc-tags{display:flex;gap:6px;flex-wrap:wrap;font-size:.8rem;margin:4px 0}.wc-tags .tag{text-decoration:none}
 a.tag{text-decoration:none}
+.comm-pick{font:inherit;width:100%;padding:8px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)}

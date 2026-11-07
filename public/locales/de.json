@@ -111,6 +111,7 @@
  "tags": "Tags",
  "tagsHelp": "Bis zu 5 Tags, getrennt durch Kommas oder Leerzeichen (a–z, 0–9, Bindestrich). Der erste Tag ist die Kategorie des Beitrags.",
  "communityLabel": "Community (optional)",
+ "communityPick": "— aus deinen Abonnements wählen —",
  "communityHelp": "Gib das Community-Konto ein, z. B. blurt-179874. Leer lassen, wenn der Beitrag nur in deinem Blog erscheinen soll. Dann gehen 3 % der Belohnung an die Community.",
  "communityInvalid": "Die Community muss die Form blurt-123456 haben",
  "publish": "Veröffentlichen",

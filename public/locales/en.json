@@ -111,6 +111,7 @@
  "tags": "Tags",
  "tagsHelp": "Up to 5 tags separated by commas or spaces (a–z, 0–9, hyphen). The first tag is the category of the post.",
  "communityLabel": "Community (optional)",
+ "communityPick": "— choose from your subscriptions —",
  "communityHelp": "Enter the community account, e.g. blurt-179874. Leave empty to publish only on your blog. 3% of the rewards then go to the community.",
  "communityInvalid": "The community must look like blurt-123456",
  "publish": "Publish",

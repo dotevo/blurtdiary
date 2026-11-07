@@ -111,6 +111,7 @@
  "tags": "Etiquetas",
  "tagsHelp": "Hasta 5 etiquetas separadas por comas o espacios (a–z, 0–9, guion). La primera es la categoría de la entrada.",
  "communityLabel": "Comunidad (opcional)",
+ "communityPick": "— elegir de tus suscripciones —",
  "communityHelp": "Introduce la cuenta de la comunidad, p. ej. blurt-179874. Déjalo vacío para publicar solo en tu blog. Entonces el 3 % de las recompensas va a la comunidad.",
  "communityInvalid": "La comunidad debe tener la forma blurt-123456",
  "publish": "Publicar",

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { loadSubscriptions, type Sub } from '../lib/communities';
 import { auth, loginOpen } from '../lib/auth';
 import { benLabel, beneficiariesFor } from '../lib/ben';
 import { t } from '../lib/i18n';
@@ -16,6 +17,8 @@ const owner = computed(() => auth.me?.user === USER);
 const DRAFT = `bd-draft-${USER}`;
 const images = ref<ImageMap>({}); // Blurt image URL -> the same image on the other chains (uploaded separately to each host)
 const title = ref(''); const body = ref(''); const tagsText = ref(''); const community = ref('');
+const subs = ref<Sub[]>([]);
+watch(() => auth.sessions.blurt?.user, (u) => { subs.value = []; if (u) void loadSubscriptions(u).then((l) => { subs.value = l; }); }, { immediate: true });
 const tab = ref<'edit' | 'preview'>('edit');
 const mode = ref<'write' | 'import'>('write');
 const source = ref(''); // article this draft was imported from (kept with the draft, sent as json_metadata.rss_source)
@@ -121,6 +124,10 @@ async function submit(): Promise<void> {
     <div class="mute help">{{ t('tagsHelp') }} ({{ parsed.tags.length }}/{{ MAX_TAGS }})</div>
 
     <label class="lbl">{{ t('communityLabel') }}</label>
+    <select v-if="subs.length" class="comm-pick" :value="subs.some((x) => x.id === comm) ? comm : ''" @change="community = ($event.target as HTMLSelectElement).value">
+      <option value="">{{ t('communityPick') }}</option>
+      <option v-for="x in subs" :key="x.id" :value="x.id">{{ x.title }} ({{ x.id }})</option>
+    </select>
     <input v-model="community" :class="{ bad: communityBad }" placeholder="blurt-179874" autocapitalize="off">
     <div class="mute help" :class="{ badtxt: communityBad }">{{ communityBad ? t('communityInvalid') : t('communityHelp') }}</div>
 

@@ -111,6 +111,7 @@
  "tags": "Etikedoj",
  "tagsHelp": "Ĝis 5 etikedoj apartigitaj per komoj aŭ spacoj (a–z, 0–9, streketo). La unua etikedo estas la kategorio de la afiŝo.",
  "communityLabel": "Komunumo (nedeviga)",
+ "communityPick": "— elektu el viaj abonoj —",
  "communityHelp": "Enigu la konton de la komunumo, ekz. blurt-179874. Lasu malplena por afiŝi nur en via blogo. Tiam 3 % de la rekompencoj iras al la komunumo.",
  "communityInvalid": "La komunumo devas aspekti kiel blurt-123456",
  "publish": "Publiki",

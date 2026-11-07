@@ -111,6 +111,7 @@
  "tags": "Tagi",
  "tagsHelp": "Do 5 tagów oddzielonych przecinkami lub spacjami (a–z, 0–9, myślnik). Pierwszy tag to kategoria wpisu.",
  "communityLabel": "Community (opcjonalnie)",
+ "communityPick": "— wybierz z subskrybowanych —",
  "communityHelp": "Wpisz konto community, np. blurt-179874. Zostaw puste, jeśli wpis ma być tylko na Twoim blogu. Wtedy 3% nagrody trafia do community.",
  "communityInvalid": "Nazwa community musi mieć postać blurt-123456",
  "publish": "Opublikuj",
