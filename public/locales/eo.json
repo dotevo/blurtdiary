@@ -29,6 +29,8 @@
  "loginError": "Ensaluta eraro",
  "wvMissing": "WhaleVault ne troviĝis",
  "votesTitle": "Voĉoj",
+ "messages": "Respondoj",
+ "noMessages": "Ankoraŭ neniu respondo.",
  "paneMain": "Enhavo",
  "paneSide": "Paneloj",
  "chainFilter": "Montri aŭ kaŝi ĉi tiun ĉenon",

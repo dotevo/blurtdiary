@@ -29,6 +29,8 @@
  "loginError": "Erreur de connexion",
  "wvMissing": "WhaleVault non détecté",
  "votesTitle": "Votes",
+ "messages": "Réponses",
+ "noMessages": "Pas encore de réponses.",
  "paneMain": "Contenu",
  "paneSide": "Panneaux",
  "chainFilter": "Afficher ou masquer cette chaîne",

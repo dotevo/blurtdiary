@@ -209,7 +209,7 @@ main,.side{min-width:0}
 .bar{top:var(--tb-h);z-index:20}
 /* dropdowns: fixed to the viewport so they are never clipped; scroll inside when long */
 .panel{position:fixed;top:calc(var(--tb-h) + 6px);right:max(8px,calc((100vw - var(--maxw,1100px)) / 2 + 16px));width:min(380px,calc(100vw - 16px));max-height:calc(100vh - var(--tb-h) - 16px);max-height:calc(100dvh - var(--tb-h) - 16px);overflow-x:hidden;overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:40}
-.backdrop{z-index:35}
+.backdrop{z-index:35;top:var(--tb-h)}
 .np-item{min-width:0;background:color-mix(in srgb,var(--c, var(--accent)) 7%,var(--card));border-left:3px solid color-mix(in srgb,var(--c, var(--accent)) 45%,transparent)}
 .np-item.unread{border-left:3px solid var(--c, var(--accent));background:color-mix(in srgb,var(--c, var(--accent)) 14%,var(--card))}
 .np-body{min-width:0;flex:1;overflow-wrap:anywhere;word-break:break-word}
@@ -377,3 +377,4 @@ a.tag{text-decoration:none}
 .brandrow{display:none}
 @media(max-width:860px){.brandrow{display:flex}}
 .ico{vertical-align:-.22em}
+.icon.on{background:var(--bg);border-color:var(--accent)}

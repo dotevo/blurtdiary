@@ -29,6 +29,8 @@
  "loginError": "Error de inicio de sesión",
  "wvMissing": "WhaleVault no detectado",
  "votesTitle": "Votos",
+ "messages": "Respuestas",
+ "noMessages": "Aún no hay respuestas.",
  "paneMain": "Contenido",
  "paneSide": "Paneles",
  "chainFilter": "Mostrar u ocultar esta cadena",

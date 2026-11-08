@@ -7,15 +7,26 @@ import { href, postParam } from './store';
 
 /** `chain` = where the notification comes from. Blurt always; Hive/Steem/… for every chain we are logged in on (when its node has the bridge API). */
 export interface Notif { id: number; type: string; score: number; date: string; msg: string; url?: string; chain: string; /** 'hist' = rebuilt from the account history (its ids are not comparable with the bridge ids) */ src?: 'hist' }
-export const notifs = reactive({ items: [] as Notif[], open: false, loading: false, lastRead: {} as Record<string, number> });
+export const notifs = reactive({ items: [] as Notif[], open: false, kind: 'other' as Kind, loading: false, lastRead: {} as Record<string, number> });
+/**
+ * Two lists with their own read-state: "messages" (replies to you and mentions – someone is talking to you, so they matter more)
+ * and everything else (votes, follows, transfers …). Each has its own icon, badge and panel in the top bar.
+ */
+export type Kind = 'msg' | 'other';
+export const isMsg = (n: { type: string }): boolean => n.type.startsWith('reply') || n.type === 'mention';
+const kindOf = (n: { type: string }): Kind => (isMsg(n) ? 'msg' : 'other');
 /** Read-state is kept per chain and per source (bridge ids and history indexes are different number series). */
 const rkey = (n: { chain: string; src?: string }): string => (n.src ? `${n.chain}:${n.src}` : n.chain);
 
 /** Storage key of the read-state. Blurt's bridge list keeps its old key; every other chain/source has its own. */
 const rk = (key: string): string => { const [chain, src] = key.split(':'); return (src ? `bd_notif_read_${src}_` : 'bd_notif_read_') + (chain === PRIMARY ? '' : chain + '_') + (auth.sessions[chain]?.user ?? auth.me?.user); };
-const isUnread = (n: Notif): boolean => n.id > (notifs.lastRead[rkey(n)] ?? 0);
+const rkind = (n: Notif): string => `${rkey(n)}#${kindOf(n)}`;
+const isUnread = (n: Notif): boolean => n.id > (notifs.lastRead[rkind(n)] ?? 0);
 export { isUnread };
-export const unread = computed(() => notifs.items.filter(isUnread).length);
+export const unreadOf = (k: Kind): number => notifs.items.filter((n) => kindOf(n) === k && isUnread(n)).length;
+export const unreadMsg = computed(() => unreadOf('msg'));
+export const unreadOther = computed(() => unreadOf('other'));
+export const unread = computed(() => unreadMsg.value + unreadOther.value);
 const stamp = (n: Notif): number => Date.parse(/Z|[+-]\d\d:?\d\d$/.test(n.date) ? n.date : n.date + 'Z') || 0;
 
 /**
@@ -30,7 +41,7 @@ const keyOfNotif = (n: Notif): string | null => {
 };
 export const notifGroups = computed<NotifGroup[]>(() => {
   const groups: { key: string | null; items: Notif[] }[] = [];
-  for (const n of notifs.items) { // items are sorted newest first
+  for (const n of notifs.items.filter((x) => kindOf(x) === notifs.kind)) { // items are sorted newest first
     const k = keyOfNotif(n);
     const g = k ? groups.find((x) => x.key === k && !x.items.some((i) => i.chain === n.chain) && Math.abs(stamp(x.items[0]) - stamp(n)) <= GROUP_MS) : undefined;
     if (g) g.items.push(n); else groups.push({ key: k, items: [n] });
@@ -88,15 +99,23 @@ export async function loadNotifs(): Promise<void> {
     const chains = CHAINS.filter((c) => c.id === PRIMARY || auth.sessions[c.id]);
     const lists = await Promise.all(chains.map((c) => fromChain(c.id, c.id === PRIMARY ? me : auth.sessions[c.id].user)));
     notifs.items = lists.flat().sort((a, b) => stamp(b) - stamp(a)).slice(0, 80);
-    for (const n of notifs.items) { const k = rkey(n); try { notifs.lastRead[k] = Number(localStorage.getItem(rk(k)) ?? 0); } catch { /* ignore */ } }
+    for (const n of notifs.items) {
+      const k = rkey(n), kk = rkind(n);
+      // the messages list has its own mark (`_m`); before it existed the single old mark counted for it as well
+      try { const old = localStorage.getItem(rk(k)); notifs.lastRead[kk] = Number((kindOf(n) === 'msg' ? localStorage.getItem(rk(k) + '_m') ?? old : old) ?? 0); } catch { /* ignore */ }
+    }
   } catch (e) { console.warn('notifications', e); } finally { notifs.loading = false; }
 }
-function markRead(): void {
-  for (const n of notifs.items) notifs.lastRead[rkey(n)] = Math.max(notifs.lastRead[rkey(n)] ?? 0, n.id);
-  for (const c of Object.keys(notifs.lastRead)) { try { localStorage.setItem(rk(c), String(notifs.lastRead[c])); } catch { /* ignore */ } }
+function markRead(kind: Kind = notifs.kind): void {
+  for (const n of notifs.items) if (kindOf(n) === kind) notifs.lastRead[rkind(n)] = Math.max(notifs.lastRead[rkind(n)] ?? 0, n.id);
+  for (const key of Object.keys(notifs.lastRead)) {
+    const [k, kd] = key.split('#'); if (kd !== kind) continue;
+    try { localStorage.setItem(rk(k) + (kind === 'msg' ? '_m' : ''), String(notifs.lastRead[key])); } catch { /* ignore */ }
+  }
 }
-export function toggleNotifs(): void {
-  notifs.open = !notifs.open;
+export function toggleNotifs(kind: Kind = 'other'): void {
+  if (notifs.open && notifs.kind !== kind) { markRead(); notifs.kind = kind; return; } // switch from one list to the other
+  notifs.kind = kind; notifs.open = !notifs.open;
   if (notifs.open) void loadNotifs(); else markRead(); // unread items stay marked while the panel is open
 }
 export function closeNotifs(): void { if (notifs.open) { notifs.open = false; markRead(); } }

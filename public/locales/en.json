@@ -29,6 +29,8 @@
  "loginError": "Login error",
  "wvMissing": "WhaleVault not detected",
  "votesTitle": "Votes",
+ "messages": "Replies",
+ "noMessages": "No replies yet.",
  "paneMain": "Content",
  "paneSide": "Panels",
  "chainFilter": "Show or hide this chain",

@@ -29,6 +29,8 @@
  "loginError": "Błąd logowania",
  "wvMissing": "Nie wykryto WhaleVault",
  "votesTitle": "Głosy",
+ "messages": "Odpowiedzi",
+ "noMessages": "Brak odpowiedzi.",
  "paneMain": "Treść",
  "paneSide": "Panele",
  "chainFilter": "Pokaż lub ukryj tę sieć",

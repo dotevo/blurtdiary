@@ -29,6 +29,8 @@
  "loginError": "Anmeldefehler",
  "wvMissing": "WhaleVault nicht erkannt",
  "votesTitle": "Stimmen",
+ "messages": "Antworten",
+ "noMessages": "Noch keine Antworten.",
  "paneMain": "Inhalt",
  "paneSide": "Panels",
  "chainFilter": "Diese Chain ein- oder ausblenden",

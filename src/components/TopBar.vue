@@ -6,7 +6,7 @@ import { t } from '../lib/i18n';
 import { setVoteWeight, voteWeight } from '../lib/settings';
 import { href, navigate, state, USER } from '../lib/store';
 import { adapter } from '../lib/chains';
-import { closeNotifs, loadNotifs, notifGroups, notifIcon, notifLink, notifs, toggleNotifs, unread } from '../lib/notifs';
+import { closeNotifs, loadNotifs, notifGroups, notifIcon, notifLink, notifs, toggleNotifs, unreadMsg, unreadOther } from '../lib/notifs';
 import { CHAINS } from '../lib/chains';
 import { claim, loadWallets, wallets, walletUrl } from '../lib/wallet';
 import { fmtAgo, fmtDate } from '../lib/util';
@@ -34,7 +34,7 @@ const openNotif = (n: Parameters<typeof notifLink>[0]): void => {
 const rewardChains = computed(() => loggedChains().filter((c) => wallets[c.id]?.has));
 const rewardTitle = computed(() => rewardChains.value.map((c) => `${c.name}: ${wallets[c.id].label}`).join('\n'));
 const openRewards = (): void => { closeNotifs(); menuOpen.value = true; };
-const bell = (): void => { menuOpen.value = false; toggleNotifs(); };
+const bell = (k: 'msg' | 'other'): void => { menuOpen.value = false; toggleNotifs(k); };
 const toggleMenu = (): void => { closeNotifs(); menuOpen.value = !menuOpen.value; };
 const logout = (chain: ChainId): void => { closeAll(); setSession(chain, null); };
 const loggedIn = computed(() => Object.keys(auth.sessions).length > 0);
@@ -51,7 +51,8 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
       </template>
       <button v-if="rewardChains.length" class="pri claim claim-m" :title="rewardTitle" :aria-label="t('rewardsPending')" @click="openRewards"><Icon name="gift" /><span class="badge badge-n">{{ rewardChains.length }}</span></button>
       <span v-for="c in loggedChains()" :key="'vp' + c.id" class="vp nb-lbl" :title="t('vpTitle', { c: c.name })"><ChainDot :chain="c.id" /> {{ vpText(c.id) || '–' }}</span>
-      <button v-if="auth.me" class="icon" :aria-label="t('notifications')" @click="bell"><Icon name="bell" /><span v-if="unread" class="badge">{{ unread > 9 ? '9+' : unread }}</span></button>
+      <button v-if="auth.me" class="icon" :class="{ on: notifs.open && notifs.kind === 'msg' }" :aria-label="t('messages')" :title="t('messages')" @click="bell('msg')"><Icon name="chat" /><span v-if="unreadMsg" class="badge">{{ unreadMsg > 9 ? '9+' : unreadMsg }}</span></button>
+      <button v-if="auth.me" class="icon" :class="{ on: notifs.open && notifs.kind === 'other' }" :aria-label="t('notifications')" :title="t('notifications')" @click="bell('other')"><Icon name="bell" /><span v-if="unreadOther" class="badge">{{ unreadOther > 9 ? '9+' : unreadOther }}</span></button>
       <a class="btn navbtn" :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab !== 'tags' && !state.tag) }" :href="href({ view: 'world', tab: 'feed' })" :title="t('feedTitle')" :aria-label="t('feedTitle')" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon name="feed" /> <span class="nb-lbl">{{ t('feedTitle') }}</span></a>
       <a class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" :title="t('tagsTab')" :aria-label="t('tagsTab')" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><Icon name="tag" /> <span class="nb-lbl">{{ t('tagsTab') }}</span></a>
       <a v-if="auth.me && !isOwner" class="btn navbtn" :href="myBlog" :title="t('myBlog')" :aria-label="t('myBlog')"><Icon name="home" /> <span class="nb-lbl">{{ t('myBlog') }}</span></a>
@@ -67,8 +68,8 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
     <template v-if="notifs.open || menuOpen">
       <div class="backdrop" @click="closeAll" />
       <div v-if="notifs.open" class="panel notif-panel">
-        <div class="np-head"><b>{{ t('notifications') }}</b><span v-if="notifs.loading" class="mute"><span class="spinner" /> {{ t('refreshing') }}</span></div>
-        <div v-if="!notifs.items.length && !notifs.loading" class="mute np-empty">{{ t('noNotifs') }}</div>
+        <div class="np-head"><b>{{ notifs.kind === 'msg' ? t('messages') : t('notifications') }}</b><span v-if="notifs.loading" class="mute"><span class="spinner" /> {{ t('refreshing') }}</span></div>
+        <div v-if="!notifGroups.length && !notifs.loading" class="mute np-empty">{{ notifs.kind === 'msg' ? t('noMessages') : t('noNotifs') }}</div>
         <component :is="notifLink(g.lead).href ? 'a' : 'div'" v-for="g in notifGroups" :key="g.items.map((i) => i.chain + (i.src ?? '') + i.id).join()" class="np-item" :class="{ unread: g.unread }"
           :style="{ '--c': adapter(g.lead.chain).color }" :href="notifLink(g.lead).href || undefined" @click.prevent="openNotif(g.lead)">
           <span class="np-ico"><ChainDot v-for="c in g.chains" :key="c" :chain="c" /></span>
