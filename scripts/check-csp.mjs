@@ -9,7 +9,7 @@ for (const f of readdirSync('src/lib/chains').filter((x) => x.endsWith('.ts'))) 
     if (/_NODES\s*=|imageHost:/.test(line)) for (const m of line.matchAll(/'(https:\/\/[^'/]+)/g)) used.add(m[1]);
 }
 for (const line of readFileSync('src/lib/rss.ts', 'utf8').split('\n'))
-  if (/_NODES\s*=/.test(line)) for (const m of line.matchAll(/'(https:\/\/[^'/]+)/g)) used.add(m[1]);
+  if (/(_NODES|RSS_HOSTS)[^=]*=/.test(line)) for (const m of line.matchAll(/'(https:\/\/[^'/]+)/g)) used.add(m[1]);
 used.add('https://coal.blurtwallet.com');
 const missing = [...used].filter((u) => !connect.has(u)), extra = [...connect].filter((u) => u.startsWith('https://') && !used.has(u));
 if (missing.length) { console.error('Missing from connect-src:', missing.join(' ')); process.exit(1); }

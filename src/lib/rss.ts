@@ -4,12 +4,13 @@ import TurndownService from 'turndown';
 /**
  * Import of posts from an RSS / Atom feed (own WordPress, any other site) into the editor.
  *
- * A browser cannot read a foreign site's feed directly (no CORS headers) and this app's Content-Security-Policy deliberately allows
- * connections only to a fixed list of hosts (an XSS must not be able to send keys anywhere). So the feed is fetched through a public
- * CORS proxy that is on that list. The proxy only ever sees the public feed URL. Everything that comes back is untrusted: it is
+ * The feed is read DIRECTLY by the browser – no proxy, nobody in between sees the address or the content. That works when the feed's site
+ * sends a CORS header allowing this page (`Access-Control-Allow-Origin`), which the site's owner adds for his own feed. This app's
+ * Content-Security-Policy allows connections only to a fixed list of hosts (an XSS must not be able to send keys anywhere), so the feed hosts
+ * are listed here AND in `connect-src` of index.html (`npm run check:csp` compares them). Everything that comes back is untrusted: it is
  * parsed as XML (no scripts run), cleaned with DOMPurify, converted to Markdown, and shown through the usual allow-list renderer.
  */
-export const RSS_PROXY_NODES = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?url='];
+export const RSS_HOSTS: string[] = [];
 const MAX_BYTES = 3_000_000, MAX_ITEMS = 30, TIMEOUT_MS = 15000;
 
 export interface FeedItem { title: string; link: string; date: string; html: string; excerpt: string; /** only a summary was in the feed, not the whole article */ partial: boolean; tags: string[] }
@@ -17,19 +18,20 @@ export interface Feed { title: string; link: string; items: FeedItem[] }
 
 export const isHttpUrl = (u: string): boolean => { try { return /^https?:$/.test(new URL(u).protocol); } catch { return false; } };
 
+export class FeedHostError extends Error { constructor(public host: string) { super(host); } }
+export const feedOrigin = (url: string): string => { try { return new URL(url).origin; } catch { return ''; } };
+
 async function fetchText(url: string): Promise<string> {
-  let lastErr: unknown = null;
-  for (const p of RSS_PROXY_NODES) {
-    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-    try {
-      const r = await fetch(p + encodeURIComponent(url), { signal: ctl.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const txt = await r.text();
-      if (txt.length > MAX_BYTES) throw new Error('feed too large');
-      return txt;
-    } catch (e) { lastErr = e; } finally { clearTimeout(timer); }
-  }
-  throw lastErr instanceof Error ? lastErr : new Error('feed unreachable');
+  const origin = feedOrigin(url);
+  if (!RSS_HOSTS.includes(origin)) throw new FeedHostError(origin);
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch(url, { signal: ctl.signal, credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const txt = await r.text();
+    if (txt.length > MAX_BYTES) throw new Error('feed too large');
+    return txt;
+  } finally { clearTimeout(timer); }
 }
 
 const txt = (el: Element | null | undefined): string => (el?.textContent ?? '').trim();
