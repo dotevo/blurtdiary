@@ -4,13 +4,12 @@ import TurndownService from 'turndown';
 /**
  * Import of posts from an RSS / Atom feed (own WordPress, any other site) into the editor.
  *
- * The feed is read DIRECTLY by the browser – no proxy, nobody in between sees the address or the content. That works when the feed's site
- * sends a CORS header allowing this page (`Access-Control-Allow-Origin`), which the site's owner adds for his own feed. This app's
- * Content-Security-Policy allows connections only to a fixed list of hosts (an XSS must not be able to send keys anywhere), so the feed hosts
- * are listed here AND in `connect-src` of index.html (`npm run check:csp` compares them). Everything that comes back is untrusted: it is
- * parsed as XML (no scripts run), cleaned with DOMPurify, converted to Markdown, and shown through the usual allow-list renderer.
+ * The feed is read directly by the browser, with no proxy: a hidden sandboxed iframe (public/feed-frame.html – an opaque origin without access to
+ * this app's storage or keys, its own CSP allows connections to https hosts) does a plain GET and hands back TEXT. The page itself keeps its strict
+ * connect-src. The feed's site must allow the read with a CORS header (`Access-Control-Allow-Origin`) – a browser rule no code can bypass.
+ * Everything that comes back is untrusted: parsed as XML (no scripts run), cleaned with DOMPurify, converted to Markdown and shown through the usual
+ * allow-list renderer.
  */
-export const RSS_HOSTS: string[] = [];
 const MAX_BYTES = 3_000_000, MAX_ITEMS = 30, TIMEOUT_MS = 15000;
 
 export interface FeedItem { title: string; link: string; date: string; html: string; excerpt: string; /** only a summary was in the feed, not the whole article */ partial: boolean; tags: string[] }
@@ -18,20 +17,37 @@ export interface Feed { title: string; link: string; items: FeedItem[] }
 
 export const isHttpUrl = (u: string): boolean => { try { return /^https?:$/.test(new URL(u).protocol); } catch { return false; } };
 
-export class FeedHostError extends Error { constructor(public host: string) { super(host); } }
-export const feedOrigin = (url: string): string => { try { return new URL(url).origin; } catch { return ''; } };
+/** Why a feed could not be read: `network` is what the browser reports for a refused CORS check, an unreachable site or a bad certificate. */
+export class FeedFetchError extends Error { constructor(public kind: string, public status = 0) { super(kind === 'http' ? `HTTP ${status}` : kind); } }
+
+let frame: Promise<HTMLIFrameElement> | null = null;
+function getFrame(): Promise<HTMLIFrameElement> {
+  return (frame ??= new Promise((resolve, reject) => {
+    const f = document.createElement('iframe');
+    f.setAttribute('sandbox', 'allow-scripts'); // no allow-same-origin: opaque origin, nothing of this app is reachable from inside
+    f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1; f.style.cssText = 'display:none';
+    f.src = new URL('feed-frame.html', document.baseURI).href;
+    const onMsg = (e: MessageEvent): void => { if (e.source === f.contentWindow && e.data?.ready) { window.removeEventListener('message', onMsg); resolve(f); } };
+    window.addEventListener('message', onMsg);
+    setTimeout(() => { window.removeEventListener('message', onMsg); frame = null; f.remove(); reject(new FeedFetchError('timeout')); }, TIMEOUT_MS);
+    document.body.appendChild(f);
+  }));
+}
 
 async function fetchText(url: string): Promise<string> {
-  const origin = feedOrigin(url);
-  if (!RSS_HOSTS.includes(origin)) throw new FeedHostError(origin);
-  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-  try {
-    const r = await fetch(url, { signal: ctl.signal, credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error' });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const txt = await r.text();
-    if (txt.length > MAX_BYTES) throw new Error('feed too large');
-    return txt;
-  } finally { clearTimeout(timer); }
+  const f = await getFrame();
+  const id = Math.random().toString(36).slice(2);
+  return new Promise<string>((resolve, reject) => {
+    const done = (fn: () => void): void => { window.removeEventListener('message', onMsg); clearTimeout(timer); fn(); };
+    const onMsg = (e: MessageEvent): void => {
+      if (e.source !== f.contentWindow || e.data?.id !== id) return;
+      const d = e.data as { text?: unknown; error?: string; status?: number };
+      if (typeof d.text === 'string') done(() => (d.text as string).length > MAX_BYTES ? reject(new FeedFetchError('too-large')) : resolve(d.text as string)); else done(() => reject(new FeedFetchError(String(d.error ?? 'network'), d.status ?? 0)));
+    };
+    const timer = setTimeout(() => done(() => reject(new FeedFetchError('timeout'))), TIMEOUT_MS + 2000);
+    window.addEventListener('message', onMsg);
+    f.contentWindow?.postMessage({ id, url }, '*');
+  });
 }
 
 const txt = (el: Element | null | undefined): string => (el?.textContent ?? '').trim();

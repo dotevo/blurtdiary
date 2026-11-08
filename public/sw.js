@@ -7,7 +7,7 @@
  *   - locales, icons, vendor files: stale-while-revalidate
  * Bump VERSION to drop old caches.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `blurtdiary-${VERSION}`;
 const SHELL = new URL('./', self.location).href;
 
@@ -22,6 +22,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request; const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return; // RPC, uploads, remote images: untouched
+  if (url.pathname.endsWith('/feed-frame.html')) return; // the sandboxed feed fetcher is a navigation too, but must never replace the cached app shell
 
   if (req.mode === 'navigate') { // ?user=…&post=… all share one cached shell
     e.respondWith(fetch(req).then((r) => { const copy = r.clone(); void caches.open(CACHE).then((c) => c.put(SHELL, copy)); return r; })

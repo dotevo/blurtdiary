@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { t } from '../lib/i18n';
 import { fmtDate } from '../lib/util';
-import { FeedHostError, htmlToMarkdown, importedLocal, isHttpUrl, RSS_HOSTS, loadFeed, normSource, sourceFooter, tagsFrom, type Feed, type FeedItem } from '../lib/rss';
+import { FeedFetchError, htmlToMarkdown, importedLocal, isHttpUrl, loadFeed, normSource, sourceFooter, tagsFrom, type Feed, type FeedItem } from '../lib/rss';
 import { href, navigate, postParam, state, USER } from '../lib/store';
 import { meta } from '../lib/util';
 import { rssFooter, setRssFooter } from '../lib/settings';
@@ -32,8 +32,9 @@ async function load(): Promise<void> {
     recent.value = [u, ...recent.value.filter((x) => x !== u)].slice(0, 5);
     try { localStorage.setItem(LK, JSON.stringify(recent.value)); } catch { /* ignore */ }
   } catch (e) {
-    err.value = e instanceof FeedHostError ? t('rssHostBlocked', { h: e.host })
-      : e instanceof TypeError ? t('rssCorsHint', { h: new URL(u).host }) // the browser reports a refused CORS check only as a failed fetch
+    const h = new URL(u).host;
+    err.value = e instanceof FeedFetchError
+      ? (e.kind === 'network' ? t('rssCorsHint', { h }) : e.kind === 'bad-url' ? t('rssBadUrl') : t('rssError', { e: e.message })) // a refused CORS check is reported by the browser only as a failed fetch
       : t('rssError', { e: (e as Error).message });
   }
   busy.value = false;
@@ -48,7 +49,6 @@ function pick(it: FeedItem): void {
 <template>
   <div class="import">
     <div class="mute help">{{ t('rssHelp') }}</div>
-    <div class="mute help">{{ RSS_HOSTS.length ? t('rssHosts', { h: RSS_HOSTS.map((x) => x.replace('https://', '')).join(', ') }) : t('rssNoHosts') }}</div>
     <div class="imp-row">
       <input v-model="url" type="url" inputmode="url" :placeholder="t('rssUrlPh')" autocapitalize="off" list="rss-recent" @keydown.enter="load">
       <datalist id="rss-recent"><option v-for="r in recent" :key="r" :value="r" /></datalist>

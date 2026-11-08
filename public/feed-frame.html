@@ -1,0 +1,6 @@
+<!doctype html>
+<!-- Feed fetcher. Loaded in a sandboxed iframe (no allow-same-origin): an opaque origin with no access to the blog's storage or keys.
+     It does one thing: GET a feed URL the page asks for and hand the TEXT back. The blog parses and cleans it. See docs/SECURITY.md. -->
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; connect-src https:">
+<script src="feed-frame.js"></script>
