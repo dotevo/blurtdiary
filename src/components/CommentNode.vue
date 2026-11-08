@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, inject, ref } from 'vue';
 import type { Post } from '../lib/types';
 import { anyLogin, auth, loginOpen } from '../lib/auth';
@@ -80,7 +81,7 @@ async function sendCopy(chain: string): Promise<void> {
     <div class="cm-head">
       <UserAvatar :name="c.author" small /> <a class="who" :href="profileHref(c.author, chains[0]?.id ?? 'blurt')" :title="t('profileOpen')" @click.prevent="openProfile(c.author, chains[0]?.id ?? 'blurt')"><b>{{ c.author }}</b></a>
       <span v-if="showMirrors" class="cm-chains"><ChainDot v-for="d in dots" :key="d.id" :chain="d.id" :status="d.status" :title="d.title" /></span>
-      <span v-if="coal" class="warn" :title="coal.reason + (coal.notes ? ' — ' + coal.notes : '')">⚠ COAL</span>
+      <span v-if="coal" class="warn" :title="coal.reason + (coal.notes ? ' — ' + coal.notes : '')"><Icon name="warn" /> COAL</span>
       <span class="mute">{{ fmtDate(c.created) }} · <template v-for="x in chains" :key="x.id"><span class="pay" :title="payoutTitle(node.versions[x.id])"><ChainDot v-if="chains.length > 1" :chain="x.id" /> {{ payoutOf(node.versions[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></span>
     </div>
 
@@ -96,11 +97,11 @@ async function sendCopy(chain: string): Promise<void> {
 
     <div class="mute cm-actions">
       <!-- one click votes on every chain where we are logged in and a copy exists -->
-      <a href="#" :class="{ on: votedAll(node.versions) }" :title="voteTitle" @click.prevent="toggleVoteAll(node.versions)">♥ {{ c.active_votes?.length ?? 0 }}</a>
+      <a href="#" :class="{ on: votedAll(node.versions) }" :title="voteTitle" @click.prevent="toggleVoteAll(node.versions)"><Icon name="heart" /> {{ c.active_votes?.length ?? 0 }}</a>
       <a href="#" class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click.prevent="votesOpen = true">ⓘ</a>
       <a href="#" @click.prevent="startReply">{{ t('reply') }}</a>
       <span v-if="node.children.length">{{ t('repliesCount', { n: node.children.length }) }}</span>
-      <a v-if="differs" href="#" class="vdiff" :title="accounts()" @click.prevent="versionsOpen = true">⚠ {{ t('versionsDiffer') }}</a>
+      <a v-if="differs" href="#" class="vdiff" :title="accounts()" @click.prevent="versionsOpen = true"><Icon name="warn" /> {{ t('versionsDiffer') }}</a>
       <button v-for="x in canSendTo" :key="x.id" class="small" :disabled="busyChain === x.id" @click="sendCopy(x.id)">{{ t('sendTo', { c: x.name }) }}</button>
     </div>
     <div v-if="replying" class="reply-box">

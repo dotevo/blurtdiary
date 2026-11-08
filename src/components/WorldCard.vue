@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed } from 'vue';
 import { adapter } from '../lib/chains';
 import { t } from '../lib/i18n';
@@ -38,7 +39,7 @@ const hue = computed(() => [...p.value.title].reduce((s, ch) => s + ch.charCodeA
       <div class="meta">
         <span>{{ fmtDate(p.created) }}</span>
         <span class="pay" :title="payoutTitle(p)">{{ payoutOf(p).toFixed(3) }} {{ sym }}</span>
-        <span>♥ {{ votesOf(p) }}</span><span>💬 {{ p.children ?? 0 }}</span>
+        <span><Icon name="heart" /> {{ votesOf(p) }}</span><span><Icon name="chat" /> {{ p.children ?? 0 }}</span>
       </div>
     </div>
   </article>

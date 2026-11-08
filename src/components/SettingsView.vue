@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, onBeforeUnmount, watch } from 'vue';
 import { auth, loginOpen } from '../lib/auth';
 import { CHAINS, PRIMARY } from '../lib/chains';
@@ -173,8 +174,8 @@ const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
             <textarea v-model="p.text" rows="3" maxlength="500" :placeholder="t('panelText')" />
           </template>
         </div>
-        <div class="rbtn"><button class="small" :disabled="i === 0" @click="movePanel(i, -1)">↑</button><button class="small" :disabled="i === panelsList.length - 1" @click="movePanel(i, 1)">↓</button>
-          <button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.panels!.splice(i, 1)">✕</button></div>
+        <div class="rbtn"><button class="small" :disabled="i === 0" @click="movePanel(i, -1)"><Icon name="up" /></button><button class="small" :disabled="i === panelsList.length - 1" @click="movePanel(i, 1)"><Icon name="down" /></button>
+          <button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.panels!.splice(i, 1)"><Icon name="x" /></button></div>
       </div>
       <div class="actions">
         <button v-for="id in missingBuiltin" :key="id" @click="addBuiltin(id)">+ {{ panelLabel(id) }}</button>
@@ -194,8 +195,8 @@ const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
           <input :value="x.tags.join(', ')" :placeholder="t('catTags')" @change="x.tags = parseTags(($event.target as HTMLInputElement).value)">
           <input v-model="x.desc" :placeholder="t('catDesc')" maxlength="120">
         </div>
-        <div class="rbtn"><button class="small" :disabled="i === 0" @click="move(i, -1)">↑</button><button class="small" :disabled="i === c.cats.length - 1" @click="move(i, 1)">↓</button>
-          <button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.cats.splice(i, 1)">✕</button></div>
+        <div class="rbtn"><button class="small" :disabled="i === 0" @click="move(i, -1)"><Icon name="up" /></button><button class="small" :disabled="i === c.cats.length - 1" @click="move(i, 1)"><Icon name="down" /></button>
+          <button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.cats.splice(i, 1)"><Icon name="x" /></button></div>
       </div>
       <button @click="addCat">+ {{ t('addCat') }}</button>
     </section>
@@ -214,7 +215,7 @@ const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
       <div class="mute help">{{ t('blogrollHelp') }}</div>
       <div v-for="(b, i) in c.blogroll ?? []" :key="i" class="row-edit">
         <div class="cols two"><input v-model="b.account" :class="{ bad: b.account && !normAccount(b.account) }" :placeholder="t('blogAccount')" autocapitalize="off" maxlength="17"><input v-model="b.desc" :placeholder="t('blogDesc')" maxlength="80"></div>
-        <div class="rbtn"><button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.blogroll!.splice(i, 1)">✕</button></div>
+        <div class="rbtn"><button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.blogroll!.splice(i, 1)"><Icon name="x" /></button></div>
       </div>
       <button :disabled="(c.blogroll?.length ?? 0) >= MAX_BLOGROLL" @click="addBlog">+ {{ t('addBlog') }}</button>
     </section>
@@ -223,7 +224,7 @@ const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
       <h3>{{ t('secLinks') }}</h3>
       <div v-for="(l, i) in c.links" :key="i" class="row-edit">
         <div class="cols two"><input v-model="l.label" :placeholder="t('catName')" maxlength="40"><input v-model="l.url" :class="{ bad: l.url && !safeUrl(l.url) }" :placeholder="t('linkUrl')"></div>
-        <div class="rbtn"><button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.links.splice(i, 1)">✕</button></div>
+        <div class="rbtn"><button class="small" :aria-label="t('remove')" :title="t('remove')" @click="c.links.splice(i, 1)"><Icon name="x" /></button></div>
       </div>
       <button @click="addLink">+ {{ t('addLink') }}</button>
     </section>

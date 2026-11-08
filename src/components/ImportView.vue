@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, ref } from 'vue';
 import { t } from '../lib/i18n';
 import { fmtDate } from '../lib/util';
@@ -63,7 +64,7 @@ function pick(it: FeedItem): void {
         <div class="imp-main">
           <b>{{ it.title || t('rssUntitled') }}</b>
           <div class="mute help">{{ it.date ? fmtDate(it.date) : '' }} · {{ it.partial ? t('rssPartial') : t('rssFull') }}
-            <template v-if="doneOf(it)"> · <a class="imp-badge" :href="href({ post: postParam(USER, doneOf(it) as string) })" @click.prevent="navigate(href({ post: postParam(USER, doneOf(it) as string) }))">✓ {{ t('rssDone') }}</a></template></div>
+            <template v-if="doneOf(it)"> · <a class="imp-badge" :href="href({ post: postParam(USER, doneOf(it) as string) })" @click.prevent="navigate(href({ post: postParam(USER, doneOf(it) as string) }))"><Icon name="check" /> {{ t('rssDone') }}</a></template></div>
           <div class="mute">{{ it.excerpt }}</div>
         </div>
         <button :class="{ pri: !doneOf(it) }" @click="pick(it)">{{ doneOf(it) ? t('rssImportAgain') : t('rssImport') }}</button>

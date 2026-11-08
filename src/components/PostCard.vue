@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed } from 'vue';
 import type { Post } from '../lib/types';
 import { excerpt, fmtDate, payoutOf, payoutTitle, thumbOf, votesOf } from '../lib/util';
@@ -19,13 +20,13 @@ const hue = computed(() => [...props.post.title].reduce((s, ch) => s + ch.charCo
     <a v-else class="thumb ph" :href="link" :style="{ '--h': hue }" @click="go">{{ (post.title[0] || '•').toUpperCase() }}</a>
     <div class="card-b">
       <div v-if="foreign" class="mute feed-by">@{{ post.author }}</div>
-      <div v-if="pinned" class="pin-badge">📌 {{ t('pinned') }}</div>
+      <div v-if="pinned" class="pin-badge"><Icon name="pin" /> {{ t('pinned') }}</div>
       <h3><a :href="link" @click="go">{{ post.title }}</a></h3>
       <p>{{ excerpt(post.body) }}</p>
       <div class="meta">
         <span>{{ fmtDate(post.created) }}</span>
         <span class="pay" :title="payoutTitle(post)">{{ payoutOf(post).toFixed(3) }} BLURT</span>
-        <span>♥ {{ votesOf(post) }}</span><span>💬 {{ post.children ?? 0 }}</span>
+        <span><Icon name="heart" /> {{ votesOf(post) }}</span><span><Icon name="chat" /> {{ post.children ?? 0 }}</span>
       </div>
     </div>
   </article>

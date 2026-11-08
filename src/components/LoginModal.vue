@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, ref } from 'vue';
 import { auth, loginKey, loginWhaleVault } from '../lib/auth';
 import { CHAINS, adapter, type ChainId } from '../lib/chains';
@@ -27,7 +28,7 @@ async function run(fn: () => Promise<void>): Promise<void> {
       <b>{{ t('loginTitle') }}</b>
       <div class="login-chains" role="tablist">
         <button v-for="c in CHAINS" :key="c.id" :class="{ pri: chain === c.id, locked: locked(c.id) }" :disabled="locked(c.id)" :title="locked(c.id) ? t('blurtFirst') : c.name" @click="pick(c.id)">
-          <ChainDot :chain="c.id" />{{ c.name }}<span v-if="auth.sessions[c.id]"> ✓</span>
+          <ChainDot :chain="c.id" />{{ c.name }}<span v-if="auth.sessions[c.id]"> <Icon name="check" /></span>
         </button>
       </div>
       <div v-if="!auth.me" class="mute help">{{ t('blurtFirst') }}</div>

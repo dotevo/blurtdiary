@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, ref, watch } from 'vue';
 import { auth, loggedChains, loginOpen } from '../lib/auth';
 import { adapter, CHAINS } from '../lib/chains';
@@ -60,10 +61,10 @@ const feedShown = computed(() => feedFrom.value.filter((c) => chainOn(c.id)));
 <template>
   <section class="world">
     <div class="tabs world-tabs" v-if="auth.me || !tag">
-      <button :class="{ pri: tab === 'feed' }" @click="goTab('feed')">📰 {{ t('feedTitle') }}</button>
+      <button :class="{ pri: tab === 'feed' }" @click="goTab('feed')"><Icon name="feed" /> {{ t('feedTitle') }}</button>
       <button :class="{ pri: tab === 'tags' }" @click="goTab('tags')"># {{ t('tagsTab') }}</button>
       <span class="grow" />
-      <button class="small" :disabled="list.loading" :title="t('retry')" @click="reload">↻</button>
+      <button class="small" :disabled="list.loading" :title="t('retry')" @click="reload"><Icon name="refresh" /></button>
     </div>
 
     <!-- FEED -->
@@ -81,10 +82,10 @@ const feedShown = computed(() => feedFrom.value.filter((c) => chainOn(c.id)));
       <div v-if="tag" class="tag-head">
         <h2 class="feed-h">#{{ tag }} <span class="mute help">{{ t('tagOnAll') }}</span></h2>
         <template v-if="auth.me || feedFrom.length">
-          <button v-if="!isFollowedTag(tag)" class="small" @click="followTag(tag)">☆ {{ t('tagFollow') }}</button>
-          <button v-else class="small pri" @click="unfollowTag(tag)">★ {{ t('tagFollowing') }}</button>
+          <button v-if="!isFollowedTag(tag)" class="small" @click="followTag(tag)"><Icon name="star" /> {{ t('tagFollow') }}</button>
+          <button v-else class="small pri" @click="unfollowTag(tag)"><Icon name="star-fill" /> {{ t('tagFollowing') }}</button>
         </template>
-        <a class="mute" :href="href({ view: 'world', tab: 'tags' })" @click.prevent="goTab('tags')">✕</a>
+        <a class="mute" :href="href({ view: 'world', tab: 'tags' })" @click.prevent="goTab('tags')"><Icon name="x" /></a>
       </div>
       <template v-else>
         <div v-if="!auth.me && !feedFrom.length" class="center"><p class="mute">{{ t('tagsLogin') }}</p><button class="pri" @click="loginOpen = true">{{ t('login') }}</button></div>
@@ -104,7 +105,7 @@ const feedShown = computed(() => feedFrom.value.filter((c) => chainOn(c.id)));
     <div v-if="among.length > 1 && (tab === 'feed' ? feedFrom.length : tag || followed.tags.length)" class="chainbar">
       <button v-for="id in among" :key="id" class="small" :class="{ off: !chainOn(id) }" :aria-pressed="chainOn(id)" :title="t('chainFilter')" @click="toggleChain(id, among)"><ChainDot :chain="id" /> {{ adapter(id).name }}</button>
     </div>
-    <div v-for="p in problems" :key="p" class="mute help badtxt">⚠ {{ p }}</div>
+    <div v-for="p in problems" :key="p" class="mute help badtxt"><Icon name="warn" /> {{ p }}</div>
     <div v-if="items.length" class="grid"><WorldCard v-for="it in items" :key="it.key" :item="it" /></div>
     <div v-else-if="list.loading" class="mute center">{{ t('loading') }}</div>
     <div v-else-if="(tab === 'feed' && feedFrom.length) || tag || followed.tags.length" class="mute center">{{ t(tab === 'feed' ? 'feedEmpty' : 'noPosts') }}</div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, watch } from 'vue';
 import { auth, loginOpen } from '../lib/auth';
 import { adapter, CHAINS } from '../lib/chains';
@@ -35,13 +36,13 @@ const problem = computed(() => Object.values(worldAccount.sources).map((s) => s.
           <div v-if="info.about" class="mute help">{{ info.about }}</div>
         </div>
         <div class="prof-act">
-          <button v-if="me && me !== account && rel.state !== 'unknown'" class="small follow" :class="{ on: rel.state === 'yes' }" :disabled="rel.busy" @click="setRel(chain, account, rel.state !== 'yes')">{{ rel.state === 'yes' ? '✓ ' + t('following') : '＋ ' + t('follow') }}</button>
+          <button v-if="me && me !== account && rel.state !== 'unknown'" class="small follow" :class="{ on: rel.state === 'yes' }" :disabled="rel.busy" @click="setRel(chain, account, rel.state !== 'yes')"><Icon :name="rel.state === 'yes' ? 'check' : 'plus'" /> {{ rel.state === 'yes' ? t('following') : t('follow') }}</button>
           <button v-else-if="!me" class="small" @click="loginOpen = true">{{ t('profileLogin', { c: ad.name }) }}</button>
           <a v-if="chain === 'blurt'" class="small btn" :href="`?user=${encodeURIComponent(account)}`">{{ t('profileBlog') }}</a>
         </div>
       </div>
       <div v-if="!info.loading && !info.exists && !info.error" class="center mute">{{ t('accountNotFound', { u: account }) }}</div>
-      <div v-if="problem" class="mute help badtxt">⚠ {{ ad.name }}: {{ problem }}</div>
+      <div v-if="problem" class="mute help badtxt"><Icon name="warn" /> {{ ad.name }}: {{ problem }}</div>
       <div v-if="worldAccount.items.length" class="grid"><WorldCard v-for="it in worldAccount.items" :key="it.key" :item="it" /></div>
       <div v-else-if="worldAccount.loading" class="mute center">{{ t('loading') }}</div>
       <div v-else-if="info.exists" class="mute center">{{ t('noPosts') }}</div>

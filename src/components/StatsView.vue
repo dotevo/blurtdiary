@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { onMounted } from 'vue';
 import { t } from '../lib/i18n';
 import { RANGES, loadStats, retryChain, setRange, statsChains, statsState } from '../lib/stats';
@@ -10,7 +11,7 @@ const sum = (s: { author: number; curation: number; benefactor: number }): numbe
 </script>
 <template>
   <section class="stats">
-    <h2 class="feed-h">📊 {{ t('statsTitle') }} <span class="mute">@{{ USER }}</span></h2>
+    <h2 class="feed-h"><Icon name="chart" /> {{ t('statsTitle') }} <span class="mute">@{{ USER }}</span></h2>
     <div class="tabs"><button v-for="d in RANGES" :key="d" class="chip" :class="{ on: statsState.days === d }" @click="setRange(d)">{{ t('statsDays', { n: d }) }}</button></div>
     <div v-for="c in statsChains()" :key="c.id" class="card stat-card" :style="{ '--c': c.color }">
       <div class="stat-h"><ChainDot :chain="c.id" /><b>{{ c.name }}</b><span class="mute">@{{ statsState.chains[c.id]?.account }}</span></div>
@@ -26,7 +27,7 @@ const sum = (s: { author: number; curation: number; benefactor: number }): numbe
           <EarningsChart :points="d.points" :unit="d.unit" :days="statsState.days" />
           <div class="mute stat-note">
             <span v-if="d.from">{{ t('statsScanned', { n: d.scanned, d: d.from }) }}</span>
-            <span v-if="!d.complete"> · ⚠ {{ t('statsPartial', { d: d.from ?? '?' }) }}</span>
+            <span v-if="!d.complete"> · <Icon name="warn" /> {{ t('statsPartial', { d: d.from ?? '?' }) }}</span>
             <span v-if="d.vestsConverted"> · {{ t('statsVests') }}</span>
           </div>
         </template>

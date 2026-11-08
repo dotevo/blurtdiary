@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './components/Icon.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { loginOpen } from './lib/auth';
 import { safeUrl } from './lib/config';
@@ -108,7 +109,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
   <div v-else-if="!USER" class="center">
     <h1>Blurt Diary</h1><p class="mute">{{ t('enterUser') }}</p>
     <form style="max-width:280px;margin:auto" @submit.prevent="openUser"><input v-model="who" :placeholder="t('userPlaceholder')" autofocus></form>
-    <div v-if="favs.list.length" class="fav-landing"><h4>★ {{ t('favTitle') }}</h4><FavList /></div>
+    <div v-if="favs.list.length" class="fav-landing"><h4><Icon name="star-fill" /> {{ t('favTitle') }}</h4><FavList /></div>
     <p><LangSelect /></p>
     <p><a class="mute" :href="href({ view: 'docs' })" @click.prevent="navigate(href({ view: 'docs' }))">{{ t('docs') }}</a></p>
   </div>
@@ -124,8 +125,8 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
         <div>
           <h1><a :href="href({})" @click.prevent="navigate(href({}))">{{ state.cfg.title ?? state.profile?.name ?? '@' + USER }}</a>
             <button class="star" :class="{ on: isFav(USER) }" :title="isFav(USER) ? t('favUnfollow') : t('favFollow')" :aria-label="isFav(USER) ? t('favUnfollow') : t('favFollow')" :aria-pressed="isFav(USER)"
-              @click="toggleFav(USER, state.cfg.title ?? state.profile?.name)">{{ isFav(USER) ? '★' : '☆' }}</button>
-            <button v-if="follow.state !== 'unknown'" class="small follow" :class="{ on: follow.state === 'yes' }" :disabled="follow.busy" :title="t('followTitle')" @click="setFollow(follow.state !== 'yes')">{{ follow.state === 'yes' ? '✓ ' + t('following') : '＋ ' + t('follow') }}</button></h1>
+              @click="toggleFav(USER, state.cfg.title ?? state.profile?.name)"><Icon :name="isFav(USER) ? 'star-fill' : 'star'" /></button>
+            <button v-if="follow.state !== 'unknown'" class="small follow" :class="{ on: follow.state === 'yes' }" :disabled="follow.busy" :title="t('followTitle')" @click="setFollow(follow.state !== 'yes')"><Icon :name="follow.state === 'yes' ? 'check' : 'plus'" /> {{ follow.state === 'yes' ? t('following') : t('follow') }}</button></h1>
           <div class="mute">{{ state.cfg.subtitle ?? '@' + USER }}</div>
           <div v-if="state.cfg.links.length" class="hero-links">
             <template v-for="(l, i) in state.cfg.links" :key="i"><a v-if="safeUrl(l.url)" :href="safeUrl(l.url)" target="_blank" rel="noopener noreferrer">{{ l.label }}</a></template>
@@ -136,8 +137,8 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
     <NavBar />
     <div class="wrap" :class="wrapClass">
       <div v-if="hasSide" class="pane-tabs" role="tablist">
-        <button role="tab" :aria-selected="pane === 'main'" :class="{ on: pane === 'main' }" @click="showPane('main')">📄 {{ t('paneMain') }}</button>
-        <button role="tab" :aria-selected="pane === 'side'" :class="{ on: pane === 'side' }" @click="showPane('side')">💬 {{ t('paneSide') }}</button>
+        <button role="tab" :aria-selected="pane === 'main'" :class="{ on: pane === 'main' }" @click="showPane('main')"><Icon name="doc" /> {{ t('paneMain') }}</button>
+        <button role="tab" :aria-selected="pane === 'side'" :class="{ on: pane === 'side' }" @click="showPane('side')"><Icon name="chat" /> {{ t('paneSide') }}</button>
       </div>
       <div class="panes" :class="{ sliding: slide.on }" :style="slideStyle">
       <main>
@@ -149,7 +150,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
         <StatsView v-else-if="state.view === 'stats'" />
         <PostView v-else-if="state.post" />
         <template v-else>
-          <h2 v-if="state.month" class="feed-h">{{ monthLabel(state.month) }} <a class="mute month-x" :href="href({})" :title="t('all')" @click.prevent="navigate(href({}))">✕</a></h2>
+          <h2 v-if="state.month" class="feed-h">{{ monthLabel(state.month) }} <a class="mute month-x" :href="href({})" :title="t('all')" @click.prevent="navigate(href({}))"><Icon name="x" /></a></h2>
           <div v-if="visible.length" class="grid"><PostCard v-for="p in visible" :key="p.permlink" :post="p" /></div>
           <div v-else-if="!(state.busy || state.loadingMore)" class="center mute">{{ t('noPosts') }}</div>
           <div v-if="canMore" class="center">

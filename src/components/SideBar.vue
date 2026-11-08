@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, onMounted, watch } from 'vue';
 import { CHAINS } from '../lib/chains';
 import type { Post } from '../lib/types';
@@ -67,7 +68,7 @@ const panels = computed(() => state.cfg.panels ?? DEFAULT_PANELS);
       </div>
       <span v-if="!feed.posts.length" class="mute">{{ feed.loading ? t('loading') : feed.error ? t('chainError', { c: 'Blurt' }) : t('feedEmpty') }}</span>
     </div>
-    <div v-if="favs.list.length" class="card fav-card"><h4>★ {{ t('favTitle') }}</h4><FavList /></div>
+    <div v-if="favs.list.length" class="card fav-card"><h4><Icon name="star-fill" /> {{ t('favTitle') }}</h4><FavList /></div>
     <template v-for="(p, i) in panels" :key="i">
       <div v-if="p.id === 'about'" class="card author">
         <UserAvatar :name="USER" />

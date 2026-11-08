@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, nextTick, provide, reactive, ref, watch } from 'vue';
 import { auth, loginOpen } from '../lib/auth';
 import { benLabel, beneficiariesFor } from '../lib/ben';
@@ -166,10 +167,10 @@ async function sendPost(chain: string): Promise<void> {
       <h1>{{ post.title }}</h1>
       <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <template v-for="x in payoutChains" :key="x.id"><span class="pay" :title="payoutTitle(merged.root[x.id])"><ChainDot v-if="payoutChains.length > 1" :chain="x.id" /> {{ payoutOf(merged.root[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></div>
       <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />
-      <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true">⚠ {{ t('versionsDiffer') }}</a></div>
+      <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true"><Icon name="warn" /> {{ t('versionsDiffer') }}</a></div>
       <div class="md post-body" v-html="renderMd(post.body)" />
       <div class="actions">
-        <button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)">♥ {{ post.active_votes?.length ?? 0 }}</button>
+        <button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)"><Icon name="heart" /> {{ post.active_votes?.length ?? 0 }}</button>
         <button class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click="votesOpen = true">ⓘ</button>
         <template v-for="tag in tagsOf(post)" :key="tag">
           <a v-if="catFor(tag) && !fchain" class="tag" :href="href({ cat: catFor(tag)!.id })" @click.prevent="navigate(href({ cat: catFor(tag)!.id }))">#{{ tag }}</a>

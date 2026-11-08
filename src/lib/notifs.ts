@@ -132,5 +132,6 @@ export function notifLink(n: Notif): { href: string; ext: boolean } {
   return { href: href({ post: postParam(m[1], m[2]), chain: n.chain, ...(m[1] === auth.sessions[n.chain]?.user ? {} : { c: `${m[1]}/${m[2]}` }) }), ext: false };
 }
 export const notifHref = (n: Notif): string => notifLink(n).href;
-export const notifIcon = (t: string): string =>
-  t.startsWith('reply') ? '💬' : t === 'vote' ? '♥' : t === 'mention' ? '@' : t === 'reblog' ? '↻' : t === 'follow' ? '＋' : t.includes('transfer') ? '💸' : '🔔';
+/** Icon (see Icon.vue) for a notification type. */
+export const notifIcon = (t: string): 'chat' | 'heart' | 'at' | 'repeat' | 'user-plus' | 'coin' | 'bell' =>
+  t.startsWith('reply') ? 'chat' : t === 'vote' ? 'heart' : t === 'mention' ? 'at' : t === 'reblog' ? 'repeat' : t === 'follow' ? 'user-plus' : t.includes('transfer') ? 'coin' : 'bell';

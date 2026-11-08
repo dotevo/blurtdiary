@@ -73,7 +73,7 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
         <component :is="notifLink(g.lead).href ? 'a' : 'div'" v-for="g in notifGroups" :key="g.items.map((i) => i.chain + (i.src ?? '') + i.id).join()" class="np-item" :class="{ unread: g.unread }"
           :style="{ '--c': adapter(g.lead.chain).color }" :href="notifLink(g.lead).href || undefined" @click.prevent="openNotif(g.lead)">
           <span class="np-ico"><ChainDot v-for="c in g.chains" :key="c" :chain="c" /></span>
-          <span class="np-body"><span class="np-msg">{{ notifIcon(g.lead.type) }} {{ g.lead.msg }}</span><br><span class="mute">{{ g.chains.map((c) => adapter(c).name).join(' + ') }} · <span :title="fmtDate(g.lead.date)">{{ fmtAgo(g.lead.date) }}</span></span></span>
+          <span class="np-body"><span class="np-msg"><Icon :name="notifIcon(g.lead.type)" /> {{ g.lead.msg }}</span><br><span class="mute">{{ g.chains.map((c) => adapter(c).name).join(' + ') }} · <span :title="fmtDate(g.lead.date)">{{ fmtAgo(g.lead.date) }}</span></span></span>
         </component>
       </div>
       <div v-else class="panel menu-panel">
@@ -87,8 +87,8 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
             <button class="pri small" :disabled="wallets[c.id].busy" @click="claim(c.id)">{{ wallets[c.id].busy ? '…' : t('claimBtn') }}</button></div>
         </div>
         <div v-if="auth.me && loggedChains().length > 1" class="mute mp-note">{{ t('logoutBlurtAll') }}</div>
-        <button v-if="loggedChains().length < CHAINS.length" class="mp-row" @click="addAccount">＋ {{ t('addAccount') }}</button>
-        <label v-if="auth.me" class="mp-row"><span>♥ {{ t('voteWeight') }}</span>
+        <button v-if="loggedChains().length < CHAINS.length" class="mp-row" @click="addAccount"><Icon name="plus" /> {{ t('addAccount') }}</button>
+        <label v-if="auth.me" class="mp-row"><span><Icon name="heart" /> {{ t('voteWeight') }}</span>
           <select class="sel" :value="voteWeight" @change="setVoteWeight(+($event.target as HTMLSelectElement).value)"><option v-for="w in [100, 75, 50, 25, 10]" :key="w" :value="w">{{ w }}%</option></select></label>
       </div>
     </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Icon from './Icon.vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { loadSubscriptions, type Sub } from '../lib/communities';
 import { auth, loginOpen } from '../lib/auth';
@@ -102,8 +103,8 @@ async function submit(): Promise<void> {
     <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
     <h1>{{ t('newPost') }}</h1>
     <div class="tabs mode-tabs">
-      <button :class="{ pri: mode === 'write' }" @click="mode = 'write'">✏️ {{ t('modeWrite') }}</button>
-      <button :class="{ pri: mode === 'import' }" @click="mode = 'import'">📥 {{ t('modeImport') }}</button>
+      <button :class="{ pri: mode === 'write' }" @click="mode = 'write'"><Icon name="pen" /> {{ t('modeWrite') }}</button>
+      <button :class="{ pri: mode === 'import' }" @click="mode = 'import'"><Icon name="download" /> {{ t('modeImport') }}</button>
     </div>
     <ImportView v-show="mode === 'import'" @import="onImport" />
     <template v-if="mode === 'write'">
@@ -114,7 +115,7 @@ async function submit(): Promise<void> {
       <button :class="{ pri: tab === 'preview' }" @click="tab = 'preview'">{{ t('tabPreview') }}</button>
       <span class="grow" />
       <input ref="fileInput" type="file" accept="image/*" hidden @change="onFile">
-      <button :disabled="uploading" @click="fileInput?.click()">🖼 {{ uploading ? t('uploading') : t('uploadImage') }}</button>
+      <button :disabled="uploading" @click="fileInput?.click()"><Icon name="image" /> {{ uploading ? t('uploading') : t('uploadImage') }}</button>
     </div>
     <textarea v-show="tab === 'edit'" ref="ta" @paste="onPaste" v-model="body" class="body-in" rows="18" :placeholder="t('bodyPh')" />
     <div v-show="tab === 'preview'" class="md post-body preview" v-html="renderMd(body)" />
