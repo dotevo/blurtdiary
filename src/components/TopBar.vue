@@ -11,6 +11,7 @@ import { CHAINS } from '../lib/chains';
 import { claim, loadWallets, wallets, walletUrl } from '../lib/wallet';
 import { fmtAgo, fmtDate } from '../lib/util';
 import LangSelect from './LangSelect.vue';
+import Icon from './Icon.vue';
 import ChainDot from './ChainDot.vue';
 import UserAvatar from './UserAvatar.vue';
 
@@ -46,17 +47,17 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
     <span class="grow" />
     <div v-if="loggedIn" class="user-area">
       <template v-for="c in loggedChains()" :key="c.id">
-        <button v-if="wallets[c.id]?.has" class="pri claim claim-d" :disabled="wallets[c.id].busy" :title="t('claimTitle', { list: wallets[c.id].label })" @click="claim(c.id)">🎁 <ChainDot :chain="c.id" /><span class="nb-lbl"> {{ wallets[c.id].power }} {{ c.powerSymbol }}</span></button>
+        <button v-if="wallets[c.id]?.has" class="pri claim claim-d" :disabled="wallets[c.id].busy" :title="t('claimTitle', { list: wallets[c.id].label })" @click="claim(c.id)"><Icon name="gift" /> <ChainDot :chain="c.id" /><span class="nb-lbl"> {{ wallets[c.id].power }} {{ c.powerSymbol }}</span></button>
       </template>
-      <button v-if="rewardChains.length" class="pri claim claim-m" :title="rewardTitle" :aria-label="t('rewardsPending')" @click="openRewards">🎁<span class="badge badge-n">{{ rewardChains.length }}</span></button>
+      <button v-if="rewardChains.length" class="pri claim claim-m" :title="rewardTitle" :aria-label="t('rewardsPending')" @click="openRewards"><Icon name="gift" /><span class="badge badge-n">{{ rewardChains.length }}</span></button>
       <span v-for="c in loggedChains()" :key="'vp' + c.id" class="vp nb-lbl" :title="t('vpTitle', { c: c.name })"><ChainDot :chain="c.id" /> {{ vpText(c.id) || '–' }}</span>
-      <button v-if="auth.me" class="icon" :aria-label="t('notifications')" @click="bell">🔔<span v-if="unread" class="badge">{{ unread > 9 ? '9+' : unread }}</span></button>
-      <a class="btn navbtn" :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab !== 'tags' && !state.tag) }" :href="href({ view: 'world', tab: 'feed' })" :title="t('feedTitle')" :aria-label="t('feedTitle')" @click.prevent="go(href({ view: 'world', tab: 'feed' }))">📰 <span class="nb-lbl">{{ t('feedTitle') }}</span></a>
-      <a class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" :title="t('tagsTab')" :aria-label="t('tagsTab')" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"># <span class="nb-lbl">{{ t('tagsTab') }}</span></a>
-      <a v-if="auth.me && !isOwner" class="btn navbtn" :href="myBlog" :title="t('myBlog')" :aria-label="t('myBlog')">🏠 <span class="nb-lbl">{{ t('myBlog') }}</span></a>
+      <button v-if="auth.me" class="icon" :aria-label="t('notifications')" @click="bell"><Icon name="bell" /><span v-if="unread" class="badge">{{ unread > 9 ? '9+' : unread }}</span></button>
+      <a class="btn navbtn" :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab !== 'tags' && !state.tag) }" :href="href({ view: 'world', tab: 'feed' })" :title="t('feedTitle')" :aria-label="t('feedTitle')" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon name="feed" /> <span class="nb-lbl">{{ t('feedTitle') }}</span></a>
+      <a class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" :title="t('tagsTab')" :aria-label="t('tagsTab')" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><Icon name="tag" /> <span class="nb-lbl">{{ t('tagsTab') }}</span></a>
+      <a v-if="auth.me && !isOwner" class="btn navbtn" :href="myBlog" :title="t('myBlog')" :aria-label="t('myBlog')"><Icon name="home" /> <span class="nb-lbl">{{ t('myBlog') }}</span></a>
       <template v-if="isOwner">
-        <a class="btn navbtn" :class="{ on: state.view === 'write' }" :href="href({ view: 'write' })" :title="t('write')" :aria-label="t('write')" @click.prevent="go(href({ view: 'write' }))">✍ <span class="nb-lbl">{{ t('write') }}</span></a>
-        <a class="btn navbtn" :class="{ on: state.view === 'settings' }" :href="href({ view: 'settings' })" :title="t('settings')" :aria-label="t('settings')" @click.prevent="go(href({ view: 'settings' }))">⚙</a>
+        <a class="btn navbtn" :class="{ on: state.view === 'write' }" :href="href({ view: 'write' })" :title="t('write')" :aria-label="t('write')" @click.prevent="go(href({ view: 'write' }))"><Icon name="pen" /> <span class="nb-lbl">{{ t('write') }}</span></a>
+        <a class="btn navbtn" :class="{ on: state.view === 'settings' }" :href="href({ view: 'settings' })" :title="t('settings')" :aria-label="t('settings')" @click.prevent="go(href({ view: 'settings' }))"><Icon name="sliders" /></a>
       </template>
       <button class="acc" :aria-label="t('account')" :title="t('account')" @click="toggleMenu"><UserAvatar :name="shownUser" small /><span class="who">@{{ shownUser }}</span> ▾</button>
     </div>
@@ -75,13 +76,13 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
         </component>
       </div>
       <div v-else class="panel menu-panel">
-        <a v-if="auth.me" class="mp-row" :href="myBlog" @click="isOwner && ($event.preventDefault(), go(href({})))">🏠 {{ t('myBlog') }} <span class="mute">@{{ auth.me.user }}</span></a>
+        <a v-if="auth.me" class="mp-row" :href="myBlog" @click="isOwner && ($event.preventDefault(), go(href({})))"><Icon name="home" /> {{ t('myBlog') }} <span class="mute">@{{ auth.me.user }}</span></a>
         <div v-for="c in loggedChains()" :key="c.id" class="mp-chain">
           <ChainDot :chain="c.id" /><span class="grow"><b>@{{ auth.sessions[c.id].user }}</b>
             <span class="mute"> · {{ t('vp') }} {{ vpText(c.id) || '–' }}</span></span>
           <a class="mute" :href="walletUrl(auth.sessions[c.id].user, c.id)" target="_blank" rel="noopener">{{ t('wallet') }}</a>
           <button class="small" @click="logout(c.id)">{{ t('logout') }}</button>
-          <div v-if="wallets[c.id]?.has" class="mp-reward"><span>🎁 {{ wallets[c.id].label }}</span>
+          <div v-if="wallets[c.id]?.has" class="mp-reward"><span><Icon name="gift" /> {{ wallets[c.id].label }}</span>
             <button class="pri small" :disabled="wallets[c.id].busy" @click="claim(c.id)">{{ wallets[c.id].busy ? '…' : t('claimBtn') }}</button></div>
         </div>
         <div v-if="auth.me && loggedChains().length > 1" class="mute mp-note">{{ t('logoutBlurtAll') }}</div>
@@ -93,13 +94,13 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
   </div>
     <!-- phone: the page links live in a bar at the bottom (big targets, the top bar keeps only language, rewards, bell and account) -->
     <nav v-if="loggedIn" class="bnav" aria-label="Menu">
-      <a :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab !== 'tags' && !state.tag) }" :href="href({ view: 'world', tab: 'feed' })" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><span class="bi">📰</span>{{ t('feedTitle') }}</a>
-      <a :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><span class="bi">#</span>{{ t('tagsTab') }}</a>
-      <a v-if="auth.me && !isOwner" :href="myBlog"><span class="bi">🏠</span>{{ t('myBlog') }}</a>
+      <a :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab !== 'tags' && !state.tag) }" :href="href({ view: 'world', tab: 'feed' })" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon class="bi" name="feed" />{{ t('feedTitle') }}</a>
+      <a :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><Icon class="bi" name="tag" />{{ t('tagsTab') }}</a>
+      <a v-if="auth.me && !isOwner" :href="myBlog"><Icon class="bi" name="home" />{{ t('myBlog') }}</a>
       <template v-if="isOwner">
-        <a :class="{ on: !state.view && !state.post }" :href="href({})" @click.prevent="go(href({}))"><span class="bi">🏠</span>{{ t('myBlog') }}</a>
-        <a :class="{ on: state.view === 'write' }" :href="href({ view: 'write' })" @click.prevent="go(href({ view: 'write' }))"><span class="bi">✍</span>{{ t('write') }}</a>
-        <a :class="{ on: state.view === 'settings' }" :href="href({ view: 'settings' })" @click.prevent="go(href({ view: 'settings' }))"><span class="bi">⚙</span>{{ t('settings') }}</a>
+        <a :class="{ on: !state.view && !state.post }" :href="href({})" @click.prevent="go(href({}))"><Icon class="bi" name="home" />{{ t('myBlog') }}</a>
+        <a :class="{ on: state.view === 'write' }" :href="href({ view: 'write' })" @click.prevent="go(href({ view: 'write' }))"><Icon class="bi" name="pen" />{{ t('write') }}</a>
+        <a :class="{ on: state.view === 'settings' }" :href="href({ view: 'settings' })" @click.prevent="go(href({ view: 'settings' }))"><Icon class="bi" name="sliders" />{{ t('settings') }}</a>
       </template>
     </nav>
   </header>

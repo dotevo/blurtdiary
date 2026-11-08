@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { loginOpen } from './lib/auth';
 import { safeUrl } from './lib/config';
 import { lang, t } from './lib/i18n';
@@ -43,10 +43,24 @@ const wrapClass = computed(() => [wide.value ? 'wide' : `side-${state.cfg.sideba
  */
 const pane = ref<'main' | 'side'>('main');
 const scrolls = { main: 0, side: 0 };
+const slide = reactive({ on: false, x: 0, tr: false });
+const slideStyle = computed(() => (slide.on ? { transform: `translateX(${slide.x}%)`, transition: slide.tr ? 'transform .28s ease' : 'none' } : {}));
+let slideTimer = 0;
+/** Switching panes slides: both are shown side by side for a moment, the row moves by one screen, then the pane that is left is hidden again. */
 async function showPane(p: 'main' | 'side'): Promise<void> {
   if (p === pane.value) return;
-  scrolls[pane.value] = window.scrollY; pane.value = p;
+  const old = window.scrollY; scrolls[pane.value] = old;
+  const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  window.clearTimeout(slideTimer);
+  if (!calm) { slide.on = true; slide.tr = false; slide.x = p === 'side' ? 0 : -100; }
+  pane.value = p;
   await nextTick(); window.scrollTo(0, scrolls[p]);
+  if (calm) return;
+  // the pane that leaves keeps its place on screen while the page jumps to the other pane's scroll position
+  const out = document.querySelector<HTMLElement>(p === 'side' ? '.panes > main' : '.panes > .side');
+  if (out) out.style.transform = `translateY(${scrolls[p] - old}px)`;
+  requestAnimationFrame(() => requestAnimationFrame(() => { slide.tr = true; slide.x = p === 'side' ? -100 : 0; }));
+  slideTimer = window.setTimeout(() => { slide.on = false; slide.tr = false; slide.x = 0; if (out) out.style.transform = ''; }, 320);
 }
 watch(() => [state.post, state.view, state.cat, state.month], () => { pane.value = 'main'; scrolls.main = 0; });
 let t0: { x: number; y: number } | null = null;
@@ -58,8 +72,25 @@ const onEnd = (e: TouchEvent): void => {
   if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
   void showPane(dx < 0 ? 'side' : 'main');
 };
-onMounted(() => { document.addEventListener('touchstart', onStart, { passive: true }); document.addEventListener('touchend', onEnd, { passive: true }); });
-onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); document.removeEventListener('touchend', onEnd); });
+/**
+ * Phones: the bars (account bar, blog logo + name, categories) slide away when scrolling down and slide back as soon as you scroll up,
+ * wherever you are on the page. Always shown near the top and while a dropdown is open.
+ */
+let lastY = 0, ticking = false;
+const onScroll = (): void => {
+  if (ticking) return; ticking = true;
+  requestAnimationFrame(() => {
+    ticking = false;
+    const y = Math.max(0, window.scrollY), dy = y - lastY;
+    const root = document.documentElement.classList;
+    if (window.innerWidth > 860 || y < 80 || document.querySelector('.backdrop')) root.remove('hdr-hide');
+    else if (dy > 10) root.add('hdr-hide');
+    else if (dy < -6) root.remove('hdr-hide');
+    if (Math.abs(dy) > 6) lastY = y;
+  });
+};
+onMounted(() => { document.addEventListener('touchstart', onStart, { passive: true }); document.addEventListener('touchend', onEnd, { passive: true }); window.addEventListener('scroll', onScroll, { passive: true }); });
+onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); document.removeEventListener('touchend', onEnd); window.removeEventListener('scroll', onScroll); document.documentElement.classList.remove('hdr-hide'); });
 </script>
 
 <template>
@@ -108,6 +139,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
         <button role="tab" :aria-selected="pane === 'main'" :class="{ on: pane === 'main' }" @click="showPane('main')">📄 {{ t('paneMain') }}</button>
         <button role="tab" :aria-selected="pane === 'side'" :class="{ on: pane === 'side' }" @click="showPane('side')">💬 {{ t('paneSide') }}</button>
       </div>
+      <div class="panes" :class="{ sliding: slide.on }" :style="slideStyle">
       <main>
         <div v-if="state.loading" class="grid"><div v-for="i in 6" :key="i" class="card"><div class="skel-img" /><div class="card-b"><div class="skel-line w80" /><div class="skel-line" /><div class="skel-line w60" /></div></div></div>
         <SettingsView v-else-if="state.view === 'settings'" />
@@ -126,6 +158,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
         </template>
       </main>
       <SideBar v-if="!state.loading && !wide && state.cfg.sidebar !== 'none'" />
+      </div>
     </div>
     <footer class="foot mute">
       <div v-if="state.cfg.footer">{{ state.cfg.footer }}</div>
