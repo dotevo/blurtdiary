@@ -29,6 +29,7 @@
  "loginError": "Error de inicio de sesión",
  "wvMissing": "WhaleVault no detectado",
  "votesTitle": "Votos",
+ "unverifiedNote": "El autor no ha declarado cuentas en otras cadenas, así que las copias se enlazan solo por nombre y permlink: no hay certeza de que sea la misma persona (una copia podría estar robada).",
  "messages": "Respuestas",
  "noMessages": "Aún no hay respuestas.",
  "paneMain": "Contenido",

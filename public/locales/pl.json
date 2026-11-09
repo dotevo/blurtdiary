@@ -29,6 +29,7 @@
  "loginError": "Błąd logowania",
  "wvMissing": "Nie wykryto WhaleVault",
  "votesTitle": "Głosy",
+ "unverifiedNote": "Autor nie zadeklarował kont w innych sieciach, więc kopie łączymy tylko po nicku i permlinku – nie ma pewności, że to ta sama osoba (kopia może być kradziona).",
  "messages": "Odpowiedzi",
  "noMessages": "Brak odpowiedzi.",
  "paneMain": "Treść",

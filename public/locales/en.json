@@ -29,6 +29,7 @@
  "loginError": "Login error",
  "wvMissing": "WhaleVault not detected",
  "votesTitle": "Votes",
+ "unverifiedNote": "The author has not declared accounts on other chains, so copies are matched by name and permlink only – there is no certainty it is the same person (a copy could be stolen).",
  "messages": "Replies",
  "noMessages": "No replies yet.",
  "paneMain": "Content",

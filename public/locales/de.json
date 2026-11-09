@@ -29,6 +29,7 @@
  "loginError": "Anmeldefehler",
  "wvMissing": "WhaleVault nicht erkannt",
  "votesTitle": "Stimmen",
+ "unverifiedNote": "Der Autor hat keine Konten in anderen Chains angegeben; Kopien werden nur über Name und Permlink zugeordnet – es ist nicht sicher, dass es dieselbe Person ist (eine Kopie könnte gestohlen sein).",
  "messages": "Antworten",
  "noMessages": "Noch keine Antworten.",
  "paneMain": "Inhalt",

@@ -6,7 +6,7 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
-import { applyResult, canMirrorPost, chainsOf, accountOn, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
+import { applyResult, canMirrorPost, chainsOf, isUnverified, threadAccount, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { accountsOf, ownerOf } from '../lib/known';
 import { href, navigate, openProfile, openTag, profileHref, postParam, postRef, state, tagHref, USER } from '../lib/store';
 import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
@@ -49,8 +49,12 @@ const postDiffers = computed(() => versionsDiffer(merged.value.root, true));
 const fchain = computed(() => (state.chain && state.chain !== 'blurt' && CHAINS.some((c) => c.id === state.chain) ? state.chain : ''));
 const mirrored = computed(() => !fchain.value && !!post.value && post.value.author === USER && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
 
+/** Copies found on other chains only by NAME (the blog declares no accounts there, or the author of a read post is unknown): not verified to be the same person. */
+const guessed = ref(false);
+const unverifiedNote = computed(() => (fchain.value ? guessed.value && Object.entries(threads).some(([k, v]) => k !== fchain.value && v.status === 'found')
+  : mirrored.value && mirrorChains().some((c) => isUnverified(c.id) && threads[c.id]?.status === 'found')));
 const badges = computed<BadgeItem[]>(() => mirrored.value ? [{ id: 'blurt', name: 'Blurt' }, ...mirrorChains()].map((c) => {
-  const th = threads[c.id]; const account = accountOn(c.id);
+  const th = threads[c.id]; const account = threadAccount(c.id);
   return { id: c.id, name: c.name, status: th?.status ?? 'loading', error: th?.error, account, url: account && post.value ? adapter(c.id).postUrl(account, post.value.permlink) : undefined,
     canSend: !!post.value && canMirrorPost(c.id, post.value, threads), sending: sendingChain.value === c.id };
 }) : []);
@@ -78,7 +82,9 @@ async function load(): Promise<void> {
       if (r) { navigate(href({ post: postParam(r.author, r.permlink), chain: fc, c: `${author}/${permlink}` }), true); return; }
     }
     // whose post is it? Our own account on this chain, or an account that a Blurt blog we have visited declared as its owner's
-    const owner = !froot ? undefined : auth.me && froot.author === auth.sessions[fc]?.user ? auth.me.user : ownerOf(fc, froot.author);
+    const known = !froot ? undefined : auth.me && froot.author === auth.sessions[fc]?.user ? auth.me.user : ownerOf(fc, froot.author);
+    const owner = froot ? known ?? froot.author : undefined; // an unknown author: the same name on the other chains (not verified, see `guessed`)
+    guessed.value = !!froot && !known;
     if (froot && owner) {
       // the Blurt copy (the source of truth) shows the whole discussion of all chains
       const bt = await adapter('blurt').getThread(owner, froot.permlink);
@@ -90,7 +96,7 @@ async function load(): Promise<void> {
     loading.value = false;
     // no Blurt copy: still look for the same permlink on the owner's other chains so the thread is complete
     if (froot && owner) {
-      const accs = owner === auth.me?.user ? Object.fromEntries(CHAINS.map((c) => [c.id, auth.sessions[c.id]?.user])) : accountsOf(owner);
+      const accs = !known ? Object.fromEntries(CHAINS.map((c) => [c.id, owner])) : owner === auth.me?.user ? Object.fromEntries(CHAINS.map((c) => [c.id, auth.sessions[c.id]?.user])) : accountsOf(owner);
       for (const c of CHAINS) if (c.id !== fc && c.id !== 'blurt' && accs[c.id]) void loadChainThread(g, c.id, froot.permlink, accs[c.id]);
     }
     void scrollToFocus();
@@ -167,6 +173,7 @@ async function sendPost(chain: string): Promise<void> {
       <h1>{{ post.title }}</h1>
       <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <template v-for="x in payoutChains" :key="x.id"><span class="pay" :title="payoutTitle(merged.root[x.id])"><ChainDot v-if="payoutChains.length > 1" :chain="x.id" /> {{ payoutOf(merged.root[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></div>
       <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />
+      <div v-if="unverifiedNote" class="mute help unverified"><Icon name="warn" /> {{ t('unverifiedNote') }}</div>
       <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true"><Icon name="warn" /> {{ t('versionsDiffer') }}</a></div>
       <div class="md post-body" v-html="renderMd(post.body)" />
       <div class="actions">

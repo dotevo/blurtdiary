@@ -29,6 +29,7 @@
  "loginError": "Ensaluta eraro",
  "wvMissing": "WhaleVault ne troviĝis",
  "votesTitle": "Voĉoj",
+ "unverifiedNote": "La aŭtoro ne deklaris kontojn en aliaj ĉenoj, do kopioj kongruas nur per nomo kaj permlink – ne certas, ke temas pri la sama persono (kopio povus esti ŝtelita).",
  "messages": "Respondoj",
  "noMessages": "Ankoraŭ neniu respondo.",
  "paneMain": "Enhavo",

@@ -36,7 +36,7 @@ export const accountOn = (chain: string): string | undefined => {
 };
 /** Other chains the blog owner declared accounts on. */
 /** The blog's mirror chains. None while a post of ANOTHER chain is being read (`?chain=steem`): it has no copies to check, show or send to. */
-export const mirrorChains = (): ChainAdapter[] => (state.chain && state.chain !== PRIMARY ? [] : CHAINS.filter((c) => c.id !== PRIMARY && accountOn(c.id)));
+export const mirrorChains = (): ChainAdapter[] => (state.chain && state.chain !== PRIMARY ? [] : CHAINS.filter((c) => c.id !== PRIMARY && threadAccount(c.id)));
 
 // ---------- merged comment tree ----------
 /** One comment (or the post's replies) as it exists on one or more chains, matched by permlink. */
@@ -78,7 +78,15 @@ export function mergeThreads(threads: Record<string, ChainThread>): { root: Reco
 }
 
 // ---------- looking posts up on the other chains ----------
-export async function loadChainThread(threads: Record<string, ChainThread>, chain: string, permlink: string, account: string | undefined = accountOn(chain)): Promise<void> {
+/**
+ * A blog that declares no accounts on other chains is still matched with posts of the SAME NAME and permlink there (permlinks carry a hash suffix),
+ * but nothing says it is the same person – the page shows a notice, and the copies can be told apart by the "different versions" warning.
+ * Used for reading threads only; showing payouts, stats or the "mirror this post" buttons stays with the declared accounts (`accountOn`).
+ */
+export const looseMatch = (): boolean => !Object.values(state.cfg.accounts ?? {}).some((a) => normAccount(a));
+export const threadAccount = (chain: string): string | undefined => accountOn(chain) ?? (chain !== PRIMARY && looseMatch() ? USER : undefined);
+export const isUnverified = (chain: string): boolean => chain !== PRIMARY && !accountOn(chain) && !!threadAccount(chain);
+export async function loadChainThread(threads: Record<string, ChainThread>, chain: string, permlink: string, account: string | undefined = threadAccount(chain)): Promise<void> {
   if (!account) { threads[chain] = missingThread(chain); return; }
   threads[chain] = { chain, status: 'loading', kids: {} };
   // hard deadline: whatever the nodes do, the badge ends up as found / missing / error, never "checking" forever
