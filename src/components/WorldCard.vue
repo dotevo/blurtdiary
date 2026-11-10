@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Icon from './Icon.vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { toggleVoteAll, votedAll } from '../lib/actions';
+import { auth } from '../lib/auth';
 import { adapter } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { href, navigate, openProfile, openTag, profileHref, tagHref, USER } from '../lib/store';
@@ -10,6 +12,7 @@ import ChainDot from './ChainDot.vue';
 
 /** A post of the world listings: on how many chains it exists is shown with the chain dots; a post that is not on Blurt opens in the in-app reader of ITS chain. */
 const props = defineProps<{ item: WItem }>();
+const emit = defineEmits<{ retry: [key: string] }>();
 const p = computed(() => props.item.lead);
 const chain = computed(() => props.item.chains[0]);
 const onBlurt = computed(() => !!props.item.copies.blurt);
@@ -22,16 +25,29 @@ const go = (e: Event): void => { if (!onBlurt.value || p.value.author === USER) 
 const sym = computed(() => adapter(chain.value).payoutSymbol);
 const tags = computed(() => tagsOf(p.value).slice(0, 4));
 const img = computed(() => thumbOf(p.value));
+const voted = computed(() => !props.item.stub && !!auth.me && votedAll(props.item.copies));
+const busy = ref(false); const delta = ref(0);
+/** Votes on every chain where we are logged in and a copy exists (same weight as in the top bar). */
+const vote = async (): Promise<void> => {
+  if (busy.value) return; busy.value = true;
+  const was = voted.value;
+  try { await toggleVoteAll(props.item.copies); if (votedAll(props.item.copies) !== was) delta.value += was ? -1 : 1; } finally { busy.value = false; }
+};
+const shownVotes = computed(() => Math.max(0, votesOf(p.value) + delta.value));
 const hue = computed(() => [...p.value.title].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 360);
 </script>
 <template>
-  <article class="card hoverable wcard">
+  <article v-if="item.stub" class="card wcard stub" :data-k="item.key" data-stub="1" :style="item.h ? { minHeight: item.h + 'px' } : undefined">
+    <button v-if="item.fail" class="small" @click="emit('retry', item.key)"><Icon name="refresh" /> {{ t('retry') }}</button>
+    <span v-else class="mute"><span class="spinner" aria-hidden="true" /> {{ t('loading') }}</span>
+  </article>
+  <article v-else class="card hoverable wcard" :data-k="item.key">
     <a v-if="img" class="thumb" :href="link" :style="{ backgroundImage: `url('${img}')` }" :aria-label="p.title" @click="go" />
     <a v-else class="thumb ph" :href="link" :style="{ '--h': hue }" @click="go">{{ (p.title[0] || '•').toUpperCase() }}</a>
     <div class="card-b">
       <div class="mute feed-by wc-by">
         <span class="mchains"><ChainDot v-for="c in item.chains" :key="c" :chain="c" :title="t('fromChain', { c: adapter(c).name })" /></span>
-        <a class="who" :href="profileHref(p.author, chain)" :title="t('profileOpen')" @click.prevent="openProfile(p.author, chain)">@{{ p.author }}</a>
+        <a class="au" :href="profileHref(p.author, chain)" :title="t('profileOpen')" @click.prevent="openProfile(p.author, chain)">@{{ p.author }}</a>
       </div>
       <h3><a :href="link" @click="go">{{ p.title }}</a></h3>
       <p>{{ excerpt(p.body) }}</p>
@@ -39,7 +55,7 @@ const hue = computed(() => [...p.value.title].reduce((s, ch) => s + ch.charCodeA
       <div class="meta">
         <span>{{ fmtDate(p.created) }}</span>
         <span class="pay" :title="payoutTitle(p)">{{ payoutOf(p).toFixed(3) }} {{ sym }}</span>
-        <span><Icon name="heart" /> {{ votesOf(p) }}</span><span><Icon name="chat" /> {{ p.children ?? 0 }}</span>
+        <button class="vbtn" :class="{ on: voted }" :disabled="busy" :aria-pressed="voted" :title="t('voteBtn')" @click.prevent.stop="vote"><Icon :name="voted ? 'heart-fill' : 'heart'" /> {{ shownVotes }}</button><span><Icon name="chat" /> {{ p.children ?? 0 }}</span>
       </div>
     </div>
   </article>

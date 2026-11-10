@@ -6,7 +6,8 @@ import { adapter, CHAINS } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { href, navigate, openTag, state, tagHref } from '../lib/store';
 import { followed, followTag, isFollowedTag, MAX_FOLLOWED_TAGS, normTag, TAG_RE, unfollowTag } from '../lib/tags';
-import { chainOn, toggleChain, chainFilter, loadWorldFeed, loadWorldFollowed, loadWorldTag, reloadWorldFeed, reloadWorldTag, worldFeed, worldFeedMore, worldFollowed, worldTag, worldTagMore, type Sort, type WList } from '../lib/world';
+import { useWindow } from '../lib/useWindow';
+import { chainOn, toggleChain, feedWindow, tagWindow, chainFilter, loadWorldFeed, loadWorldFollowed, loadWorldTag, reloadWorldFeed, reloadWorldTag, worldFeed, worldFeedMore, worldFollowed, worldTag, worldTagMore, type Sort, type WList } from '../lib/world';
 import { payoutOf } from '../lib/util';
 import MoreSentinel from './MoreSentinel.vue';
 import ChainDot from './ChainDot.vue';
@@ -47,7 +48,11 @@ const addTag = (): void => {
   newTag.value = '';
 };
 const list = computed<WList>(() => (tab.value === 'feed' ? worldFeed : tag.value ? worldTag : worldFollowed));
-const items = computed(() => (tab.value === 'feed' && sorts.value.feed === 'payout' ? [...list.value.items].sort((a, b) => payoutOf(b.lead) - payoutOf(a.lead)) : list.value.items));
+const byPayout = computed(() => tab.value === 'feed' && sorts.value.feed === 'payout');
+const items = computed(() => (byPayout.value ? [...list.value.items].sort((a, b) => (b.stub ? b.pay ?? 0 : payoutOf(b.lead)) - (a.stub ? a.pay ?? 0 : payoutOf(a.lead))) : list.value.items));
+const gridEl = ref<HTMLElement | null>(null);
+const win = (): typeof feedWindow => (tab.value === 'feed' ? feedWindow : tagWindow);
+useWindow(gridEl, () => list.value, win, () => !byPayout.value && (tab.value === 'feed' || !!tag.value));
 const more = computed(() => (tab.value === 'feed' ? worldFeedMore() : tag.value ? worldTagMore() : false));
 const loadMore = (): void => { void (tab.value === 'feed' ? loadWorldFeed(true) : loadWorldTag(tag.value, true, sorts.value.tags)); };
 const reload = (): void => { void (tab.value === 'feed' ? reloadWorldFeed() : tag.value ? reloadWorldTag(sorts.value.tags) : loadWorldFollowed(followed.tags, true)); };
@@ -106,7 +111,7 @@ const feedShown = computed(() => feedFrom.value.filter((c) => chainOn(c.id)));
       <button v-for="id in among" :key="id" class="small" :class="{ off: !chainOn(id) }" :aria-pressed="chainOn(id)" :title="t('chainFilter')" @click="toggleChain(id, among)"><ChainDot :chain="id" /> {{ adapter(id).name }}</button>
     </div>
     <div v-for="p in problems" :key="p" class="mute help badtxt"><Icon name="warn" /> {{ p }}</div>
-    <div v-if="items.length" class="grid"><WorldCard v-for="it in items" :key="it.key" :item="it" /></div>
+    <div v-if="items.length" ref="gridEl" class="grid"><WorldCard v-for="it in items" :key="it.key" :item="it" @retry="win().retry" /></div>
     <div v-else-if="list.loading" class="mute center">{{ t('loading') }}</div>
     <div v-else-if="(tab === 'feed' && feedFrom.length) || tag || followed.tags.length" class="mute center">{{ t(tab === 'feed' ? 'feedEmpty' : 'noPosts') }}</div>
     <MoreSentinel v-if="list.items.length" :can="more" :loading="list.loading" @more="loadMore" />

@@ -212,3 +212,32 @@ export function describeResult(res: SendResult, single: string): string {
   if (failed.length) return t('sentPartial', { ok: ok.join(', ') || '–', fail: failed.join(', ') });
   return ok.length > 1 ? t('sentTo', { list: ok.join(', ') }) : single;
 }
+
+// ---------- editing posts ----------
+/**
+ * Re-sends the post to `chain` as an EDIT of the existing copy there: same permlink, the category (parent_permlink) the copy already has – it cannot change –
+ * and no new `comment_options` (rewards and beneficiaries stay as they were). Resolves `false` when the chain has no copy to edit.
+ */
+export async function editMirror(chain: string, post: Post, images: ImageMap = {}): Promise<boolean> {
+  const me = sessionOf(chain);
+  if (!me) throw new Error('not logged in');
+  const want = accountOn(chain);
+  if (!want || me.user !== want) throw new Error(`@${me.user} ≠ @${want ?? '?'}`);
+  const old = await adapter(chain).getContent(want, post.permlink);
+  if (!old) return false;
+  const body = await localizeBody(chain, post.body, images);
+  const { json } = mirrorMeta(post, body);
+  const m = JSON.parse(json) as { tags: string[] };
+  const cat = old.parent_permlink || old.category || m.tags[0];
+  m.tags = [cat, ...m.tags.filter((x) => x !== cat)].slice(0, 5);
+  await broadcast([['comment', { parent_author: '', parent_permlink: cat, author: me.user, permlink: post.permlink, title: post.title, body, json_metadata: JSON.stringify(m) }]], chain);
+  return true;
+}
+/** Edits the copies on every planned mirror chain. `missing`: chains that have no copy (nothing to edit there – the post page offers "send to"). */
+export async function editEverywhere(post: Post, images: ImageMap = {}): Promise<{ ok: string[]; missing: string[]; failed: Record<string, string> }> {
+  const out = { ok: [] as string[], missing: [] as string[], failed: {} as Record<string, string> };
+  await Promise.all(publishPlan().targets.map(async ({ chain }) => {
+    try { (await editMirror(chain.id, post, images) ? out.ok : out.missing).push(chain.name); } catch (e) { out.failed[chain.name] = (e as Error).message || 'error'; }
+  }));
+  return out;
+}

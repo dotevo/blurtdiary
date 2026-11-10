@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** One icon family (24px grid, 2px round strokes, currentColor) so the navigation looks the same everywhere instead of mixing emoji and glyphs. */
-defineProps<{ name: 'feed' | 'tag' | 'home' | 'pen' | 'sliders' | 'bell' | 'gift' | 'chat' | 'heart' | 'star' | 'star-fill' | 'x' | 'check' | 'plus' | 'refresh' | 'warn' | 'pin' | 'chart' | 'image' | 'download' | 'doc' | 'up' | 'down' | 'coin' | 'at' | 'repeat' | 'user-plus' }>();
+defineProps<{ name: 'feed' | 'tag' | 'home' | 'pen' | 'sliders' | 'bell' | 'gift' | 'chat' | 'heart' | 'heart-fill' | 'star' | 'star-fill' | 'x' | 'check' | 'plus' | 'refresh' | 'warn' | 'pin' | 'chart' | 'image' | 'download' | 'doc' | 'up' | 'down' | 'coin' | 'at' | 'repeat' | 'user-plus' }>();
 </script>
 <template>
   <svg class="ico" viewBox="0 0 24 24" width="1.25em" height="1.25em" :fill="name.endsWith('-fill') ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -10,7 +10,7 @@ defineProps<{ name: 'feed' | 'tag' | 'home' | 'pen' | 'sliders' | 'bell' | 'gift
     <template v-else-if="name === 'pen'"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" /><path d="m13.5 6.5 4 4" /></template>
     <template v-else-if="name === 'sliders'"><path d="M4 7h8M18 7h2M4 17h2M12 17h8" /><circle cx="15" cy="7" r="2.2" /><circle cx="9" cy="17" r="2.2" /></template>
     <template v-else-if="name === 'bell'"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4l2-2z" /><path d="M10 21h4" /></template>
-    <template v-else-if="name === 'heart'"><path d="M12 20s-7-4.4-9-9.2C1.8 7.5 3.6 4.5 6.8 4.5c2 0 3.6 1.1 5.2 3 1.6-1.9 3.2-3 5.2-3 3.2 0 5 3 3.8 6.3C19 15.6 12 20 12 20z" /></template>
+    <template v-else-if="name === 'heart' || name === 'heart-fill'"><path d="M12 20s-7-4.4-9-9.2C1.8 7.5 3.6 4.5 6.8 4.5c2 0 3.6 1.1 5.2 3 1.6-1.9 3.2-3 5.2-3 3.2 0 5 3 3.8 6.3C19 15.6 12 20 12 20z" /></template>
     <template v-else-if="name === 'star' || name === 'star-fill'"><path d="m12 3.5 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.3 6.6 20.2l1.1-6.1-4.5-4.2 6.1-.8L12 3.5z" /></template>
     <template v-else-if="name === 'x'"><path d="M6 6l12 12M18 6 6 18" /></template>
     <template v-else-if="name === 'check'"><path d="m5 12.5 4.5 4.5L19 7.5" /></template>

@@ -6,7 +6,7 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
-import { applyResult, canMirrorPost, chainsOf, isUnverified, threadAccount, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
+import { applyResult, canMirrorPost, editEverywhere, chainsOf, isUnverified, threadAccount, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { accountsOf, ownerOf } from '../lib/known';
 import { href, navigate, openProfile, openTag, profileHref, postParam, postRef, state, tagHref, USER } from '../lib/store';
 import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
@@ -45,6 +45,21 @@ const voteTitle = computed(() => Object.entries(merged.value.root).map(([c, p]) 
 const checking = computed(() => mirrored.value && mirrorChains().some((c) => !threads[c.id] || threads[c.id].status === 'loading'));
 const payoutChains = computed(() => chainsOf(merged.value.root)); // rewards of every chain that has a copy
 const postDiffers = computed(() => versionsDiffer(merged.value.root, true));
+/** The blog owner, logged in on Blurt, may edit the post; if the copies differ they may also copy the Blurt version over the other chains. */
+const isOwner = computed(() => !fchain.value && !!post.value && post.value.author === USER && auth.me?.user === USER && (post.value.depth ?? 0) === 0);
+const syncing = ref(false);
+async function syncCopies(): Promise<void> {
+  const root = merged.value.root.blurt; if (!root || syncing.value) return;
+  if (!window.confirm(t('syncConfirm'))) return;
+  syncing.value = true; const my = seq;
+  try {
+    const r = await editEverywhere(root);
+    const failed = Object.entries(r.failed).map(([c, e]) => `${c} (${e})`);
+    toast(failed.length ? t('postEditedPartial', { fail: failed.join(', ') }) : t('postEdited'));
+    if (my === seq) for (const c of mirrorChains()) await loadChainThread(guard(my), c.id, root.permlink);
+  } catch (e) { toast((e as Error).message); }
+  syncing.value = false;
+}
 /** A post read from another chain (`?chain=hive`): it has no Blurt copy, so it is shown from that chain only. */
 const fchain = computed(() => (state.chain && state.chain !== 'blurt' && CHAINS.some((c) => c.id === state.chain) ? state.chain : ''));
 const mirrored = computed(() => !fchain.value && !!post.value && post.value.author === USER && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
@@ -169,15 +184,16 @@ async function sendPost(chain: string): Promise<void> {
     <div v-if="thumbOf(post)" class="thumb hero-img" :style="{ backgroundImage: `url('${thumbOf(post)}')` }" />
     <div class="art-in">
       <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
-      <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }} · <a class="who" :href="profileHref(post.author, fchain || 'blurt')" @click.prevent="openProfile(post.author, fchain || 'blurt')">{{ t('profileOpen') }}</a></div>
+      <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }} · <a class="au" :href="profileHref(post.author, fchain || 'blurt')" @click.prevent="openProfile(post.author, fchain || 'blurt')">{{ t('profileOpen') }}</a></div>
       <h1>{{ post.title }}</h1>
       <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <template v-for="x in payoutChains" :key="x.id"><span class="pay" :title="payoutTitle(merged.root[x.id])"><ChainDot v-if="payoutChains.length > 1" :chain="x.id" /> {{ payoutOf(merged.root[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></div>
       <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />
       <div v-if="unverifiedNote" class="mute help unverified"><Icon name="warn" /> {{ t('unverifiedNote') }}</div>
-      <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true"><Icon name="warn" /> {{ t('versionsDiffer') }}</a></div>
+      <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true"><Icon name="warn" /> {{ t('versionsDiffer') }}</a><template v-if="isOwner && merged.root.blurt"> · <button class="small" :disabled="syncing" @click="syncCopies">{{ t('syncCopies') }}</button></template></div>
       <div class="md post-body" v-html="renderMd(post.body)" />
       <div class="actions">
         <button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)"><Icon name="heart" /> {{ post.active_votes?.length ?? 0 }}</button>
+        <a v-if="isOwner" class="btn small" :href="href({ view: 'write', edit: post.permlink })" @click.prevent="navigate(href({ view: 'write', edit: post.permlink }))"><Icon name="pen" /> {{ t('editPost') }}</a>
         <button class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click="votesOpen = true">ⓘ</button>
         <template v-for="tag in tagsOf(post)" :key="tag">
           <a v-if="catFor(tag) && !fchain" class="tag" :href="href({ cat: catFor(tag)!.id })" @click.prevent="navigate(href({ cat: catFor(tag)!.id }))">#{{ tag }}</a>

@@ -3,11 +3,11 @@ import { isHttpUrl, rememberImported } from './rss';
 import { beneficiariesFor, commentOptions } from './ben';
 import { CONFIG_PERMLINK, parseTags, serializeConfig } from './config';
 import { t } from './i18n';
-import { mirrorEverywhere } from './mirror';
+import { editEverywhere, mirrorEverywhere } from './mirror';
 import type { ImageMap } from './upload';
 import { state, USER } from './store';
 import { withFooter } from './settings';
-import { slug } from './util';
+import { meta, slug, tagsOf } from './util';
 import type { Operation, Post } from './types';
 
 export const COMMUNITY_RE = /^blurt-\d+$/;
@@ -70,4 +70,26 @@ export async function saveConfig(): Promise<void> {
   if (!existing) ops.push(commentOptions(me, CONFIG_PERMLINK, [], '0.000 BLURT')); // a settings post should not collect rewards
   await broadcast(ops);
   state.configPost = { parent_permlink: existing?.parent_permlink ?? 'blurt-diary' };
+}
+
+export interface EditResult { updated: string[]; missing: string[]; failed: Record<string, string> }
+/**
+ * Edits one of the owner's posts: Blurt first (the source of truth), then the copies on the other chains. The category (parent_permlink) and the reward
+ * settings cannot be changed after publishing, so they stay; title, text and the other tags can. A failing mirror never fails the edit.
+ */
+export async function editPost(old: Post, e: { title: string; body: string; tagsText: string }, images: ImageMap = {}): Promise<EditResult> {
+  const me = auth.sessions.blurt?.user;
+  if (!me || me !== old.author) throw new Error(t('ownerOnly', { u: old.author }));
+  const title = e.title.trim(), body = e.body.trim();
+  if (!title || !body) throw new Error(t('needTitleBody'));
+  const primary = old.parent_permlink || old.category || tagsOf(old)[0] || 'blurt';
+  const { tags } = buildTags(e.tagsText, primary);
+  const image = body.match(/!\[[^\]]*\]\((https?:[^)\s]+)/)?.[1];
+  const m = { ...meta(old), app: 'blurtdiary/1.0', format: 'markdown', tags, image: image ? [image] : undefined };
+  await broadcast([['comment', { parent_author: '', parent_permlink: primary, author: me, permlink: old.permlink, title, body, json_metadata: JSON.stringify(m) }]]);
+  const edited: Post = { ...old, title, body, json_metadata: JSON.stringify(m) };
+  const i = state.posts.findIndex((x) => x.permlink === old.permlink);
+  if (i >= 0) state.posts[i] = { ...state.posts[i], title, body, json_metadata: edited.json_metadata };
+  const r = await editEverywhere(edited, images);
+  return { updated: r.ok, missing: r.missing, failed: r.failed };
 }

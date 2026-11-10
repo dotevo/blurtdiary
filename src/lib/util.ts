@@ -106,12 +106,35 @@ function linkMentions(html: string): string {
   }
   return doc.body.innerHTML;
 }
+const HASHTAG = /(^|[\s(])#([\p{L}][\p{L}\p{N}-]{0,31})(?![\p{L}\p{N}-])/gu;
+/** "#tag" in plain text (not in links, code, headings or preformatted blocks) becomes a link to the user-less tag page. Runs AFTER sanitizing, like mentions. */
+function linkHashtags(html: string): string {
+  if (!html.includes('#')) return html;
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  const hits: Text[] = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeValue?.includes('#') && !(n.parentElement?.closest('a,code,pre,summary,h1,h2,h3,h4,h5,h6'))) hits.push(n as Text);
+  }
+  for (const node of hits) {
+    const txt = node.nodeValue ?? ''; const frag = doc.createDocumentFragment(); let last = 0;
+    for (const m of txt.matchAll(HASHTAG)) {
+      const start = (m.index ?? 0) + m[1].length; const tag = m[2].toLowerCase();
+      frag.append(txt.slice(last, start));
+      const a = doc.createElement('a'); a.setAttribute('href', `?${new URLSearchParams({ view: 'world', tab: 'tags', tag })}`); a.className = 'hashtag'; a.textContent = `#${m[2]}`;
+      frag.append(a); last = start + m[2].length + 1;
+    }
+    if (!last) continue;
+    frag.append(txt.slice(last)); node.replaceWith(frag);
+  }
+  return doc.body.innerHTML;
+}
 export const renderMd = (body: string): string => {
   hookOnce();
-  return linkMentions(DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string, {
+  return linkHashtags(linkMentions(DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string, {
     ALLOWED_TAGS: MD_TAGS, ALLOWED_ATTR: MD_ATTRS, ALLOW_DATA_ATTR: false, ALLOW_ARIA_ATTR: false, SANITIZE_NAMED_PROPS: true,
     ALLOWED_URI_REGEXP: /^(?:https?:|mailto:)/i, // no javascript:, data:, relative or blob: URLs
-  }));
+  })));
 };
 /** A remote image URL that is safe to drop into CSS `url('…')` and an <img src>: plain https, no quotes/brackets/backslashes. */
 export const safeImg = (u?: string): string => { const v = (u ?? '').trim(); return /^https:\/\/[^\s"'()<>\\]+$/i.test(v) ? v : ''; };

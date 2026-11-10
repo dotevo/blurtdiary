@@ -10,9 +10,13 @@ import { auth, loggedChains } from './auth';
 import { adapter, CHAINS } from './chains';
 import type { Cursor, Sort } from './chains/posts';
 import type { Post } from './types';
-import { toDate } from './util';
+import { payoutOf, toDate } from './util';
 
-export interface WItem { key: string; lead: Post; copies: Record<string, Post>; chains: string[]; at: number; sc?: Record<string, number> }
+/**
+ * `stub`: the item was dropped from memory (long scrolling) and only keeps what is needed to bring it back: its key (author/permlink), the chains that have it,
+ * its position (`at`, `sc`), the payout (for the feed's payout order) and the height it had on screen. The card shows a spinner until it is fetched again.
+ */
+export interface WItem { key: string; lead: Post; copies: Record<string, Post>; chains: string[]; at: number; sc?: Record<string, number>; stub?: boolean; fail?: boolean; h?: number; pay?: number }
 interface Src { more: boolean; cursor?: Cursor; error: string; oldest: number; n?: number }
 export interface WList { items: WItem[]; loading: boolean; sources: Record<string, Src>; for: string }
 
@@ -25,11 +29,12 @@ function merge(items: WItem[], chain: string, posts: Post[], scores?: number[]):
   posts.forEach((p, i) => {
     if (!isRoot(p)) return;
     const k = keyOf(p); const it = by.get(k);
-    if (it) { it.copies[chain] = p; if (scores) (it.sc ??= {})[chain] = scores[i]; return; }
+    if (it) { if (it.stub) { it.stub = false; it.fail = false; } it.copies[chain] = p; if (scores) (it.sc ??= {})[chain] = scores[i]; return; }
     by.set(k, { key: k, lead: p, copies: { [chain]: p }, chains: [], at: 0, ...(scores ? { sc: { [chain]: scores[i] } } : {}) });
   });
   const out = [...by.values()];
   for (const it of out) {
+    if (it.stub) continue; // a dropped item keeps its chains and position
     it.chains = CHAINS.filter((c) => it.copies[c.id]).map((c) => c.id);
     it.lead = it.copies[it.chains[0]]; // the Blurt copy when there is one, otherwise the first chain that has it
     it.at = it.sc ? Math.max(...Object.values(it.sc)) : toDate(it.lead.created).getTime() || 0; // ranked listing: the best rank (as -position), otherwise the date
@@ -45,12 +50,44 @@ function merge(items: WItem[], chain: string, posts: Post[], scores?: number[]):
  * (the one that is furthest ahead in time), page after page, until enough new items are visible.
  */
 const SHOW = 10;
+/** Window of full items kept in memory around the one on screen (KEEP before and after); nothing is dropped until the list is longer than MAXFULL. */
+const KEEP = 40, MAXFULL = 90;
 function makeList(chains: () => string[], fetch: (chain: string, cur: Cursor) => Promise<Post[]>, forKey: () => string, ranked: () => boolean = () => false) {
   const list = reactive<WList>({ items: [], loading: false, sources: {}, for: '' });
   let buf: WItem[] = []; // everything fetched; `list.items` is the part above the horizon
   let run = 0;
   const horizon = (): number => { let h = -Infinity; for (const s of Object.values(list.sources)) if (s.more && s.oldest > h) h = s.oldest; return h; };
   const publish = (): void => { const h = horizon(); list.items = buf.filter((i) => i.at >= h); };
+  /** Memory window: items farther than KEEP positions from the one on screen become stubs (only when the list is long). Heights are measured by the view. */
+  const trim = (centerKey: string, heights: Record<string, number> = {}): void => {
+    if (buf.length <= MAXFULL) return;
+    const c = buf.findIndex((i) => i.key === centerKey); if (c < 0) return;
+    let changed = false;
+    buf = buf.map((it, i) => {
+      if (it.stub || Math.abs(i - c) <= KEEP || i >= list.items.length) return it;
+      changed = true;
+      return { key: it.key, lead: { author: it.lead.author, permlink: it.lead.permlink, title: '', body: '' } as Post, copies: {}, chains: it.chains, at: it.at, sc: it.sc, stub: true, h: heights[it.key] ?? it.h, pay: payoutOf(it.lead) };
+    });
+    if (changed) publish();
+  };
+  const pending = new Set<string>();
+  /** Brings a stub back: asks every chain that had it for the post again. */
+  async function hydrate(key: string): Promise<void> {
+    const id = run; const it = buf.find((i) => i.key === key);
+    if (!it?.stub || it.fail || pending.has(key)) return;
+    pending.add(key);
+    const [author, permlink] = [key.slice(0, key.indexOf('/')), key.slice(key.indexOf('/') + 1)];
+    const got = await Promise.all(it.chains.map(async (c) => { try { return [c, await adapter(c).getContent(author, permlink)] as const; } catch { return [c, null] as const; } }));
+    pending.delete(key);
+    if (id !== run) return;
+    const copies: Record<string, Post> = {};
+    for (const [c, p] of got) if (p && p.author) copies[c] = p;
+    const i = buf.findIndex((x) => x.key === key); if (i < 0) return;
+    const chains = CHAINS.filter((c) => copies[c.id]).map((c) => c.id);
+    buf = buf.map((x, j) => (j !== i ? x : chains.length ? { key, lead: copies[chains[0]], copies, chains, at: it.at, sc: it.sc } : { ...x, fail: true }));
+    publish();
+  }
+  const retry = (key: string): void => { const i = buf.findIndex((x) => x.key === key); if (i >= 0 && buf[i].fail) { buf = buf.map((x, j) => (j === i ? { ...x, fail: false } : x)); publish(); void hydrate(key); } };
   async function fetchOne(c: string, id: number): Promise<void> {
     const s = list.sources[c];
     try {
@@ -87,7 +124,7 @@ function makeList(chains: () => string[], fetch: (chain: string, cur: Cursor) =>
     }
     if (id === run) { publish(); list.loading = false; }
   }
-  return { list, load, reload: () => { list.for = ''; return load(false); }, canMore: (): boolean => Object.values(list.sources).some((s) => s.more) || buf.length > list.items.length };
+  return { list, load, trim, hydrate, retry, reload: () => { list.for = ''; return load(false); }, canMore: (): boolean => Object.values(list.sources).some((s) => s.more) || buf.length > list.items.length };
 }
 
 /** Chains the reader switched OFF in Feed / Tags (e.g. a chain with little voting power or much noise). Kept on this device; a chain added later is on. */
@@ -112,6 +149,7 @@ export const worldFeed = feedL.list;
 export const loadWorldFeed = (more = false): Promise<void> => (!more && worldFeed.for === feedKey() && worldFeed.items.length ? Promise.resolve() : feedL.load(more));
 export const reloadWorldFeed = feedL.reload;
 export const worldFeedMore = feedL.canMore;
+export const feedWindow = { trim: feedL.trim, hydrate: feedL.hydrate, retry: feedL.retry };
 
 /** One tag, on every chain (reading is public, so all chains are asked, not only the ones logged in). */
 let curTag = ''; let curSort: Sort = 'created';
@@ -124,6 +162,7 @@ export const loadWorldTag = (tag: string, more = false, sort: Sort = 'created'):
   return tagL.load(more);
 };
 export const worldTagMore = tagL.canMore;
+export const tagWindow = { trim: tagL.trim, hydrate: tagL.hydrate, retry: tagL.retry };
 export const reloadWorldTag = (sort: Sort = 'created'): Promise<void> => { curSort = sort; return tagL.reload(); };
 
 /** Several followed tags together: only the first page of each tag on each chain (a bounded number of requests), newest 40. */
@@ -155,3 +194,5 @@ export const loadWorldAccount = (chain: string, account: string, more = false): 
   return accL.load(more);
 };
 export const worldAccountMore = accL.canMore;
+export const accountWindow = { trim: accL.trim, hydrate: accL.hydrate, retry: accL.retry };
+export type ListWindow = typeof feedWindow;

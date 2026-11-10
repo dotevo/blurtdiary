@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import Icon from './Icon.vue';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { auth, loginOpen } from '../lib/auth';
 import { adapter, CHAINS } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { info, loadInfo, loadRel, rel, setRel } from '../lib/profile';
-import { loadWorldAccount, worldAccount, worldAccountMore } from '../lib/world';
+import { useWindow } from '../lib/useWindow';
+import { accountWindow, loadWorldAccount, worldAccount, worldAccountMore } from '../lib/world';
 import { state } from '../lib/store';
 import ChainDot from './ChainDot.vue';
 import MoreSentinel from './MoreSentinel.vue';
@@ -22,6 +23,8 @@ watch([chain, account, me], () => {
   document.title = `@${account.value} (${ad.value.name}) – Blurt Diary`;
   void loadInfo(chain.value, account.value); void loadWorldAccount(chain.value, account.value); void loadRel(chain.value, account.value);
 }, { immediate: true });
+const gridEl = ref<HTMLElement | null>(null);
+useWindow(gridEl, () => worldAccount, () => accountWindow);
 const problem = computed(() => Object.values(worldAccount.sources).map((s) => s.error).find(Boolean));
 </script>
 <template>
@@ -43,7 +46,7 @@ const problem = computed(() => Object.values(worldAccount.sources).map((s) => s.
       </div>
       <div v-if="!info.loading && !info.exists && !info.error" class="center mute">{{ t('accountNotFound', { u: account }) }}</div>
       <div v-if="problem" class="mute help badtxt"><Icon name="warn" /> {{ ad.name }}: {{ problem }}</div>
-      <div v-if="worldAccount.items.length" class="grid"><WorldCard v-for="it in worldAccount.items" :key="it.key" :item="it" /></div>
+      <div v-if="worldAccount.items.length" ref="gridEl" class="grid"><WorldCard v-for="it in worldAccount.items" :key="it.key" :item="it" @retry="accountWindow.retry" /></div>
       <div v-else-if="worldAccount.loading" class="mute center">{{ t('loading') }}</div>
       <div v-else-if="info.exists" class="mute center">{{ t('noPosts') }}</div>
       <MoreSentinel v-if="worldAccount.items.length" :can="worldAccountMore()" :loading="worldAccount.loading" @more="loadWorldAccount(chain, account, true)" />

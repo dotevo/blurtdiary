@@ -5,9 +5,12 @@ import { loadSubscriptions, type Sub } from '../lib/communities';
 import { auth, loginOpen } from '../lib/auth';
 import { benLabel, beneficiariesFor } from '../lib/ben';
 import { t } from '../lib/i18n';
-import { buildTags, COMMUNITY_RE, MAX_TAGS, publishPost } from '../lib/publish';
+import { buildTags, COMMUNITY_RE, editPost, MAX_TAGS, publishPost } from '../lib/publish';
+import { adapter } from '../lib/chains';
+import { tagsOf } from '../lib/util';
+import type { Post } from '../lib/types';
 import { publishPlan } from '../lib/mirror';
-import { href, navigate, USER } from '../lib/store';
+import { href, navigate, state, USER } from '../lib/store';
 import { toast } from '../lib/toast';
 import { uploadEverywhere, type ImageMap } from '../lib/upload';
 import { renderMd } from '../lib/util';
@@ -32,13 +35,26 @@ function onImport(p: { title: string; body: string; tags: string; source: string
 const busy = ref(false); const uploading = ref(false); let published = false;
 const ta = ref<HTMLTextAreaElement | null>(null); const fileInput = ref<HTMLInputElement | null>(null);
 
+// ---- editing one of the owner's existing posts (?view=write&edit=permlink): no draft, no import, category and community stay as published
+const editPermlink = state.edit;
+const editing = ref<Post | null>(null); const editLoading = ref(!!editPermlink); const editMissing = ref(false);
+if (editPermlink) {
+  const fill = (p: Post): void => {
+    editing.value = p; title.value = p.title; body.value = p.body;
+    const primary = p.parent_permlink || p.category || '';
+    tagsText.value = tagsOf(p).filter((x) => x !== primary).join(', ');
+  };
+  const known = state.posts.find((x) => x.permlink === editPermlink && x.author === USER);
+  if (known) { fill(known); editLoading.value = false; }
+  else void adapter('blurt').getContent(USER, editPermlink).then((p) => { if (p) fill(p); else editMissing.value = true; }).catch(() => { editMissing.value = true; }).finally(() => { editLoading.value = false; });
+}
 // ---- draft kept in this browser (restored on open, saved while typing)
-try {
+if (!editPermlink) try {
   const d = JSON.parse(localStorage.getItem(DRAFT) ?? 'null');
   if (d) { title.value = d.title ?? ''; body.value = d.body ?? ''; tagsText.value = d.tagsText ?? ''; community.value = d.community ?? ''; images.value = d.images ?? {}; source.value = typeof d.source === 'string' ? d.source : ''; }
 } catch { /* ignore */ }
 const saveDraft = (): void => {
-  if (published) return;
+  if (published || editPermlink) return;
   try {
     if (title.value || body.value || tagsText.value || community.value) localStorage.setItem(DRAFT, JSON.stringify({ title: title.value, body: body.value, tagsText: tagsText.value, community: community.value, images: images.value, source: source.value }));
     else localStorage.removeItem(DRAFT);
@@ -84,6 +100,13 @@ async function submit(): Promise<void> {
   if (busy.value) return;
   busy.value = true;
   try {
+    if (editing.value) {
+      const r = await editPost(editing.value, { title: title.value, body: body.value, tagsText: tagsText.value }, images.value);
+      published = true;
+      const failed = Object.entries(r.failed).map(([c, e]) => `${c} (${e})`);
+      toast(failed.length ? t('postEditedPartial', { fail: failed.join(', ') }) : t('postEdited'));
+      navigate(href({ post: editing.value.permlink })); busy.value = false; return;
+    }
     const r = await publishPost({ title: title.value, body: body.value, tagsText: tagsText.value, community: comm.value, images: images.value, source: source.value });
     published = true; try { localStorage.removeItem(DRAFT); } catch { /* ignore */ }
     const failed = Object.entries(r.failed).map(([c, e]) => `${c} (${e})`);
@@ -101,13 +124,15 @@ async function submit(): Promise<void> {
 
   <div v-else class="article"><div class="art-in form">
     <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
-    <h1>{{ t('newPost') }}</h1>
-    <div class="tabs mode-tabs">
+    <h1>{{ editing || editPermlink ? t('editPost') : t('newPost') }}</h1>
+    <div v-if="editLoading" class="mute center">{{ t('loading') }}</div>
+    <div v-else-if="editPermlink && !editing" class="mute center">{{ t('postNotFound') }}</div>
+    <div v-if="!editPermlink" class="tabs mode-tabs">
       <button :class="{ pri: mode === 'write' }" @click="mode = 'write'"><Icon name="pen" /> {{ t('modeWrite') }}</button>
       <button :class="{ pri: mode === 'import' }" @click="mode = 'import'"><Icon name="download" /> {{ t('modeImport') }}</button>
     </div>
-    <ImportView v-show="mode === 'import'" @import="onImport" />
-    <template v-if="mode === 'write'">
+    <ImportView v-if="!editPermlink" v-show="mode === 'import'" @import="onImport" />
+    <template v-if="mode === 'write' && (!editPermlink || editing)">
     <input v-model="title" class="title-in" :placeholder="t('titlePh')" maxlength="255">
 
     <div class="tabs">
@@ -124,6 +149,7 @@ async function submit(): Promise<void> {
     <input v-model="tagsText" placeholder="travel, photo, diary" autocapitalize="off">
     <div class="mute help">{{ t('tagsHelp') }} ({{ parsed.tags.length }}/{{ MAX_TAGS }})</div>
 
+    <template v-if="!editPermlink">
     <label class="lbl">{{ t('communityLabel') }}</label>
     <select v-if="subs.length" class="comm-pick" :value="subs.some((x) => x.id === comm) ? comm : ''" @change="community = ($event.target as HTMLSelectElement).value">
       <option value="">{{ t('communityPick') }}</option>
@@ -133,12 +159,14 @@ async function submit(): Promise<void> {
     <div class="mute help" :class="{ badtxt: communityBad }">{{ communityBad ? t('communityInvalid') : t('communityHelp') }}</div>
 
     <div class="mute help"><b>{{ t('postGoesTo', { where }) }}</b></div>
-    <div v-if="plan.targets.length" class="mute help">{{ t('publishAlso', { list: plan.targets.map((x) => `${x.chain.name} (@${x.account})`).join(', ') }) }}</div>
+    </template>
+    <div v-else class="mute help">{{ t('editNote') }}</div>
+    <div v-if="plan.targets.length" class="mute help">{{ t(editPermlink ? 'editAlso' : 'publishAlso', { list: plan.targets.map((x) => `${x.chain.name} (@${x.account})`).join(', ') }) }}</div>
     <div v-for="s in plan.skipped" :key="s.chain.id" class="mute help badtxt">
       {{ s.reason === 'noAccount' ? t('skipNoAccount', { c: s.chain.name, a: s.has ?? '' }) : t('skipMismatch', { c: s.chain.name, a: s.has ?? '', b: s.want ?? '' }) }}
     </div>
-    <div class="mute help">{{ t('draftNote') }}</div>
-    <div class="actions"><button class="pri" :disabled="busy || uploading" @click="submit">{{ busy ? t('publishing') : t('publish') }}</button></div>
+    <div v-if="!editPermlink" class="mute help">{{ t('draftNote') }}</div>
+    <div class="actions"><button class="pri" :disabled="busy || uploading" @click="submit">{{ busy ? t('publishing') : editPermlink ? t('saveEdit') : t('publish') }}</button></div>
     </template>
 
     <!-- very bottom: dev tip switch -->

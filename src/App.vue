@@ -144,7 +144,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
       <main>
         <div v-if="state.loading" class="grid"><div v-for="i in 6" :key="i" class="card"><div class="skel-img" /><div class="card-b"><div class="skel-line w80" /><div class="skel-line" /><div class="skel-line w60" /></div></div></div>
         <SettingsView v-else-if="state.view === 'settings'" />
-        <WriteView v-else-if="state.view === 'write'" />
+        <WriteView v-else-if="state.view === 'write'" :key="state.edit" />
         <WorldView v-else-if="state.view === 'feed' || state.view === 'world'" />
         <ProfileView v-else-if="state.view === 'profile'" />
         <StatsView v-else-if="state.view === 'stats'" />

@@ -26,13 +26,13 @@ export const state = reactive({
   posts: [] as Post[], more: true, loadingMore: false, busy: false,
   recent: [] as Post[],
   month: parseMonth(q.get('month')), pinned: null as Post | null, // pinned: the owner's sticky post (config key `pinned`)
-  cat: q.get('cat') ?? '', post: q.get('post') ?? '', focus: q.get('c') ?? '', view: q.get('view') ?? '',
+  cat: q.get('cat') ?? '', post: q.get('post') ?? '', focus: q.get('c') ?? '', view: q.get('view') ?? '', edit: q.get('edit') ?? '', // edit: permlink of the own post being edited (view=write)
   account: normAccount(q.get('account') ?? ''), chain: q.get('chain') ?? '', tab: q.get('tab') ?? '', tag: q.get('tag') ?? '', // world views: a post that lives on another chain / feed|tags tab / the tag shown
   searchBroken: false, // bridge.search_posts unavailable -> fall back to scanning the latest posts
 });
 
 // ---------- URLs ----------
-export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world'; chain?: string; tab?: 'feed' | 'tags'; tag?: string }): string => {
+export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world'; chain?: string; tab?: 'feed' | 'tags'; tag?: string; edit?: string }): string => {
   const p = new URLSearchParams();
   if (USER) p.set('user', USER); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);
@@ -43,6 +43,7 @@ export const href = (o: { month?: string; cat?: string; post?: string; c?: strin
   if (o.chain) p.set('chain', o.chain);
   if (o.tab) p.set('tab', o.tab);
   if (o.tag) p.set('tag', o.tag);
+  if (o.edit) p.set('edit', o.edit);
   if (RECENT_MODE !== 'auto') p.set('recent', RECENT_MODE);
   return '?' + p;
 };
@@ -70,7 +71,7 @@ export const commentHref = (c: Post): string => {
 
 function syncFromUrl(): void {
   const p = new URLSearchParams(location.search);
-  state.month = parseMonth(p.get('month')); state.cat = p.get('cat') ?? ''; state.post = p.get('post') ?? ''; state.focus = p.get('c') ?? ''; state.view = p.get('view') ?? '';
+  state.month = parseMonth(p.get('month')); state.cat = p.get('cat') ?? ''; state.post = p.get('post') ?? ''; state.focus = p.get('c') ?? ''; state.view = p.get('view') ?? ''; state.edit = p.get('edit') ?? '';
   state.account = normAccount(p.get('account') ?? ''); state.chain = p.get('chain') ?? ''; state.tab = p.get('tab') ?? ''; state.tag = p.get('tag') ?? '';
 }
 export function navigate(h: string, replace = false): void {
