@@ -70,7 +70,7 @@ export const tagCondenser: ListMethod<TagArg> = (c, a, cur) => c.call<Post[]>('c
 export type RepliesMethod = (c: ChainAdapter, account: string) => Promise<Post[]>;
 /** Hivemind: replies to the account's comments and posts; only the threads rooted in its own posts count. */
 export const repliesBridge: RepliesMethod = async (c, account) => {
-  const rows = await c.call<Post[]>('bridge', 'get_account_posts', { sort: 'replies', account, limit: 30 });
+  const rows = await c.call<Post[]>('bridge', 'get_account_posts', { sort: 'replies', account, limit: 20 });
   return rows.filter((x) => rootOf(x)?.author === account);
 };
 /** Any node: the replies under the account's latest posts. */

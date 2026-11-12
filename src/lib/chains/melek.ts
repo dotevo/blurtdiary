@@ -26,6 +26,7 @@ export const melek: ChainAdapter = {
   devAccount: undefined, // no tip account on this chain
   vaultPrefix: undefined, // TODO: WhaleVault prefix for Melek once supported (key login only until then)
   powerSymbol: 'MP',
+  hasBridge: false,
   imageHost: undefined, imageHosts: [],
 
   postUrl: (author, permlink) => `https://melek.salon/@${author}/${permlink}`, // (?)
@@ -40,14 +41,12 @@ export const melek: ChainAdapter = {
   rewards(acc) {
     const parts: [number, string][] = rewardKeys(acc).map((k) => [num(acc[k]), String(acc[k] ?? '').split(' ')[1] ?? k.replace(/^reward_|_balance$/g, '').toUpperCase()]);
     const vests = num(acc.reward_vesting_balance);
-    const power = num(acc.reward_vesting_melek ?? acc.reward_vesting_blurt ?? 0);
+    const power = num(acc.reward_vesting_steem ?? acc.reward_vesting_melek ?? acc.reward_vesting_blurt ?? 0); // the node reports it as reward_vesting_steem
     return { has: vests > 0 || parts.some(([n]) => n > 0), label: joinParts([...parts, [power, 'MP']]), power: power.toFixed(3) };
   },
   claimOp(account, acc) {
-    const op: Record<string, unknown> = { account };
-    for (const k of rewardKeys(acc)) op[k.replace(/_balance$/, '')] = acc[k];
-    op.reward_vests = acc.reward_vesting_balance ?? '0.000000 VESTS';
-    return ['claim_reward_balance', op];
+    // Steem-style record (reward_steem_balance, reward_sbd_balance, reward_vesting_balance): the op takes the three assets in this order
+    return ['claim_reward_balance', { account, reward_steem: acc.reward_steem_balance ?? '0.000 MELEK', reward_sbd: acc.reward_sbd_balance ?? '0.000 MBD', reward_vests: acc.reward_vesting_balance ?? '0.000000 VESTS' }];
   },
   async getContent(author, permlink) {
     const p = await melek.call<Post>('condenser_api', 'get_content', [author, permlink]).catch((e) => { if (isMissingError(e)) return null; throw e; });

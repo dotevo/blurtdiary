@@ -78,7 +78,7 @@ async function fromHistory(chain: string, account: string, only?: string): Promi
 }
 async function fromChain(chain: string, account: string): Promise<Notif[]> {
   let list: Notif[] | null = null;
-  try {
+  if (adapter(chain).hasBridge !== false) try {
     const r = chain === PRIMARY
       ? await rpc<Notif[]>('bridge', 'account_notifications', { account, limit: 40 })
       : await adapter(chain).call<Notif[]>('bridge', 'account_notifications', { account, limit: 40 });

@@ -2,6 +2,7 @@ import { reactive, ref } from 'vue';
 import * as dblurt from '@beblurt/dblurt';
 import { adapter, CHAINS, PRIMARY, type ChainAdapter, type ChainId } from './chains';
 import { t } from './i18n';
+import { broadcastSteemFamily } from './chains/tx';
 import type { Operation, Session } from './types';
 
 // ---- sessions: one per chain. By default they live in this tab only (sessionStorage). A login with "remember" is ALSO copied
@@ -105,9 +106,9 @@ export async function broadcast(ops: Operation[], chain: ChainId = PRIMARY): Pro
   if (!me) throw new Error(t('needLogin'));
   const a = adapter(chain);
   if (me.type === 'key') {
-    // dblurt is a dhive fork: the address prefix and chain id options make it sign for Hive/Steem as well
-    const opts = a.chainId ? { addressPrefix: a.addressPrefix, chainId: a.chainId } : undefined;
-    await new dblurt.Client(a.pool.list(), opts).broadcast.sendOperations(ops as never, dblurt.PrivateKey.from(me.key!));
+    // Blurt: signed by dblurt. The other chains use their own serializer (dblurt only knows Blurt's operation numbering).
+    if (chain !== PRIMARY) await broadcastSteemFamily(a, ops, me.key!); // dblurt serializes Blurt's operation numbering only (see tx.ts)
+    else await new dblurt.Client(a.pool.list(), a.chainId ? { addressPrefix: a.addressPrefix, chainId: a.chainId } : undefined).broadcast.sendOperations(ops as never, dblurt.PrivateKey.from(me.key!));
   } else {
     const r = await wvSign(chain, me.user, { operations: ops, url: a.pool.list()[0] }, 'bkc_broadcast');
     if (!r.success) throw new Error(r.message || t('wvError'));

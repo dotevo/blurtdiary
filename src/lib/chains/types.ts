@@ -58,6 +58,8 @@ export interface ChainAdapter {
   symbol: string;
   /** Unit in which post/comment rewards are shown (Hive/Steem report the dollar-valued HBD/SBD, Blurt BLURT). */
   payoutSymbol: string;
+  /** false = the nodes have no `bridge` API (Melek): notifications come from the account history instead. Default true. */
+  hasBridge?: boolean;
   /** Key prefix of public keys on this chain (BLT / STM). */
   addressPrefix: string;
   /** Hex chain id used when signing transactions; undefined = the dblurt default (Blurt). */
