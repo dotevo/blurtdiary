@@ -6,6 +6,7 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
+import { useImageField } from '../lib/useImageField';
 import { applyResult, canMirrorPost, editEverywhere, chainsOf, isUnverified, threadAccount, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { accountsOf, ownerOf } from '../lib/known';
 import { href, navigate, openProfile, openTag, profileHref, postParam, postRef, state, tagHref, USER } from '../lib/store';
@@ -47,6 +48,8 @@ const payoutChains = computed(() => chainsOf(merged.value.root)); // rewards of 
 const postDiffers = computed(() => versionsDiffer(merged.value.root, true));
 /** The blog owner, logged in on Blurt, may edit the post; if the copies differ they may also copy the Blurt version over the other chains. */
 const isOwner = computed(() => !fchain.value && !!post.value && post.value.author === USER && auth.me?.user === USER && (post.value.depth ?? 0) === 0);
+const commentTa = ref<HTMLTextAreaElement | null>(null); const commentFile = ref<HTMLInputElement | null>(null);
+const cimg = useImageField(body, commentTa);
 const syncing = ref(false);
 async function syncCopies(): Promise<void> {
   const root = merged.value.root.blurt; if (!root || syncing.value) return;
@@ -162,8 +165,8 @@ async function send(): Promise<void> {
   const root = merged.value.root; const my = seq;
   if (Object.values(root).some((p) => p.permlink !== post.value!.permlink)) { toast(t('mixedPost')); void load(); return; }
   sending.value = true;
-  const res = await sendComment(root, text);
-  if (my === seq) { applyResult(threads, root, res); if (Object.keys(res.ok).length) body.value = ''; }
+  const res = await sendComment(root, text, cimg.images.value);
+  if (my === seq) { applyResult(threads, root, res); if (Object.keys(res.ok).length) { body.value = ''; cimg.images.value = {}; } }
   toast(describeResult(res, t('commentSent')));
   sending.value = false;
 }
@@ -203,9 +206,11 @@ async function sendPost(chain: string): Promise<void> {
       <h3>{{ t('comments', { n: post.children ?? 0 }) }} <span v-if="checking" class="spinner" role="status" :aria-label="t('checkingChains')" :title="t('checkingChains')" /></h3>
       <div v-if="checking" class="mute help">{{ t('checkingChains') }}</div>
       <template v-if="loggedIn">
-        <textarea v-model="body" rows="3" :placeholder="t('addComment')" />
+        <textarea ref="commentTa" v-model="body" rows="3" :placeholder="t('addComment')" @paste="cimg.onPaste" @drop="cimg.onDrop" @dragover.prevent />
         <div class="mute target-note">{{ targets.length ? t('willSendTo', { list: targetNote }) : t('noTargets') }}</div>
-        <div class="actions"><button class="pri" :disabled="sending" @click="send">{{ t('send') }}</button></div>
+        <div class="actions"><button class="pri" :disabled="sending || cimg.uploading.value" @click="send">{{ t('send') }}</button>
+          <input ref="commentFile" type="file" accept="image/*" hidden @change="cimg.onPick">
+          <button :disabled="cimg.uploading.value" @click="commentFile?.click()"><Icon name="image" /> {{ cimg.uploading.value ? t('uploading') : t('uploadImage') }}</button></div>
         <DevTipToggle :list="benText" />
       </template>
       <p v-else class="mute">{{ t('loginToComment') }}</p>

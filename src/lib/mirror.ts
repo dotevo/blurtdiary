@@ -49,7 +49,12 @@ export function primaryOf(versions: Record<string, Post>): Post {
 export const chainsOf = (versions: Record<string, Post>): ChainAdapter[] => CHAINS.filter((c) => versions[c.id]);
 
 // image URLs are ignored when comparing: every chain keeps its own copy of an image, so the URLs legitimately differ
-const norm = (s?: string): string => (s ?? '').replace(/\r\n?/g, '\n').replace(/(!\[[^\]]*\]\()[^)\s]+/g, '$1img').trim();
+/** Text for comparing copies: every image counts as "an image" whatever host it is on (mirrored copies point to their own chain's copy of the file). */
+const norm = (s?: string): string => (s ?? '').replace(/\r\n?/g, '\n')
+  .replace(/(!\[[^\]]*\]\()[^)\s]+/g, '$1img')
+  .replace(/(<img\b[^>]*?\bsrc=["'])[^"']+/gi, '$1img')
+  .replace(/https?:\/\/\S+\.(?:png|jpe?g|gif|webp|avif|svg)(?:\?\S*)?/gi, 'img')
+  .trim();
 /** True when copies on different chains do not have the same text (somebody edited one of them). */
 export function versionsDiffer(versions: Record<string, Post>, withTitle = false): boolean {
   const l = Object.values(versions);
@@ -107,9 +112,10 @@ export const commentTargets = (parent: Record<string, Post>): ChainAdapter[] => 
 
 export interface SendResult { ok: Record<string, Post>; failed: Record<string, string> }
 
-async function sendOne(chain: string, parent: Post, permlink: string, body: string): Promise<Post> {
+async function sendOne(chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}): Promise<Post> {
   const me = sessionOf(chain); const a = adapter(chain);
   if (!me) throw new Error('not logged in');
+  const body = await localizeBody(chain, text, images); // images: each chain's own copy when there is one
   const bens = a.beneficiaries(me.user, parent, devTip.value);
   const ops: Operation[] = [['comment', { parent_author: parent.author, parent_permlink: parent.permlink, author: me.user, permlink, title: '',
     body, json_metadata: JSON.stringify({ app: 'blurtdiary/1.0', format: 'markdown' }) }]];
@@ -119,19 +125,19 @@ async function sendOne(chain: string, parent: Post, permlink: string, body: stri
 }
 
 /** Sends one text to several chains in parallel, under the same permlink. Never throws; read `ok` / `failed`. */
-async function sendTo(targets: ChainAdapter[], parent: Record<string, Post>, permlink: string, body: string): Promise<SendResult> {
+async function sendTo(targets: ChainAdapter[], parent: Record<string, Post>, permlink: string, body: string, images: ImageMap = {}): Promise<SendResult> {
   const res: SendResult = { ok: {}, failed: {} };
   await Promise.all(targets.map(async (c) => {
-    try { res.ok[c.id] = await sendOne(c.id, parent[c.id], permlink, body); }
+    try { res.ok[c.id] = await sendOne(c.id, parent[c.id], permlink, body, images); }
     catch (e) { res.failed[c.id] = (e as Error).message || 'error'; }
   }));
   return res;
 }
 
 /** New comment / reply under `parent` (its copies on every chain), to every chain we are logged in to. */
-export function sendComment(parent: Record<string, Post>, text: string): Promise<SendResult> {
+export function sendComment(parent: Record<string, Post>, text: string, images: ImageMap = {}): Promise<SendResult> {
   const permlink = `re-${primaryOf(parent).author.replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`;
-  return sendTo(commentTargets(parent), parent, permlink, withFooter(text, auth.me?.user));
+  return sendTo(commentTargets(parent), parent, permlink, withFooter(text, auth.me?.user), images);
 }
 
 /** My own copy of a comment (the version whose author is my account on that chain). */

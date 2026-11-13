@@ -9,6 +9,7 @@ import { coalMap } from '../lib/coal';
 import { toggleVoteAll, votedAll } from '../lib/actions';
 import { openProfile, profileHref } from '../lib/store';
 import { t } from '../lib/i18n';
+import { useImageField } from '../lib/useImageField';
 import { applyResult, chainsOf, commentTargets, describeResult, mirrorableChains, mirrorChains, mirrorComment, primaryOf, sendComment, versionsDiffer, type MNode } from '../lib/mirror';
 import { toast } from '../lib/toast';
 import { excerpt, fmtDate, payoutOf, payoutTitle, renderMd, stripFooter } from '../lib/util';
@@ -55,13 +56,15 @@ function startReply(): void {
   if (!anyLogin()) { loginOpen.value = true; return; }
   replying.value = !replying.value;
 }
+const replyTa = ref<HTMLTextAreaElement | null>(null); const replyFile = ref<HTMLInputElement | null>(null);
+const rimg = useImageField(text, replyTa);
 async function sendReply(): Promise<void> {
   const v = text.value.trim(); if (!v || sending.value) return;
   if (!targets.value.length) { toast(t('noTargets')); loginOpen.value = true; return; }
   sending.value = true;
-  const res = await sendComment(props.node.versions, v);
+  const res = await sendComment(props.node.versions, v, rimg.images.value);
   applyResult(threads, props.node.versions, res);
-  if (Object.keys(res.ok).length) { text.value = ''; replying.value = false; }
+  if (Object.keys(res.ok).length) { text.value = ''; rimg.images.value = {}; replying.value = false; }
   toast(describeResult(res, t('replySent')));
   sending.value = false;
 }
@@ -105,9 +108,11 @@ async function sendCopy(chain: string): Promise<void> {
       <button v-for="x in canSendTo" :key="x.id" class="small" :disabled="busyChain === x.id" @click="sendCopy(x.id)">{{ t('sendTo', { c: x.name }) }}</button>
     </div>
     <div v-if="replying" class="reply-box">
-      <textarea v-model="text" rows="3" :placeholder="t('replyPh', { a: c.author })" />
+      <textarea ref="replyTa" v-model="text" rows="3" :placeholder="t('replyPh', { a: c.author })" @paste="rimg.onPaste" @drop="rimg.onDrop" @dragover.prevent />
       <div class="mute target-note">{{ targets.length ? t('willSendTo', { list: targetNote }) : t('noTargets') }}</div>
-      <div class="actions"><button class="pri" :disabled="sending || !text.trim()" @click="sendReply">{{ t('send') }}</button><button @click="replying = false">{{ t('cancel') }}</button></div>
+      <div class="actions"><button class="pri" :disabled="sending || rimg.uploading.value || !text.trim()" @click="sendReply">{{ t('send') }}</button>
+        <input ref="replyFile" type="file" accept="image/*" hidden @change="rimg.onPick">
+        <button :disabled="rimg.uploading.value" @click="replyFile?.click()"><Icon name="image" /> {{ rimg.uploading.value ? t('uploading') : t('uploadImage') }}</button><button @click="replying = false">{{ t('cancel') }}</button></div>
       <DevTipToggle :list="benText" />
     </div>
     <CommentNode v-for="r in node.children" :key="r.permlink" :node="r" :parent="node.versions" :depth="depth + 1" />
