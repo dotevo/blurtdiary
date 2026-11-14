@@ -17,8 +17,11 @@ import WorldCard from './WorldCard.vue';
  * Logged-in reading side: Feed (accounts you follow, on every chain you are logged in to) and Tags (posts with a tag on every chain; tags can be followed).
  * Followed tags are private to this browser. The blog itself is not touched.
  */
-const tab = computed<'feed' | 'tags'>(() => (state.view === 'feed' ? 'feed' : state.tab === 'tags' || state.tag ? 'tags' : 'feed'));
+const tab = computed<'feed' | 'latest' | 'tags'>(() => (state.view === 'feed' ? 'feed' : state.tab === 'latest' ? 'latest' : state.tab === 'tags' || state.tag ? 'tags' : state.tab === 'feed' || (state.view === 'world' && loggedChains().length) ? 'feed' : 'latest'));
 const tag = computed(() => (TAG_RE.test(normTag(state.tag)) ? normTag(state.tag) : ''));
+/** "Latest" is the tag listing without a tag: everything new, on every chain. `tagList`: this tab shows the shared tag listing. */
+const tagList = computed(() => tab.value === 'latest' || !!tag.value);
+const listTag = computed(() => (tab.value === 'latest' ? '' : tag.value));
 /**
  * Ordering. Tags: the node's own rankings (new / hot / trending), several chains interleaved by position. The feed of followed accounts exists on the nodes
  * only as "newest first", so there the second choice re-orders what is loaded by payout. The choice is remembered on this device.
@@ -30,13 +33,13 @@ const readSort = (): { tags: Sort; feed: 'created' | 'payout' } => {
 const sorts = ref(readSort());
 const setSort = (kind: 'tags' | 'feed', v: string): void => { (sorts.value as Record<string, string>)[kind] = v; try { localStorage.setItem(SK, JSON.stringify(sorts.value)); } catch { /* ignore */ } if (kind === 'tags') reload(); };
 const newTag = ref(''); const tagMsg = ref('');
-const goTab = (x: 'feed' | 'tags'): void => navigate(href({ view: 'world', tab: x }));
+const goTab = (x: 'feed' | 'latest' | 'tags'): void => navigate(href({ view: 'world', tab: x }));
 const goTag = (x: string): void => openTag(x);
 
 watch([tab, tag, () => followed.tags.join(), () => auth.me?.user, () => chainFilter.off.join(), () => loggedChains().length], () => {
   if (tag.value) document.title = `#${tag.value} – Blurt Diary`;
   if (tab.value === 'feed') { if (loggedChains().length) void loadWorldFeed(); }
-  else if (tag.value) void loadWorldTag(tag.value, false, sorts.value.tags);
+  else if (tagList.value) void loadWorldTag(listTag.value, false, sorts.value.tags);
   else if (followed.tags.length) void loadWorldFollowed(followed.tags);
 }, { immediate: true });
 
@@ -47,15 +50,15 @@ const addTag = (): void => {
   if (!followTag(n)) { tagMsg.value = t('tagsFull', { n: MAX_FOLLOWED_TAGS }); return; }
   newTag.value = '';
 };
-const list = computed<WList>(() => (tab.value === 'feed' ? worldFeed : tag.value ? worldTag : worldFollowed));
+const list = computed<WList>(() => (tab.value === 'feed' ? worldFeed : tagList.value ? worldTag : worldFollowed));
 const byPayout = computed(() => tab.value === 'feed' && sorts.value.feed === 'payout');
 const items = computed(() => (byPayout.value ? [...list.value.items].sort((a, b) => (b.stub ? b.pay ?? 0 : payoutOf(b.lead)) - (a.stub ? a.pay ?? 0 : payoutOf(a.lead))) : list.value.items));
 const gridEl = ref<HTMLElement | null>(null);
 const win = (): typeof feedWindow => (tab.value === 'feed' ? feedWindow : tagWindow);
-useWindow(gridEl, () => list.value, win, () => !byPayout.value && (tab.value === 'feed' || !!tag.value));
-const more = computed(() => (tab.value === 'feed' ? worldFeedMore() : tag.value ? worldTagMore() : false));
-const loadMore = (): void => { void (tab.value === 'feed' ? loadWorldFeed(true) : loadWorldTag(tag.value, true, sorts.value.tags)); };
-const reload = (): void => { void (tab.value === 'feed' ? reloadWorldFeed() : tag.value ? reloadWorldTag(sorts.value.tags) : loadWorldFollowed(followed.tags, true)); };
+useWindow(gridEl, () => list.value, win, () => !byPayout.value && (tab.value === 'feed' || tagList.value));
+const more = computed(() => (tab.value === 'feed' ? worldFeedMore() : tagList.value ? worldTagMore() : false));
+const loadMore = (): void => { void (tab.value === 'feed' ? loadWorldFeed(true) : loadWorldTag(listTag.value, true, sorts.value.tags)); };
+const reload = (): void => { void (tab.value === 'feed' ? reloadWorldFeed() : tagList.value ? reloadWorldTag(sorts.value.tags) : loadWorldFollowed(followed.tags, true)); };
 /** Chains that failed (e.g. a node without that listing) – shown as a quiet note, never as an empty result. */
 const problems = computed(() => Object.entries(list.value.sources).filter(([, s]) => s.error).map(([c, s]) => `${c.includes('@') ? c.split('@')[0] + ' @ ' + adapter(c.split('@')[1]).name : adapter(c).name}: ${s.error}`));
 const feedFrom = computed(() => loggedChains());
@@ -67,6 +70,7 @@ const feedShown = computed(() => feedFrom.value.filter((c) => chainOn(c.id)));
   <section class="world">
     <div class="tabs world-tabs" v-if="auth.me || !tag">
       <button :class="{ pri: tab === 'feed' }" @click="goTab('feed')"><Icon name="feed" /> {{ t('feedTitle') }}</button>
+      <button :class="{ pri: tab === 'latest' }" @click="goTab('latest')"><Icon name="clock" /> {{ t('latestTab') }}</button>
       <button :class="{ pri: tab === 'tags' }" @click="goTab('tags')"># {{ t('tagsTab') }}</button>
       <span class="grow" />
       <button class="small" :disabled="list.loading" :title="t('retry')" @click="reload"><Icon name="refresh" /></button>
@@ -79,6 +83,12 @@ const feedShown = computed(() => feedFrom.value.filter((c) => chainOn(c.id)));
         <div class="sortbar"><button v-for="k in (['created', 'payout'] as const)" :key="k" class="small" :class="{ pri: sorts.feed === k }" @click="setSort('feed', k)">{{ t(k === 'created' ? 'sortNew' : 'sortPayoutLoaded') }}</button></div>
         <div class="mute help">{{ t('feedFrom') }} <span v-for="c in (feedShown.length ? feedShown : feedFrom)" :key="c.id" class="wf-chain"><ChainDot :chain="c.id" /> @{{ auth.sessions[c.id].user }}</span></div>
       </template>
+    </template>
+
+    <!-- LATEST: the newest posts of all chains -->
+    <template v-else-if="tab === 'latest'">
+      <div class="sortbar"><button v-for="k in (['created', 'hot', 'trending'] as const)" :key="k" class="small" :class="{ pri: sorts.tags === k }" @click="setSort('tags', k)">{{ t(k === 'created' ? 'sortNew' : k === 'hot' ? 'sortHot' : 'sortTrending') }}</button></div>
+      <div class="mute help">{{ t('latestHelp') }}</div>
     </template>
 
     <!-- TAGS -->
@@ -107,13 +117,13 @@ const feedShown = computed(() => feedFrom.value.filter((c) => chainOn(c.id)));
       </template>
     </template>
 
-    <div v-if="among.length > 1 && (tab === 'feed' ? feedFrom.length : tag || followed.tags.length)" class="chainbar">
+    <div v-if="among.length > 1 && (tab === 'feed' ? feedFrom.length : tagList || followed.tags.length)" class="chainbar">
       <button v-for="id in among" :key="id" class="small" :class="{ off: !chainOn(id) }" :aria-pressed="chainOn(id)" :title="t('chainFilter')" @click="toggleChain(id, among)"><ChainDot :chain="id" /> {{ adapter(id).name }}</button>
     </div>
     <div v-for="p in problems" :key="p" class="mute help badtxt"><Icon name="warn" /> {{ p }}</div>
     <div v-if="items.length" ref="gridEl" class="grid"><WorldCard v-for="it in items" :key="it.key" :item="it" @retry="win().retry" /></div>
     <div v-else-if="list.loading" class="mute center">{{ t('loading') }}</div>
-    <div v-else-if="(tab === 'feed' && feedFrom.length) || tag || followed.tags.length" class="mute center">{{ t(tab === 'feed' ? 'feedEmpty' : 'noPosts') }}</div>
+    <div v-else-if="(tab === 'feed' && feedFrom.length) || tagList || followed.tags.length" class="mute center">{{ t(tab === 'feed' ? 'feedEmpty' : 'noPosts') }}</div>
     <MoreSentinel v-if="list.items.length" :can="more" :loading="list.loading" @more="loadMore" />
   </section>
 </template>

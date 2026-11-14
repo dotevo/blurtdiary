@@ -53,7 +53,8 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
       <span v-for="c in loggedChains()" :key="'vp' + c.id" class="vp nb-lbl" :title="t('vpTitle', { c: c.name })"><ChainDot :chain="c.id" /> {{ vpText(c.id) || '–' }}</span>
       <button v-if="auth.me" class="icon" :class="{ on: notifs.open && notifs.kind === 'msg' }" :aria-label="t('messages')" :title="t('messages')" @click="bell('msg')"><Icon name="chat" /><span v-if="unreadMsg" class="badge">{{ unreadMsg > 9 ? '9+' : unreadMsg }}</span></button>
       <button v-if="auth.me" class="icon" :class="{ on: notifs.open && notifs.kind === 'other' }" :aria-label="t('notifications')" :title="t('notifications')" @click="bell('other')"><Icon name="bell" /><span v-if="unreadOther" class="badge">{{ unreadOther > 9 ? '9+' : unreadOther }}</span></button>
-      <a class="btn navbtn" :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab !== 'tags' && !state.tag) }" :href="href({ view: 'world', tab: 'feed' })" :title="t('feedTitle')" :aria-label="t('feedTitle')" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon name="feed" /> <span class="nb-lbl">{{ t('feedTitle') }}</span></a>
+      <a class="btn navbtn" :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab === 'feed') }" :href="href({ view: 'world', tab: 'feed' })" :title="t('feedTitle')" :aria-label="t('feedTitle')" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon name="feed" /> <span class="nb-lbl">{{ t('feedTitle') }}</span></a>
+      <a class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'latest' || (!state.tab && !state.tag && !auth.me)) }" :href="href({ view: 'world', tab: 'latest' })" :title="t('latestTab')" :aria-label="t('latestTab')" @click.prevent="go(href({ view: 'world', tab: 'latest' }))"><Icon name="clock" /> <span class="nb-lbl">{{ t('latestTab') }}</span></a>
       <a class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" :title="t('tagsTab')" :aria-label="t('tagsTab')" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><Icon name="tag" /> <span class="nb-lbl">{{ t('tagsTab') }}</span></a>
       <a v-if="auth.me && !isOwner" class="btn navbtn" :href="myBlog" :title="t('myBlog')" :aria-label="t('myBlog')"><Icon name="home" /> <span class="nb-lbl">{{ t('myBlog') }}</span></a>
       <template v-if="isOwner">
@@ -95,7 +96,8 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
   </div>
     <!-- phone: the page links live in a bar at the bottom (big targets, the top bar keeps only language, rewards, bell and account) -->
     <nav v-if="loggedIn" class="bnav" aria-label="Menu">
-      <a :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab !== 'tags' && !state.tag) }" :href="href({ view: 'world', tab: 'feed' })" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon class="bi" name="feed" />{{ t('feedTitle') }}</a>
+      <a :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab === 'feed') }" :href="href({ view: 'world', tab: 'feed' })" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon class="bi" name="feed" />{{ t('feedTitle') }}</a>
+      <a :class="{ on: state.view === 'world' && state.tab === 'latest' }" :href="href({ view: 'world', tab: 'latest' })" @click.prevent="go(href({ view: 'world', tab: 'latest' }))"><Icon class="bi" name="clock" />{{ t('latestTab') }}</a>
       <a :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><Icon class="bi" name="tag" />{{ t('tagsTab') }}</a>
       <a v-if="auth.me && !isOwner" :href="myBlog"><Icon class="bi" name="home" />{{ t('myBlog') }}</a>
       <template v-if="isOwner">

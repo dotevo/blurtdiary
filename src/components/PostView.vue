@@ -6,6 +6,8 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
+import PostNav from './PostNav.vue';
+import { loadNeighbors } from '../lib/neighbors';
 import { useImageField } from '../lib/useImageField';
 import { applyResult, canMirrorPost, editEverywhere, chainsOf, isUnverified, threadAccount, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { accountsOf, ownerOf } from '../lib/known';
@@ -134,6 +136,7 @@ async function load(): Promise<void> {
     }
   }
   post.value = root;
+  if (root && root.author === USER && !(root.depth ?? 0)) void loadNeighbors(root);
   if (root) threads.blurt = th;
   loading.value = false;
   if (root && mirrored.value) for (const c of mirrorChains()) void loadChainThread(g, c.id, permlink); // parallel, filled in as they answer
@@ -203,6 +206,7 @@ async function sendPost(chain: string): Promise<void> {
           <a v-else class="tag" :href="tagHref(tag)" :title="t('tagOnAll')" @click.prevent="openTag(tag)">#{{ tag }}</a>
         </template>
       </div>
+      <PostNav v-if="!fchain && post.author === USER && !(post.depth ?? 0)" />
       <h3>{{ t('comments', { n: post.children ?? 0 }) }} <span v-if="checking" class="spinner" role="status" :aria-label="t('checkingChains')" :title="t('checkingChains')" /></h3>
       <div v-if="checking" class="mute help">{{ t('checkingChains') }}</div>
       <template v-if="loggedIn">

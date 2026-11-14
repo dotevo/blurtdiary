@@ -8,7 +8,6 @@ import { support } from './lib/support';
 import { canMore, href, initBlog, loadMore, navigate, state, USER, visible } from './lib/store';
 import { toastMsg } from './lib/toast';
 import DocsView from './components/DocsView.vue';
-import LangSelect from './components/LangSelect.vue';
 import LoginModal from './components/LoginModal.vue';
 import NavBar from './components/NavBar.vue';
 import TopBar from './components/TopBar.vue';
@@ -106,13 +105,19 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
       <PostView v-else />
     </main></div>
   </template>
-  <div v-else-if="!USER" class="center">
-    <h1>Blurt Diary</h1><p class="mute">{{ t('enterUser') }}</p>
-    <form style="max-width:280px;margin:auto" @submit.prevent="openUser"><input v-model="who" :placeholder="t('userPlaceholder')" autofocus></form>
-    <div v-if="favs.list.length" class="fav-landing"><h4><Icon name="star-fill" /> {{ t('favTitle') }}</h4><FavList /></div>
-    <p><LangSelect /></p>
-    <p><a class="mute" :href="href({ view: 'docs' })" @click.prevent="navigate(href({ view: 'docs' }))">{{ t('docs') }}</a></p>
-  </div>
+  <!-- no blog chosen: the front page is the newest posts of all chains; a blog can be opened from the box at the top -->
+  <template v-else-if="!USER">
+    <TopBar />
+    <div class="wrap wide"><main>
+      <div class="landing-top center">
+        <h1>Blurt Diary</h1><p class="mute">{{ t('enterUser') }}</p>
+        <form style="max-width:280px;margin:auto" @submit.prevent="openUser"><input v-model="who" :placeholder="t('userPlaceholder')"></form>
+        <div v-if="favs.list.length" class="fav-landing"><h4><Icon name="star-fill" /> {{ t('favTitle') }}</h4><FavList /></div>
+      </div>
+      <WorldView />
+      <p class="center"><a class="mute" :href="href({ view: 'docs' })" @click.prevent="navigate(href({ view: 'docs' }))">{{ t('docs') }}</a></p>
+    </main></div>
+  </template>
   <div v-else-if="state.error" class="center err">
     <p>{{ state.error }}</p><button class="pri" @click="reload">{{ t('retry') }}</button>
   </div>

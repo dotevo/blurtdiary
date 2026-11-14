@@ -32,7 +32,7 @@ export const state = reactive({
 });
 
 // ---------- URLs ----------
-export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world'; chain?: string; tab?: 'feed' | 'tags'; tag?: string; edit?: string }): string => {
+export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world'; chain?: string; tab?: 'feed' | 'latest' | 'tags'; tag?: string; edit?: string }): string => {
   const p = new URLSearchParams();
   if (USER) p.set('user', USER); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);

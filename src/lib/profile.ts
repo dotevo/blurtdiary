@@ -30,11 +30,8 @@ export async function loadInfo(chain: string, account: string): Promise<void> {
   if (info.key === key) info.loading = false;
 }
 
-/** Do I (the account I am logged in with on `chain`) follow `account` there? Same two-step check as the blog's follow button. */
-export async function loadRel(chain: string, account: string): Promise<void> {
-  const me = auth.sessions[chain]?.user; const key = `${chain}:${account}`;
-  Object.assign(rel, { state: 'unknown', key });
-  if (!me || me === account) return;
+/** Does `me` follow `account` on `chain`? null = the nodes could not tell. `bridge.get_relationship_between_accounts` first, else `get_following` from just before the name. */
+export async function relationOn(chain: string, me: string, account: string): Promise<boolean | null> {
   const a = adapter(chain); let yes: boolean | null = null;
   try {
     const r = await a.call<{ follows?: boolean } | null>('bridge', 'get_relationship_between_accounts', [me, account]);
@@ -47,6 +44,18 @@ export async function loadRel(chain: string, account: string): Promise<void> {
       if (Array.isArray(r)) yes = r.some((x) => x?.following === account);
     } catch (e) { console.warn('relation', chain, e); }
   }
+  return yes;
+}
+/** The on-chain follow / unfollow (custom_json "follow") for the account logged in on `chain`. */
+export async function followOn(chain: string, me: string, account: string, on: boolean): Promise<void> {
+  const op: Operation = ['custom_json', { required_auths: [], required_posting_auths: [me], id: 'follow', json: JSON.stringify(['follow', { follower: me, following: account, what: on ? ['blog'] : [] }]) }];
+  await broadcast([op], chain);
+}
+export async function loadRel(chain: string, account: string): Promise<void> {
+  const me = auth.sessions[chain]?.user; const key = `${chain}:${account}`;
+  Object.assign(rel, { state: 'unknown', key });
+  if (!me || me === account) return;
+  const yes = await relationOn(chain, me, account);
   if (rel.key === key && yes !== null) rel.state = yes ? 'yes' : 'no';
 }
 
