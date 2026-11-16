@@ -62,8 +62,9 @@ textarea,input{font:inherit;width:100%;padding:8px;border:1px solid var(--line);
 .big{font-size:1.4rem}
 .cm-head{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.cm-actions{display:flex;gap:14px;margin-top:4px}.cm-actions a:hover{color:var(--accent)}
 .reply-box{margin:8px 0}
-.cm.hl{animation:hl 2.6s ease-out}
-@keyframes hl{0%,35%{background:color-mix(in srgb,var(--accent) 22%,transparent);box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 22%,transparent)}100%{background:transparent;box-shadow:none}}
+.cm.hl,.post-title.hl{animation:hl 6s ease-out;border-radius:8px}.cm.hl{outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:3px;animation:hl 6s ease-out,hl-ring 6s ease-out}
+@keyframes hl-ring{0%,60%{outline-color:color-mix(in srgb,var(--accent) 70%,transparent)}100%{outline-color:transparent}}
+@keyframes hl{0%,60%{background:color-mix(in srgb,var(--accent) 22%,transparent);box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 22%,transparent)}100%{background:transparent;box-shadow:none}}
 .user-area{display:flex;gap:6px;align-items:center;flex:none}.who{display:none}@media(min-width:760px){.who{display:inline}}
 .btn{display:inline-block;border:1px solid var(--line);padding:6px 12px;border-radius:8px;font-size:.9rem;white-space:nowrap}
 .icon{position:relative;padding:5px 10px}.claim{white-space:nowrap}

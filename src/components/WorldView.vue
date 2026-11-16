@@ -54,6 +54,12 @@ const list = computed<WList>(() => (tab.value === 'feed' ? worldFeed : tagList.v
 const byPayout = computed(() => tab.value === 'feed' && sorts.value.feed === 'payout');
 const items = computed(() => (byPayout.value ? [...list.value.items].sort((a, b) => (b.stub ? b.pay ?? 0 : payoutOf(b.lead)) - (a.stub ? a.pay ?? 0 : payoutOf(a.lead))) : list.value.items));
 const gridEl = ref<HTMLElement | null>(null);
+/** Feed (personal) and Latest (always changing) must not be indexed; a tag page may be. */
+watch(tab, (x) => {
+  let m = document.querySelector<HTMLMetaElement>('meta[name=robots]');
+  if (!m) { m = document.createElement('meta'); m.name = 'robots'; document.head.append(m); }
+  m.content = x === 'tags' ? 'index,follow' : 'noindex,follow';
+}, { immediate: true });
 const win = (): typeof feedWindow => (tab.value === 'feed' ? feedWindow : tagWindow);
 useWindow(gridEl, () => list.value, win, () => !byPayout.value && (tab.value === 'feed' || tagList.value));
 const more = computed(() => (tab.value === 'feed' ? worldFeedMore() : tagList.value ? worldTagMore() : false));

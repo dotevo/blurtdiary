@@ -11,6 +11,14 @@ import type { BlogCategory, BlogConfig, Post, Profile } from './types';
 
 const PAGE = 20;
 const q = new URLSearchParams(location.search);
+// Feed, Latest, Tags, profiles and posts read from another chain are not part of any blog: they have no `user` in their address (one address per page, nothing
+// duplicated for search engines, no blog context). An old link that still has one is sent to the clean address.
+const WORLD_VIEWS = ['world', 'feed', 'profile'];
+if (q.has('user') && (WORLD_VIEWS.includes(q.get('view') ?? '') || (q.get('post') && q.get('chain')))) {
+  const clean = new URLSearchParams(q); clean.delete('user');
+  if (clean.get('view') === 'feed') { clean.set('view', 'world'); clean.set('tab', 'feed'); }
+  location.replace('?' + clean);
+}
 // the account name goes into URLs, storage keys and RPC calls: anything that is not a valid account name is ignored
 export const USER = normAccount(q.get('user') ?? '');
 if (USER) { try { localStorage.setItem('bd-last-user', USER); } catch { /* ignore */ } } // used by the installed app (PWA) to reopen the last blog
@@ -34,7 +42,9 @@ export const state = reactive({
 // ---------- URLs ----------
 export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world'; chain?: string; tab?: 'feed' | 'latest' | 'tags'; tag?: string; edit?: string }): string => {
   const p = new URLSearchParams();
-  if (USER) p.set('user', USER); // the documentation also works without a user
+  const world = o.view === 'world' || o.view === 'feed' || (!!o.post && !!o.chain); // pages outside any blog: no user in the address
+  if (o.view === 'feed') { o = { ...o, view: 'world', tab: 'feed' }; }
+  if (USER && !world) p.set('user', USER); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);
   if (o.month) p.set('month', o.month);
   if (o.post) p.set('post', o.post);
@@ -75,6 +85,8 @@ function syncFromUrl(): void {
   state.account = normAccount(p.get('account') ?? ''); state.chain = p.get('chain') ?? ''; state.tab = p.get('tab') ?? ''; state.tag = p.get('tag') ?? '';
 }
 export function navigate(h: string, replace = false): void {
+  // from inside a blog to a page without user (Feed, Latest, Tags, a foreign post): a normal page load, because the blog (USER) is fixed when the page starts
+  if (USER && !new URLSearchParams(h.slice(h.indexOf('?') + 1)).has('user')) { if (replace) location.replace(h); else location.assign(h); return; }
   if (replace) history.replaceState({}, '', h); else history.pushState({}, '', h);
   syncFromUrl();
   if (!replace) window.scrollTo(0, 0);

@@ -129,7 +129,7 @@ export function notifLink(n: Notif): { href: string; ext: boolean } {
   if (!m) return { href: '', ext: false };
   if (n.chain === PRIMARY) return { href: href({ post: postParam(m[1], m[2]), c: `${m[1]}/${m[2]}` }), ext: false };
   // another chain: read in our own page; the page resolves a comment to its root post and prefers the Blurt copy (whole thread)
-  return { href: href({ post: postParam(m[1], m[2]), chain: n.chain, ...(m[1] === auth.sessions[n.chain]?.user ? {} : { c: `${m[1]}/${m[2]}` }) }), ext: false };
+  return { href: href({ post: postParam(m[1], m[2]), chain: n.chain, c: `${m[1]}/${m[2]}` }), ext: false };
 }
 export const notifHref = (n: Notif): string => notifLink(n).href;
 /** Icon (see Icon.vue) for a notification type. */

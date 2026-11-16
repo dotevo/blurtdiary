@@ -109,7 +109,7 @@ async function load(): Promise<void> {
       // the Blurt copy (the source of truth) shows the whole discussion of all chains
       const bt = await adapter('blurt').getThread(owner, froot.permlink);
       if (my !== seq) return;
-      if (bt.status === 'found') { navigate(href({ post: postParam(owner, froot.permlink), c: state.focus }), true); return; }
+      if (bt.status === 'found') { window.location.replace(`?user=${encodeURIComponent(owner)}&post=${encodeURIComponent(froot.permlink)}${state.focus ? '&c=' + encodeURIComponent(state.focus) : ''}`); return; } // the owner's blog: a full load, the blog (USER) is fixed at page start
     }
     post.value = froot;
     if (froot) threads[fc] = fth;
@@ -150,13 +150,29 @@ watch(() => mirrorChains().map((c) => c.id).join(), () => {
 watch(() => state.focus, () => { void scrollToFocus(); });
 const retry = (chain: string): void => { if (post.value) void loadChainThread(guard(seq), chain, post.value.permlink); };
 
-async function scrollToFocus(): Promise<void> {
-  if (!state.focus || loading.value) return;
-  await nextTick();
-  const el = document.querySelector<HTMLElement>(`[data-ck="${CSS.escape(state.focus)}"]`);
-  if (!el) return;
-  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+/**
+ * Arriving from a notification (?c=author/permlink): scroll to that comment – or to the post's own title when the notification is about the post (a vote) –
+ * and highlight it. Comments of the other chains arrive a little later than the Blurt thread, so the target is looked for for up to ~10 s.
+ */
+let focusTimer = 0;
+function flash(el: HTMLElement): void {
   el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl'); // restart the highlight animation
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  setTimeout(() => { if (Math.abs(el.getBoundingClientRect().top + el.offsetHeight / 2 - window.innerHeight / 2) > window.innerHeight * 0.3) el.scrollIntoView({ block: 'center' }); }, 900); // images and late comments shift the layout
+}
+async function scrollToFocus(): Promise<void> {
+  clearTimeout(focusTimer);
+  const key = state.focus; if (!key) return;
+  let tries = 0;
+  const attempt = async (): Promise<void> => {
+    if (key !== state.focus) return;
+    await nextTick();
+    const own = !!post.value && `${post.value.author}/${post.value.permlink}` === key;
+    const el = loading.value ? null : own ? document.querySelector<HTMLElement>('.post-title') : document.querySelector<HTMLElement>(`[data-ck="${CSS.escape(key)}"]`);
+    if (el) { flash(el); return; }
+    if (++tries < 40) focusTimer = window.setTimeout(() => { void attempt(); }, 250);
+  };
+  await attempt();
 }
 
 async function send(): Promise<void> {
@@ -191,7 +207,7 @@ async function sendPost(chain: string): Promise<void> {
     <div class="art-in">
       <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
       <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }} · <a class="au" :href="profileHref(post.author, fchain || 'blurt')" @click.prevent="openProfile(post.author, fchain || 'blurt')">{{ t('profileOpen') }}</a></div>
-      <h1>{{ post.title }}</h1>
+      <h1 class="post-title">{{ post.title }}</h1>
       <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <template v-for="x in payoutChains" :key="x.id"><span class="pay" :title="payoutTitle(merged.root[x.id])"><ChainDot v-if="payoutChains.length > 1" :chain="x.id" /> {{ payoutOf(merged.root[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></div>
       <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />
       <div v-if="unverifiedNote" class="mute help unverified"><Icon name="warn" /> {{ t('unverifiedNote') }}</div>
