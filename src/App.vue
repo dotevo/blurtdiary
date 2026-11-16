@@ -22,6 +22,7 @@ import StatsView from './components/StatsView.vue';
 import WorldView from './components/WorldView.vue';
 import WalletView from './components/WalletView.vue';
 import ActiveKeyModal from './components/ActiveKeyModal.vue';
+import JobQueue from './components/JobQueue.vue';
 import ProfileView from './components/ProfileView.vue';
 import FavList from './components/FavList.vue';
 import NodeSettings from './components/NodeSettings.vue';
@@ -177,6 +178,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
   </template>
   <LoginModal v-if="loginOpen" @close="loginOpen = false" />
   <ActiveKeyModal />
+  <JobQueue />
   <SupportModal v-if="support.show" />
   <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
 </template>

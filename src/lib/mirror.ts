@@ -18,6 +18,7 @@ import { t } from './i18n';
 import { devTip } from './settings';
 import { state, USER } from './store';
 import { localizeBody, type ImageMap } from './upload';
+import { queued, registerJob } from './queue';
 import { meta, pushKid, tagsOf } from './util';
 import type { Operation, Post } from './types';
 
@@ -112,7 +113,13 @@ export const commentTargets = (parent: Record<string, Post>): ChainAdapter[] => 
 
 export interface SendResult { ok: Record<string, Post>; failed: Record<string, string> }
 
-async function sendOne(chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}): Promise<Post> {
+/** The parent fields a comment needs – small enough to keep in the retry queue. */
+const slim = (p: Post): Post => ({ author: p.author, permlink: p.permlink, title: '', body: '', created: p.created, depth: p.depth, category: p.category, community_name: p.community_name });
+interface CommentJob { parent: Post; permlink: string; text: string; images: ImageMap }
+const sendOne = (chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}): Promise<Post> =>
+  queued('comment', chain, text.replace(/\s+/g, ' ').slice(0, 60), { parent: slim(parent), permlink, text, images } as CommentJob, () => sendOneRaw(chain, parent, permlink, text, images));
+registerJob<CommentJob>('comment', (j, chain) => sendOneRaw(chain, j.parent, j.permlink, j.text, j.images));
+async function sendOneRaw(chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}): Promise<Post> {
   const me = sessionOf(chain); const a = adapter(chain);
   if (!me) throw new Error('not logged in');
   const body = await localizeBody(chain, text, images); // images: each chain's own copy when there is one
@@ -164,7 +171,12 @@ function mirrorMeta(post: Post, body: string): { primary: string; json: string }
 }
 
 /** Publishes a copy of a Blurt post on `chain` under the SAME permlink, as the logged-in account of that chain. */
-export async function mirrorPost(chain: string, post: Post, images: ImageMap = {}): Promise<void> {
+const pack = (p: Post): Post => ({ author: p.author, permlink: p.permlink, title: p.title, body: p.body, created: p.created, json_metadata: p.json_metadata, category: p.category, community_name: p.community_name, parent_permlink: p.parent_permlink });
+interface PostJob { post: Post; images: ImageMap }
+export const mirrorPost = (chain: string, post: Post, images: ImageMap = {}): Promise<void> =>
+  queued('mirrorPost', chain, post.title, { post: pack(post), images } as PostJob, () => mirrorPostRaw(chain, post, images));
+registerJob<PostJob>('mirrorPost', (j, chain) => mirrorPostRaw(chain, j.post, j.images));
+async function mirrorPostRaw(chain: string, post: Post, images: ImageMap = {}): Promise<void> {
   const me = sessionOf(chain); const a = adapter(chain);
   if (!me) throw new Error('not logged in');
   const want = accountOn(chain);
@@ -224,7 +236,10 @@ export function describeResult(res: SendResult, single: string): string {
  * Re-sends the post to `chain` as an EDIT of the existing copy there: same permlink, the category (parent_permlink) the copy already has – it cannot change –
  * and no new `comment_options` (rewards and beneficiaries stay as they were). Resolves `false` when the chain has no copy to edit.
  */
-export async function editMirror(chain: string, post: Post, images: ImageMap = {}): Promise<boolean> {
+export const editMirror = (chain: string, post: Post, images: ImageMap = {}): Promise<boolean> =>
+  queued('editMirror', chain, post.title, { post: pack(post), images } as PostJob, () => editMirrorRaw(chain, post, images));
+registerJob<PostJob>('editMirror', (j, chain) => editMirrorRaw(chain, j.post, j.images));
+async function editMirrorRaw(chain: string, post: Post, images: ImageMap = {}): Promise<boolean> {
   const me = sessionOf(chain);
   if (!me) throw new Error('not logged in');
   const want = accountOn(chain);

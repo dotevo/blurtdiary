@@ -27,7 +27,7 @@ export const melek: ChainAdapter = {
   vaultPrefix: undefined, // TODO: WhaleVault prefix for Melek once supported (key login only until then)
   powerSymbol: 'MP',
   hasBridge: false,
-  imageHost: undefined, imageHosts: [],
+  imageHost: 'https://melek.salon/img', imageHosts: ['melek.salon'],
 
   postUrl: (author, permlink) => `https://melek.salon/@${author}/${permlink}`, // (?)
   call: (api, method, params) => jsonRpc(MELEK_POOL, api, method, params, 'modern'),

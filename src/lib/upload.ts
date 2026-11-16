@@ -7,12 +7,13 @@ import * as dblurt from '@beblurt/dblurt';
 import { auth, wvSign } from './auth';
 import { adapter, CHAINS, PRIMARY } from './chains';
 import { t } from './i18n';
+import { fetchImageBlob } from './rss';
 
 /**
- * Only Blurt's image host is used for now: Hive's and Steem's hosts rejected our uploads and are untested. Mirrored posts keep
- * pointing at the Blurt image URLs. Set to true to upload to every logged-in chain again.
+ * Upload to every logged-in chain that has an image host (Melek's is melek.salon/img). Hive's and Steem's hosts rejected uploads before, so a failure is only
+ * reported (with the reason) and the post keeps pointing at the Blurt copy; nothing blocks. Set to false to use Blurt's host only.
  */
-const UPLOAD_TO_MIRRORS = false;
+const UPLOAD_TO_MIRRORS = true;
 const MAX_BYTES = 10 * 1024 * 1024;
 /** Image URL on the primary chain's host -> the same image's URL per other chain. */
 export type ImageMap = Record<string, Record<string, string>>;
@@ -49,7 +50,7 @@ export async function uploadImage(file: File, chain: string = PRIMARY): Promise<
     sig = s;
   }
   const form = new FormData(); form.append('file', file);
-  const resp = await fetch(`${host}/${me.user}/${sig}`, { method: 'POST', body: form });
+  const resp = await fetch(`${host}/${me.user}/${sig}`, { method: 'POST', body: form, signal: AbortSignal.timeout(30000) });
   if (!resp.ok) throw new Error(`${t('uploadFailed')}: ${resp.status}`);
   const data = (await resp.json()) as { url?: string };
   if (!data.url) throw new Error(t('uploadFailed'));
@@ -65,7 +66,7 @@ export async function uploadEverywhere(file: File): Promise<{ url: string; other
   const [url] = await Promise.all([
     uploadImage(file, PRIMARY),
     ...CHAINS.filter((c) => UPLOAD_TO_MIRRORS && c.id !== PRIMARY && auth.sessions[c.id] && c.imageHost).map(async (c) => {
-      try { others[c.id] = await uploadImage(file, c.id); } catch (e) { console.warn('image upload failed on', c.id, e); failed.push(c.name); }
+      try { others[c.id] = await uploadImage(file, c.id); } catch (e) { console.warn('image upload failed on', c.id, e); failed.push(`${c.name} (${(e as Error).message})`); }
     }),
   ]);
   return { url, others, failed };
@@ -92,4 +93,39 @@ export async function localizeBody(chain: string, body: string, known: ImageMap 
     } catch (e) { console.warn('image copy failed for', chain, u, e); }
   }));
   return body.replace(MD_IMG, (_m, pre: string, u: string) => pre + (map[u] ?? u));
+}
+
+// ---------- pasted text with pictures from other servers ----------
+const IMG_EXT = /\.(png|jpe?g|gif|webp|avif|svg)(\?[^\s)]*)?$/i;
+const BARE = /(^|[\s(])(https?:\/\/[^\s<>)\]]+)/g;
+const hostOf = (u: string): string => { try { return new URL(u).host; } catch { return ''; } };
+
+/** Pictures in `text` (Markdown images and bare image links) that are not on the primary chain's image host. */
+export function externalImages(text: string): string[] {
+  const own = adapter(PRIMARY).imageHosts, out = new Set<string>();
+  for (const m of text.matchAll(MD_IMG)) out.add(m[2]);
+  for (const m of text.matchAll(BARE)) if (IMG_EXT.test(m[2])) out.add(m[2]);
+  return [...out].filter((u) => hostOf(u) && !own.includes(hostOf(u)));
+}
+
+/**
+ * Copies the pictures `urls` to the chains' image hosts and rewrites `text` (bare links become Markdown images). A picture that cannot be read
+ * (the server forbids cross-origin reads, is down, or the file is too big) keeps its original URL and is counted as failed.
+ */
+export async function rehostImages(text: string, urls: string[]): Promise<{ text: string; images: ImageMap; ok: number; failed: number }> {
+  const map: Record<string, string> = {}, images: ImageMap = {};
+  const queue = [...urls];
+  await Promise.all([0, 1, 2].map(async () => {
+    for (let u = queue.shift(); u; u = queue.shift()) {
+      try {
+        const blob = await fetchImageBlob(u);
+        const up = await uploadEverywhere(new File([blob], 'image', { type: blob.type }));
+        map[u] = up.url; images[up.url] = up.others;
+      } catch (e) { console.warn('image copy failed', u, e); }
+    }
+  }));
+  let out = text.replace(MD_IMG, (_m, pre: string, u: string) => pre + (map[u] ?? u));
+  out = out.replace(/(!\[[^\]]*\]\([^)]*\))|(^|[\s(])(https?:\/\/[^\s<>)\]]+)/g, (m, md: string | undefined, pre: string, u: string) => (md ? md : map[u] ? `${pre}![image](${map[u]})` : m));
+  const ok = Object.keys(map).length;
+  return { text: out, images, ok, failed: urls.length - ok };
 }

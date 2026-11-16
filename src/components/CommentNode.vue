@@ -7,6 +7,7 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { coalMap } from '../lib/coal';
 import { toggleVoteAll, votedAll } from '../lib/actions';
+import VoteBox from './VoteBox.vue';
 import { openProfile, profileHref } from '../lib/store';
 import { t } from '../lib/i18n';
 import { useImageField } from '../lib/useImageField';
@@ -100,7 +101,7 @@ async function sendCopy(chain: string): Promise<void> {
 
     <div class="mute cm-actions">
       <!-- one click votes on every chain where we are logged in and a copy exists -->
-      <a href="#" :class="{ on: votedAll(node.versions) }" :title="voteTitle" @click.prevent="toggleVoteAll(node.versions)"><Icon name="heart" /> {{ c.active_votes?.length ?? 0 }}</a>
+      <VoteBox :versions="node.versions"><a href="#" :class="{ on: votedAll(node.versions) }" :title="voteTitle" @click.prevent="toggleVoteAll(node.versions)"><Icon name="heart" /> {{ c.active_votes?.length ?? 0 }}</a></VoteBox>
       <a href="#" class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click.prevent="votesOpen = true">ⓘ</a>
       <a href="#" @click.prevent="startReply">{{ t('reply') }}</a>
       <span v-if="node.children.length">{{ t('repliesCount', { n: node.children.length }) }}</span>

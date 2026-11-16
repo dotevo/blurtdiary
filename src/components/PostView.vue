@@ -6,6 +6,7 @@ import { benLabel, beneficiariesFor } from '../lib/ben';
 import { adapter, CHAINS, type ChainThread } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { toggleVoteAll, votedAll } from '../lib/actions';
+import VoteBox from './VoteBox.vue';
 import PostNav from './PostNav.vue';
 import { loadNeighbors } from '../lib/neighbors';
 import { useImageField } from '../lib/useImageField';
@@ -214,7 +215,7 @@ async function sendPost(chain: string): Promise<void> {
       <div v-if="postDiffers" class="mute"><a href="#" class="vdiff" @click.prevent="versionsOpen = true"><Icon name="warn" /> {{ t('versionsDiffer') }}</a><template v-if="isOwner && merged.root.blurt"> · <button class="small" :disabled="syncing" @click="syncCopies">{{ t('syncCopies') }}</button></template></div>
       <div class="md post-body" v-html="renderMd(post.body)" />
       <div class="actions">
-        <button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)"><Icon name="heart" /> {{ post.active_votes?.length ?? 0 }}</button>
+        <VoteBox :versions="merged.root"><button :class="{ pri: votedAll(merged.root) }" :title="voteTitle" @click="toggleVoteAll(merged.root)"><Icon name="heart" /> {{ post.active_votes?.length ?? 0 }}</button></VoteBox>
         <a v-if="isOwner" class="btn small" :href="href({ view: 'write', edit: post.permlink })" @click.prevent="navigate(href({ view: 'write', edit: post.permlink }))"><Icon name="pen" /> {{ t('editPost') }}</a>
         <button class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click="votesOpen = true">ⓘ</button>
         <template v-for="tag in tagsOf(post)" :key="tag">

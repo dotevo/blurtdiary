@@ -46,6 +46,9 @@ export const payoutTitle = (p: Post): string =>
   p.is_paidout ? t('paidTitle', { a: p.author_payout_value ?? '?', c: p.curator_payout_value ?? '?' }) : t('pendingTitle', { v: p.pending_payout_value ?? p.payout ?? '?' });
 /** Past the 7-day payout window (or already paid out): the chain no longer accepts votes on it. */
 export const isOld = (p: Post): boolean => p.is_paidout === true || Date.now() - toDate(p.created).getTime() > 7 * 24 * 3600 * 1000;
+/** Did `user` vote on this copy? (condenser gives `percent`, bridge gives `rshares`; an unvote leaves 0 in both.) */
+export const votedBy = (p: Post, user: string): boolean =>
+  !!p.active_votes?.some((v) => v.voter === user && (num(v.percent) > 0 || num((v as { rshares?: unknown }).rshares) > 0));
 export const votesOf = (p: Post): number => p.stats?.total_votes ?? p.active_votes?.length ?? p.net_votes ?? 0;
 
 export function thumbOf(p: Post): string {

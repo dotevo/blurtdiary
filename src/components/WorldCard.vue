@@ -2,6 +2,7 @@
 import Icon from './Icon.vue';
 import { computed, ref } from 'vue';
 import { toggleVoteAll, votedAll } from '../lib/actions';
+import VoteBox from './VoteBox.vue';
 import { auth } from '../lib/auth';
 import { adapter } from '../lib/chains';
 import { t } from '../lib/i18n';
@@ -55,7 +56,7 @@ const hue = computed(() => [...p.value.title].reduce((s, ch) => s + ch.charCodeA
       <div class="meta">
         <span>{{ fmtDate(p.created) }}</span>
         <span class="pay" :title="payoutTitle(p)">{{ payoutOf(p).toFixed(3) }} {{ sym }}</span>
-        <button class="vbtn" :class="{ on: voted }" :disabled="busy" :aria-pressed="voted" :title="t('voteBtn')" @click.prevent.stop="vote"><Icon :name="voted ? 'heart-fill' : 'heart'" /> {{ shownVotes }}</button><span><Icon name="chat" /> {{ p.children ?? 0 }}</span>
+        <VoteBox :versions="item.copies"><button class="vbtn" :class="{ on: voted }" :disabled="busy" :aria-pressed="voted" :title="t('voteBtn')" @click.prevent.stop="vote"><Icon :name="voted ? 'heart-fill' : 'heart'" /> {{ shownVotes }}</button></VoteBox><span><Icon name="chat" /> {{ p.children ?? 0 }}</span>
       </div>
     </div>
   </article>

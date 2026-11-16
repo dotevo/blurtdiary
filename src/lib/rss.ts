@@ -34,6 +34,22 @@ function getFrame(): Promise<HTMLIFrameElement> {
   }));
 }
 
+/** A picture read through the same sandboxed frame (the page's own connect-src stays strict); the site must allow the read with CORS. */
+export async function fetchImageBlob(url: string): Promise<Blob> {
+  const f = await getFrame(); const id = Math.random().toString(36).slice(2);
+  return new Promise<Blob>((resolve, reject) => {
+    const done = (fn: () => void): void => { window.removeEventListener('message', onMsg); clearTimeout(timer); fn(); };
+    const onMsg = (e: MessageEvent): void => {
+      if (e.source !== f.contentWindow || e.data?.id !== id) return;
+      const d = e.data as { blob?: unknown; error?: string; status?: number };
+      if (d.blob instanceof Blob) done(() => resolve(d.blob as Blob)); else done(() => reject(new FeedFetchError(String(d.error ?? 'network'), d.status ?? 0)));
+    };
+    const timer = setTimeout(() => done(() => reject(new FeedFetchError('timeout'))), TIMEOUT_MS + 2000);
+    window.addEventListener('message', onMsg);
+    f.contentWindow?.postMessage({ id, url, kind: 'image' }, '*');
+  });
+}
+
 async function fetchText(url: string): Promise<string> {
   const f = await getFrame();
   const id = Math.random().toString(36).slice(2);

@@ -12,7 +12,7 @@ import type { Post } from '../lib/types';
 import { publishPlan } from '../lib/mirror';
 import { href, navigate, state, USER } from '../lib/store';
 import { toast } from '../lib/toast';
-import { uploadEverywhere, type ImageMap } from '../lib/upload';
+import { externalImages, rehostImages, uploadEverywhere, type ImageMap } from '../lib/upload';
 import { renderMd } from '../lib/util';
 import DevTipToggle from './DevTipToggle.vue';
 import ImportView from './ImportView.vue';
@@ -79,9 +79,24 @@ async function onFile(e: Event): Promise<void> {
 /** Ctrl+V of a screenshot or copied image: upload it and put it in at the cursor. Plain-text pastes are left alone. */
 function onPaste(e: ClipboardEvent): void {
   const f = [...(e.clipboardData?.items ?? [])].find((i) => i.kind === 'file' && i.type.startsWith('image/'))?.getAsFile();
-  if (!f) return;
+  if (!f) { // pasted text: when it holds pictures from other servers, offer to copy them to the chains' image hosts
+    const urls = externalImages(e.clipboardData?.getData('text/plain') ?? '');
+    if (urls.length) rehost.value = { urls, working: false };
+    return;
+  }
   e.preventDefault();
   if (!uploading.value) void uploadFile(f.name && f.name !== 'image.png' ? f : new File([f], `screenshot-${Date.now()}.${f.type.split('/')[1] || 'png'}`, { type: f.type }));
+}
+const rehost = ref<{ urls: string[]; working: boolean } | null>(null);
+async function doRehost(): Promise<void> {
+  const r = rehost.value; if (!r || r.working) return;
+  r.working = true;
+  try {
+    const out = await rehostImages(body.value, r.urls);
+    body.value = out.text; Object.assign(images.value, out.images);
+    toast(out.failed ? t('rehostPartial', { ok: out.ok, fail: out.failed }) : t('rehostDone', { n: out.ok }));
+  } catch (err) { toast((err as Error).message || t('uploadFailed')); }
+  rehost.value = null;
 }
 async function uploadFile(f: File): Promise<void> {
   uploading.value = true;
@@ -141,6 +156,10 @@ async function submit(): Promise<void> {
       <span class="grow" />
       <input ref="fileInput" type="file" accept="image/*" hidden @change="onFile">
       <button :disabled="uploading" @click="fileInput?.click()"><Icon name="image" /> {{ uploading ? t('uploading') : t('uploadImage') }}</button>
+    </div>
+    <div v-if="rehost && tab === 'edit'" class="card rehost">
+      <span><Icon name="image" /> {{ t('rehostAsk', { n: rehost.urls.length }) }}</span>
+      <span class="rh-btns"><button class="pri" :disabled="rehost.working" @click="doRehost">{{ rehost.working ? t('uploading') : t('rehostYes') }}</button> <button :disabled="rehost.working" @click="rehost = null">{{ t('rehostNo') }}</button></span>
     </div>
     <textarea v-show="tab === 'edit'" ref="ta" @paste="onPaste" v-model="body" class="body-in" rows="18" :placeholder="t('bodyPh')" />
     <div v-show="tab === 'preview'" class="md post-body preview" v-html="renderMd(body)" />
