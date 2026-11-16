@@ -4,7 +4,7 @@
  * Unverified assumptions are marked "(?)"; the rest is derived from the account record so unknown field names do not break it.
  */
 import { feedCondenser, firstList, recentReplies, repliesScan, accBlog, firstPosts, tagCondenser, viaBlog, viaAuthorDate, viaHistory } from './posts';
-import { commentOptions } from '../ben';
+import { APP_DEV, commentOptions, DEV_WEIGHT, sortBens } from '../ben';
 import type { Post } from '../types';
 import { joinParts, num, votingPowerPct } from './account';
 import { collectStats } from './stats';
@@ -23,7 +23,7 @@ const rewardKeys = (acc: ChainAccount): string[] =>
 export const melek: ChainAdapter = {
   id: 'melek', name: 'Melek', letter: 'M', color: '#8e44ad', symbol: 'MELEK', payoutSymbol: 'MELEK',
   addressPrefix: 'MELEK', chainId: '907959e559e253f0db275e467363425cc2cf4f20f7721699914d248a5547ad8b', pool: MELEK_POOL,
-  devAccount: undefined, // no tip account on this chain
+  devAccount: APP_DEV, // the app author's account on Melek (optional 1% tip, same switch as on Blurt)
   vaultPrefix: undefined, // TODO: WhaleVault prefix for Melek once supported (key login only until then)
   powerSymbol: 'MP',
   hasBridge: false,
@@ -61,6 +61,7 @@ export const melek: ChainAdapter = {
   tagPosts: (tag, cur = {}, sort = 'created') => firstList(melek, { tag, sort }, cur, [tagCondenser]),
   latestPosts: (account) => firstPosts(melek, account, [viaBlog, viaAuthorDate, viaHistory()]),
   stats: (account, days, onProgress) => collectStats(melek, account, days, onProgress),
-  beneficiaries: () => [],
-  commentOptions: (author, permlink, beneficiaries, maxPayout = '1000000.000 MELEK') => commentOptions(author, permlink, beneficiaries, maxPayout), // (?) Blurt-style op
+  beneficiaries: (author, _parent, tip) => (tip && melek.devAccount && author !== melek.devAccount ? sortBens([{ account: melek.devAccount, weight: DEV_WEIGHT }]) : []),
+  // Steem-style op: the payout cap is in the chain's dollar token (MBD), like SBD on Steem
+  commentOptions: (author, permlink, beneficiaries, maxPayout = '1000000.000 MBD') => commentOptions(author, permlink, beneficiaries, maxPayout),
 };
