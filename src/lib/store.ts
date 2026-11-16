@@ -13,7 +13,7 @@ const PAGE = 20;
 const q = new URLSearchParams(location.search);
 // Feed, Latest, Tags, profiles and posts read from another chain are not part of any blog: they have no `user` in their address (one address per page, nothing
 // duplicated for search engines, no blog context). An old link that still has one is sent to the clean address.
-const WORLD_VIEWS = ['world', 'feed', 'profile'];
+const WORLD_VIEWS = ['world', 'feed', 'profile', 'wallet'];
 if (q.has('user') && (WORLD_VIEWS.includes(q.get('view') ?? '') || (q.get('post') && q.get('chain')))) {
   const clean = new URLSearchParams(q); clean.delete('user');
   if (clean.get('view') === 'feed') { clean.set('view', 'world'); clean.set('tab', 'feed'); }
@@ -40,9 +40,9 @@ export const state = reactive({
 });
 
 // ---------- URLs ----------
-export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world'; chain?: string; tab?: 'feed' | 'latest' | 'tags'; tag?: string; edit?: string }): string => {
+export const href = (o: { month?: string; cat?: string; post?: string; c?: string; view?: 'write' | 'settings' | 'docs' | 'feed' | 'stats' | 'world' | 'wallet'; chain?: string; tab?: 'feed' | 'latest' | 'tags'; tag?: string; edit?: string }): string => {
   const p = new URLSearchParams();
-  const world = o.view === 'world' || o.view === 'feed' || (!!o.post && !!o.chain); // pages outside any blog: no user in the address
+  const world = o.view === 'world' || o.view === 'feed' || o.view === 'wallet' || (!!o.post && !!o.chain); // pages outside any blog: no user in the address
   if (o.view === 'feed') { o = { ...o, view: 'world', tab: 'feed' }; }
   if (USER && !world) p.set('user', USER); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);

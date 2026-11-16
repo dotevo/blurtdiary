@@ -12,7 +12,7 @@ import * as dblurt from '@beblurt/dblurt';
 import type { Operation } from '../types';
 import type { ChainAdapter } from './types';
 
-const OP_ID: Record<string, number> = { vote: 0, comment: 1, custom_json: 18, comment_options: 19, claim_reward_balance: 39 };
+const OP_ID: Record<string, number> = { vote: 0, comment: 1, transfer: 2, transfer_to_vesting: 3, withdraw_vesting: 4, custom_json: 18, comment_options: 19, claim_reward_balance: 39 };
 /** Chains whose numbering is not known for sure: they are only signed when the node confirms the serialization. */
 const STRICT = new Set(['melek']);
 const EXPIRE_MS = 60_000;
@@ -47,6 +47,9 @@ function writeOp(o: Out, [name, d]: Operation): void {
   switch (name) {
     case 'vote': o.str(x.voter as string); o.str(x.author as string); o.str(x.permlink as string); o.u16(Number(x.weight) & 0xffff); break;
     case 'comment': for (const k of ['parent_author', 'parent_permlink', 'author', 'permlink', 'title', 'body', 'json_metadata']) o.str(String(x[k] ?? '')); break;
+    case 'transfer': o.str(x.from as string); o.str(x.to as string); o.asset(x.amount); o.str(String(x.memo ?? '')); break;
+    case 'transfer_to_vesting': o.str(x.from as string); o.str(x.to as string); o.asset(x.amount); break;
+    case 'withdraw_vesting': o.str(x.account as string); o.asset(x.vesting_shares); break;
     case 'custom_json': o.strs(x.required_auths); o.strs(x.required_posting_auths); o.str(x.id as string); o.str(x.json as string); break;
     case 'comment_options': {
       o.str(x.author as string); o.str(x.permlink as string); o.asset(x.max_accepted_payout);
@@ -77,7 +80,7 @@ function serialize(tx: Tx): Uint8Array {
 }
 
 /** Builds, checks against the node, signs and broadcasts `ops` on a Steem-family chain with a posting key (WIF). */
-export async function broadcastSteemFamily(a: ChainAdapter, ops: Operation[], wif: string): Promise<void> {
+export async function broadcastSteemFamily(a: ChainAdapter, ops: Operation[], key: string | dblurt.PrivateKey): Promise<void> {
   const props = await a.call<{ head_block_number: number; head_block_id: string; time: string }>('condenser_api', 'get_dynamic_global_properties', []);
   const tx: Tx = {
     ref_block_num: props.head_block_number & 0xffff,
@@ -91,7 +94,7 @@ export async function broadcastSteemFamily(a: ChainAdapter, ops: Operation[], wi
   if (theirs) {
     if (theirs !== mine && theirs !== mine + '00') throw new Error(`${a.name}: the node serializes this operation differently (ours ${mine.slice(0, 300)} / node ${theirs.slice(0, 300)}) – not signed`);
   } else if (STRICT.has(a.id)) throw new Error(`${a.name}: could not verify the transaction with the node – not signed`);
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', Uint8Array.from([...unhex(a.chainId ?? ''), ...unhex(mine)])));
-  const sig = dblurt.PrivateKey.from(wif).sign(digest as never).toString();
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', Uint8Array.from([...(a.chainId ? unhex(a.chainId) : new Uint8Array(dblurt.DEFAULT_CHAIN_ID)), ...unhex(mine)])));
+  const sig = (typeof key === 'string' ? dblurt.PrivateKey.from(key) : key).sign(digest as never).toString();
   await a.call('condenser_api', 'broadcast_transaction', [{ ...tx, signatures: [sig] }]);
 }

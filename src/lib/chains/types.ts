@@ -6,7 +6,7 @@ import type { NodePool } from './nodes';
 export type ChainId = string;
 
 /** Account record as returned by `condenser_api.get_accounts` (field names differ a little per chain). */
-export type ChainAccount = { posting: { key_auths: [string, number][] } } & Record<string, unknown>;
+export type ChainAccount = { posting: { key_auths: [string, number][] }; active: { key_auths: [string, number][] } } & Record<string, unknown>;
 /** Pending (unclaimed) rewards of an account. */
 export interface RewardInfo { has: boolean; label: string; power: string }
 

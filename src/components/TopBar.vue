@@ -8,7 +8,7 @@ import { href, navigate, state, USER } from '../lib/store';
 import { adapter } from '../lib/chains';
 import { closeNotifs, loadNotifs, notifGroups, notifIcon, notifLink, notifs, toggleNotifs, unreadMsg, unreadOther } from '../lib/notifs';
 import { CHAINS } from '../lib/chains';
-import { claim, loadWallets, wallets, walletUrl } from '../lib/wallet';
+import { claim, loadWallets, wallets } from '../lib/wallet';
 import { fmtAgo, fmtDate } from '../lib/util';
 import LangSelect from './LangSelect.vue';
 import Icon from './Icon.vue';
@@ -82,7 +82,7 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
         <div v-for="c in loggedChains()" :key="c.id" class="mp-chain">
           <ChainDot :chain="c.id" /><span class="grow"><b>@{{ auth.sessions[c.id].user }}</b>
             <span class="mute"> · {{ t('vp') }} {{ vpText(c.id) || '–' }}</span></span>
-          <a class="mute" :href="walletUrl(auth.sessions[c.id].user, c.id)" target="_blank" rel="noopener">{{ t('wallet') }}</a>
+          <a class="mute" :href="href({ view: 'wallet' })" @click.prevent="go(href({ view: 'wallet' }))">{{ t('wallet') }}</a>
           <button class="small" @click="logout(c.id)">{{ t('logout') }}</button>
           <div v-if="wallets[c.id]?.has" class="mp-reward"><span><Icon name="gift" /> {{ wallets[c.id].label }}</span>
             <button class="pri small" :disabled="wallets[c.id].busy" @click="claim(c.id)">{{ wallets[c.id].busy ? '…' : t('claimBtn') }}</button></div>

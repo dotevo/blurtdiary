@@ -20,6 +20,8 @@ import WriteView from './components/WriteView.vue';
 import UserAvatar from './components/UserAvatar.vue';
 import StatsView from './components/StatsView.vue';
 import WorldView from './components/WorldView.vue';
+import WalletView from './components/WalletView.vue';
+import ActiveKeyModal from './components/ActiveKeyModal.vue';
 import ProfileView from './components/ProfileView.vue';
 import FavList from './components/FavList.vue';
 import NodeSettings from './components/NodeSettings.vue';
@@ -96,12 +98,13 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
 <template>
   <DocsView v-if="state.view === 'docs'" />
   <!-- no blog: tag pages and posts read from one chain (a tag's address has no user, so every blog leads to the same page) -->
-  <template v-else-if="!USER && (state.view === 'world' || state.view === 'profile' || (state.post && state.chain))">
+  <template v-else-if="!USER && (state.view === 'world' || state.view === 'profile' || state.view === 'wallet' || (state.post && state.chain))">
     <TopBar />
     <div class="wrap wide"><main>
       <p><a class="mute" :href="href({})" @click.prevent="navigate(href({}))">Blurt Diary</a></p>
       <WorldView v-if="state.view === 'world'" />
       <ProfileView v-else-if="state.view === 'profile'" />
+      <WalletView v-else-if="state.view === 'wallet'" />
       <PostView v-else />
     </main></div>
   </template>
@@ -173,6 +176,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
     </footer>
   </template>
   <LoginModal v-if="loginOpen" @close="loginOpen = false" />
+  <ActiveKeyModal />
   <SupportModal v-if="support.show" />
   <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
 </template>

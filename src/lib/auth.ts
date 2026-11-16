@@ -3,6 +3,7 @@ import * as dblurt from '@beblurt/dblurt';
 import { adapter, CHAINS, PRIMARY, type ChainAdapter, type ChainId } from './chains';
 import { t } from './i18n';
 import { broadcastSteemFamily } from './chains/tx';
+import { askActiveKey } from './activeKey';
 import type { Operation, Session } from './types';
 
 // ---- sessions: one per chain. By default they live in this tab only (sessionStorage). A login with "remember" is ALSO copied
@@ -73,10 +74,10 @@ export const wvAvailable = (): Promise<boolean> =>
     wvHandshake = resolve; setTimeout(() => resolve(false), 1500);
     document.dispatchEvent(new CustomEvent('wvHandshake', { detail: { type: 'wvHandshake', appid: 'blurtdiary', request_id: 0 } }));
   });
-export const wvSign = (chain: ChainId, user: string, message: unknown, reason: string) => {
+export const wvSign = (chain: ChainId, user: string, message: unknown, reason: string, method: 'Posting' | 'Active' = 'Posting') => {
   const prefix = adapter(chain).vaultPrefix;
   if (!prefix) return Promise.resolve<WVResponse>({ success: false, message: t('wvUnsupported', { c: adapter(chain).name }) } as WVResponse);
-  return wvRequest({ type: 'signBuffer', username: prefix + user, message, method: 'Posting', reason, sigType: 'hex', appid: 'blurtdiary' });
+  return wvRequest({ type: 'signBuffer', username: prefix + user, message, method, reason, sigType: 'hex', appid: 'blurtdiary' });
 };
 
 /** Other chains can only be added on top of a Blurt login (Blurt is the main account). */
@@ -113,4 +114,31 @@ export async function broadcast(ops: Operation[], chain: ChainId = PRIMARY): Pro
     const r = await wvSign(chain, me.user, { operations: ops, url: a.pool.list()[0] }, 'bkc_broadcast');
     if (!r.success) throw new Error(r.message || t('wvError'));
   }
+}
+
+/**
+ * Broadcasts operations that need the ACTIVE authority (transfers, power up / down). The posting key of a session cannot sign them, and no other key is ever
+ * kept: with WhaleVault the vault signs (and asks the user); otherwise the user is asked for the active key each time, it is checked against the account's
+ * active authority, used for this one transaction and dropped.
+ */
+export async function broadcastActive(ops: Operation[], chain: ChainId, summary: string): Promise<void> {
+  const me = auth.sessions[chain];
+  if (!me) throw new Error(t('needLogin'));
+  const a = adapter(chain);
+  if (me.type === 'wv') {
+    const r = await wvSign(chain, me.user, { operations: ops, url: a.pool.list()[0] }, 'bkc_broadcast', 'Active');
+    if (!r.success) throw new Error(r.message || t('wvError'));
+    return;
+  }
+  let key = await askActiveKey(chain, me.user, summary);
+  try {
+    const priv = dblurt.PrivateKey.from(key.trim());
+    key = '';
+    const pub = priv.createPublic(a.addressPrefix).toString();
+    const acc = await a.getAccount(me.user);
+    if (!acc) throw new Error(t('accountNotFound', { u: me.user }));
+    if (!acc.active.key_auths.some((k) => k[0] === pub)) throw new Error(t(acc.posting.key_auths.some((k) => k[0] === pub) ? 'keyIsPosting' : 'keyNotActive'));
+    if (chain !== PRIMARY || ops.some((o) => o[0] === 'withdraw_vesting')) await broadcastSteemFamily(a, ops, priv);
+    else await new dblurt.Client(a.pool.list(), a.chainId ? { addressPrefix: a.addressPrefix, chainId: a.chainId } : undefined).broadcast.sendOperations(ops as never, priv);
+  } finally { key = ''; }
 }
