@@ -31,6 +31,7 @@ export const meta = (p: Post): Record<string, unknown> => {
   try { return typeof p.json_metadata === 'string' ? JSON.parse(p.json_metadata || '{}') : (p.json_metadata ?? {}); } catch { return {}; }
 };
 export const tagsOf = (p: Post): string[] => ((meta(p).tags as string[] | undefined) ?? []).map((t) => String(t).toLowerCase());
+export const isNsfw = (p: Post): boolean => tagsOf(p).includes('nsfw') || (p.category ?? '').toLowerCase() === 'nsfw';
 export const payoutOf = (p: Post): number =>
   p.payout != null ? num(p.payout) : num(p.pending_payout_value) + num(p.total_payout_value) + num(p.curator_payout_value);
 /**

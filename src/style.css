@@ -443,3 +443,5 @@ a.hashtag{text-decoration:none}a.hashtag:hover{text-decoration:underline}
 .sup-list{list-style:none;margin:.5rem 0;padding:0}
 .sup-list li{display:flex;gap:.5rem;align-items:center;padding:.3rem 0;border-top:1px solid var(--line)}
 .sup-bens{font-size:.8rem}
+
+.nsfw-opt{display:block;margin:.4rem 0;cursor:pointer}

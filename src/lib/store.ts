@@ -2,7 +2,8 @@ import { rememberAccounts } from './known';
 import { reactive, computed } from 'vue';
 import { rpc } from './rpc';
 import { CONFIG_PERMLINK, emptyConfig, normAccount, parseConfig } from './config';
-import { rootOf, slug, tagsOf } from './util';
+import { showNsfw } from './settings';
+import { isNsfw, rootOf, slug, tagsOf } from './util';
 import { applyTheme } from './theme';
 import { touchFav } from './favs';
 import { coalMap, coalReady } from './coal';
@@ -126,13 +127,15 @@ const oldestMonth = (): string => state.posts[state.posts.length - 1]?.created.s
 /** The pinned post goes first on the plain list; the same post is not repeated further down. */
 const withPinned = (l: Post[]): Post[] => (state.pinned ? [state.pinned, ...l.filter((p) => p.permlink !== state.pinned!.permlink)] : l);
 
-export const visible = computed(() => {
+const nsfwOk = (l: Post[]): Post[] => (showNsfw.value ? l : l.filter((p) => !isNsfw(p)));
+export const visible = computed(() => nsfwOk(visibleAll()));
+const visibleAll = (): Post[] => {
   if (monthMode()) return state.posts.filter((p) => p.created.startsWith(state.month));
   const c = currentCat();
   if (!c) return withPinned(state.posts);
   if (!state.searchBroken) return buckets[c.id]?.posts ?? [];
   return state.posts.filter((p) => tagsOf(p).some((t) => c.tags.includes(t)));
-});
+};
 export const canMore = computed(() => {
   if (monthMode()) return state.more && (!oldestMonth() || oldestMonth() >= state.month); // not yet past that month
   const c = currentCat();

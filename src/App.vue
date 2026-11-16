@@ -5,6 +5,7 @@ import { loginOpen } from './lib/auth';
 import { safeUrl } from './lib/config';
 import { lang, t } from './lib/i18n';
 import { support } from './lib/support';
+import { setShowNsfw, showNsfw } from './lib/settings';
 import { canMore, href, initBlog, loadMore, navigate, state, USER, visible } from './lib/store';
 import { toastMsg } from './lib/toast';
 import DocsView from './components/DocsView.vue';
@@ -173,6 +174,7 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
     <footer class="foot mute">
       <div v-if="state.cfg.footer">{{ state.cfg.footer }}</div>
       {{ t('footer') }} · <a :href="href({ view: 'docs' })" @click.prevent="navigate(href({ view: 'docs' }))">{{ t('docs') }}</a>
+      <label class="nsfw-opt"><input type="checkbox" :checked="showNsfw" @change="setShowNsfw(($event.target as HTMLInputElement).checked)"> {{ t('showNsfw') }}</label>
       <NodeSettings />
     </footer>
   </template>

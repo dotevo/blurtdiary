@@ -27,3 +27,8 @@ const RK = 'bd-rss-footer';
 /** Source line under posts imported from a feed. On by default. */
 export const rssFooter = ref((() => { try { return localStorage.getItem(RK) !== 'false'; } catch { return true; } })());
 export function setRssFooter(on: boolean): void { rssFooter.value = on; try { localStorage.setItem(RK, String(on)); } catch { /* ignore */ } }
+
+const NK = 'bd-nsfw';
+/** Posts tagged `nsfw` are hidden from every list unless this is switched on (footer checkbox). Off by default. */
+export const showNsfw = ref((() => { try { return localStorage.getItem(NK) === 'true'; } catch { return false; } })());
+export function setShowNsfw(on: boolean): void { showNsfw.value = on; try { localStorage.setItem(NK, String(on)); } catch { /* ignore */ } }

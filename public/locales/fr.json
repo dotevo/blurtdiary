@@ -29,6 +29,7 @@
  "loginError": "Erreur de connexion",
  "wvMissing": "WhaleVault non détecté",
  "votesTitle": "Votes",
+ "showNsfw": "Afficher les billets NSFW (masqués par défaut)",
  "supportTitle": "Soutenir (contenu après le paiement)",
  "supChecking": "vérification…",
  "supNew": "nouveau billet de soutien + vote",

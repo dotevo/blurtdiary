@@ -29,6 +29,7 @@
  "loginError": "Login error",
  "wvMissing": "WhaleVault not detected",
  "votesTitle": "Votes",
+ "showNsfw": "Show NSFW posts (hidden by default)",
  "supportTitle": "Support (content past its payout window)",
  "supChecking": "checking…",
  "supNew": "new support post + vote",

@@ -29,6 +29,7 @@
  "loginError": "Error de inicio de sesión",
  "wvMissing": "WhaleVault no detectado",
  "votesTitle": "Votos",
+ "showNsfw": "Mostrar publicaciones NSFW (ocultas por defecto)",
  "supportTitle": "Apoyar (contenido tras el pago)",
  "supChecking": "comprobando…",
  "supNew": "nueva publicación de apoyo + voto",

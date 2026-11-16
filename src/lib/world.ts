@@ -10,13 +10,14 @@ import { auth, loggedChains } from './auth';
 import { adapter, CHAINS } from './chains';
 import type { Cursor, Sort } from './chains/posts';
 import type { Post } from './types';
-import { payoutOf, toDate } from './util';
+import { showNsfw } from './settings';
+import { isNsfw, payoutOf, toDate } from './util';
 
 /**
  * `stub`: the item was dropped from memory (long scrolling) and only keeps what is needed to bring it back: its key (author/permlink), the chains that have it,
  * its position (`at`, `sc`), the payout (for the feed's payout order) and the height it had on screen. The card shows a spinner until it is fetched again.
  */
-export interface WItem { key: string; lead: Post; copies: Record<string, Post>; chains: string[]; at: number; sc?: Record<string, number>; stub?: boolean; fail?: boolean; h?: number; pay?: number }
+export interface WItem { key: string; lead: Post; copies: Record<string, Post>; chains: string[]; at: number; sc?: Record<string, number>; stub?: boolean; fail?: boolean; h?: number; pay?: number; nsfw?: boolean }
 interface Src { more: boolean; cursor?: Cursor; error: string; oldest: number; n?: number }
 export interface WList { items: WItem[]; loading: boolean; sources: Record<string, Src>; for: string }
 
@@ -57,7 +58,8 @@ function makeList(chains: () => string[], fetch: (chain: string, cur: Cursor) =>
   let buf: WItem[] = []; // everything fetched; `list.items` is the part above the horizon
   let run = 0;
   const horizon = (): number => { let h = -Infinity; for (const s of Object.values(list.sources)) if (s.more && s.oldest > h) h = s.oldest; return h; };
-  const publish = (): void => { const h = horizon(); list.items = buf.filter((i) => i.at >= h); };
+  const publish = (): void => { const h = horizon(); list.items = buf.filter((i) => i.at >= h && (showNsfw.value || !(i.nsfw ?? isNsfw(i.lead)))); };
+  watch(showNsfw, publish);
   /** Memory window: items farther than KEEP positions from the one on screen become stubs (only when the list is long). Heights are measured by the view. */
   const trim = (centerKey: string, heights: Record<string, number> = {}): void => {
     if (buf.length <= MAXFULL) return;
@@ -66,7 +68,7 @@ function makeList(chains: () => string[], fetch: (chain: string, cur: Cursor) =>
     buf = buf.map((it, i) => {
       if (it.stub || Math.abs(i - c) <= KEEP || i >= list.items.length) return it;
       changed = true;
-      return { key: it.key, lead: { author: it.lead.author, permlink: it.lead.permlink, title: '', body: '' } as Post, copies: {}, chains: it.chains, at: it.at, sc: it.sc, stub: true, h: heights[it.key] ?? it.h, pay: payoutOf(it.lead) };
+      return { key: it.key, lead: { author: it.lead.author, permlink: it.lead.permlink, title: '', body: '' } as Post, copies: {}, chains: it.chains, at: it.at, sc: it.sc, stub: true, h: heights[it.key] ?? it.h, pay: payoutOf(it.lead), nsfw: isNsfw(it.lead) };
     });
     if (changed) publish();
   };
@@ -84,7 +86,7 @@ function makeList(chains: () => string[], fetch: (chain: string, cur: Cursor) =>
     for (const [c, p] of got) if (p && p.author) copies[c] = p;
     const i = buf.findIndex((x) => x.key === key); if (i < 0) return;
     const chains = CHAINS.filter((c) => copies[c.id]).map((c) => c.id);
-    buf = buf.map((x, j) => (j !== i ? x : chains.length ? { key, lead: copies[chains[0]], copies, chains, at: it.at, sc: it.sc } : { ...x, fail: true }));
+    buf = buf.map((x, j) => (j !== i ? x : chains.length ? { key, lead: copies[chains[0]], copies, chains, at: it.at, sc: it.sc, nsfw: it.nsfw } : { ...x, fail: true }));
     publish();
   }
   const retry = (key: string): void => { const i = buf.findIndex((x) => x.key === key); if (i >= 0 && buf[i].fail) { buf = buf.map((x, j) => (j === i ? { ...x, fail: false } : x)); publish(); void hydrate(key); } };

@@ -29,6 +29,7 @@
  "loginError": "Błąd logowania",
  "wvMissing": "Nie wykryto WhaleVault",
  "votesTitle": "Głosy",
+ "showNsfw": "Pokaż posty NSFW (domyślnie ukryte)",
  "supportTitle": "Wesprzyj (treść po okresie wypłaty)",
  "supChecking": "sprawdzam…",
  "supNew": "nowy post wsparcia + głos",
