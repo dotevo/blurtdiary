@@ -9,6 +9,7 @@
  *    direct method names (`condenser_api.get_content`, `bridge.get_discussion`). If a node refuses it, the same node is tried
  *    once more with the `call` wrapper before moving on to the next node.
  */
+import { deadKey, isDead, isPermanent, markDead } from './dead';
 import type { NodePool } from './nodes';
 
 
@@ -45,25 +46,31 @@ async function once<T>(url: string, init: RequestInit, timeoutMs: number): Promi
  * Throws the last reason when every node fails.
  */
 export async function jsonRpc<T = unknown>(pool: NodePool, api: string, method: string, params: unknown, style: RpcStyle = 'legacy'): Promise<T> {
+  const dk = deadKey(pool.chain, api, method);
+  if (isDead(dk)) throw new RpcError(`${api}.${method} is not available on ${pool.chain} (skipped)`, pool.nodes, true);
   let lastErr: unknown = new RpcError('RPC failed', pool.nodes);
+  let asked = 0, refused = 0;
   for (const url of pool.list()) {
+    asked++;
     const attempts: RequestInit[] = style === 'modern'
       ? [{ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: bodyFor(api, method, params, true) },
          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: bodyFor(api, method, params, false) }]
       : [{ method: 'POST', body: bodyFor(api, method, params, false) }];
-    let reachable = true;
+    let reachable = true, ref = false;
     for (const init of attempts) {
       try { const r = await once<T>(url, init, pool.timeoutMs); pool.ok(url); return r; }
       catch (e) {
         lastErr = e;
         if (isMissingError(e)) { pool.ok(url); throw e; } // a healthy node says the post is not there: final, no need to ask the others
         console.warn('RPC node failed:', url, `${api}.${method}`, e);
-        if (e instanceof RpcError && e.answered) { reachable = true; continue; }
+        if (e instanceof RpcError && e.answered) { reachable = true; if (isPermanent(e.message)) ref = true; continue; }
         reachable = false;
         if ((e as Error).message?.startsWith('timeout')) break; // no point asking a silent node twice
       }
     }
     if (!reachable) pool.fail(url);
+    if (ref) refused++;
   }
+  if (asked && refused >= asked) markDead(dk); // every node said it does not have this API
   throw lastErr instanceof Error ? lastErr : new RpcError(String(lastErr), pool.nodes);
 }

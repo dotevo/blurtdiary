@@ -2,6 +2,8 @@
  * Another person on one chain: profile data and the on-chain follow relation, for the profile page.
  * Nothing here belongs to a blog – a profile is "what this account writes / do I follow it" on that chain.
  */
+import { RpcError } from './chains/jsonrpc';
+import { deadKey, isDead, markDead } from './chains/dead';
 import { reactive } from 'vue';
 import { auth, broadcast } from './auth';
 import { adapter } from './chains';
@@ -33,16 +35,23 @@ export async function loadInfo(chain: string, account: string): Promise<void> {
 /** Does `me` follow `account` on `chain`? null = the nodes could not tell. `bridge.get_relationship_between_accounts` first, else `get_following` from just before the name. */
 export async function relationOn(chain: string, me: string, account: string): Promise<boolean | null> {
   const a = adapter(chain); let yes: boolean | null = null;
-  try {
-    const r = await a.call<{ follows?: boolean } | null>('bridge', 'get_relationship_between_accounts', [me, account]);
-    if (r && typeof r.follows === 'boolean') yes = r.follows;
-  } catch { /* older call */ }
-  if (yes === null) {
+  if (a.hasBridge !== false) { // a chain without the bridge API (Melek) is not asked at all; others are skipped once their nodes refused it
+    try {
+      const r = await a.call<{ follows?: boolean } | null>('bridge', 'get_relationship_between_accounts', [me, account]);
+      if (r && typeof r.follows === 'boolean') yes = r.follows;
+    } catch { /* older call */ }
+  }
+  const dk = deadKey(chain, 'condenser_api', 'get_following');
+  if (yes === null && !isDead(dk)) {
     try {
       const before = account.slice(0, -1) + String.fromCharCode(account.charCodeAt(account.length - 1) - 1) + 'z';
       const r = await a.call<{ following: string }[]>('condenser_api', 'get_following', [me, before, 'blog', 5]);
       if (Array.isArray(r)) yes = r.some((x) => x?.following === account);
-    } catch (e) { console.warn('relation', chain, e); }
+    } catch (e) {
+      // every node refuses it (Steem: follow plugin gone / "Invalid parameters"): stop asking, the follow button just does not know the state
+      if (e instanceof RpcError && e.answered) markDead(dk);
+      console.warn('relation', chain, e);
+    }
   }
   return yes;
 }
