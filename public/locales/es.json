@@ -29,6 +29,7 @@
  "loginError": "Error de inicio de sesión",
  "wvMissing": "WhaleVault no detectado",
  "votesTitle": "Votos",
+ "wvTimeout": "WhaleVault no respondió a tiempo – inténtalo de nuevo.",
  "showNsfw": "Mostrar publicaciones NSFW (ocultas por defecto)",
  "supportTitle": "Apoyar (contenido tras el pago)",
  "supChecking": "comprobando…",

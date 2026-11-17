@@ -29,6 +29,7 @@
  "loginError": "Anmeldefehler",
  "wvMissing": "WhaleVault nicht erkannt",
  "votesTitle": "Stimmen",
+ "wvTimeout": "WhaleVault hat nicht rechtzeitig geantwortet – bitte erneut versuchen.",
  "showNsfw": "NSFW-Beiträge anzeigen (standardmäßig ausgeblendet)",
  "supportTitle": "Unterstützen (Inhalt nach der Auszahlung)",
  "supChecking": "prüfe…",

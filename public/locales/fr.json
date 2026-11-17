@@ -29,6 +29,7 @@
  "loginError": "Erreur de connexion",
  "wvMissing": "WhaleVault non détecté",
  "votesTitle": "Votes",
+ "wvTimeout": "WhaleVault n'a pas répondu à temps – réessayez.",
  "showNsfw": "Afficher les billets NSFW (masqués par défaut)",
  "supportTitle": "Soutenir (contenu après le paiement)",
  "supChecking": "vérification…",

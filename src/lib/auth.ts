@@ -64,11 +64,23 @@ window.addEventListener('message', (e: MessageEvent) => {
     wvCb[id]?.(d.response); delete wvCb[id];
   }
 });
-const wvRequest = (detail: Record<string, unknown>): Promise<WVResponse> =>
-  new Promise((resolve) => {
-    const id = wvId++; wvCb[id] = resolve;
-    document.dispatchEvent(new CustomEvent('wvRequest', { detail: { ...detail, request_id: id } }));
+/**
+ * WhaleVault shows ONE confirmation window at a time: requests sent while another is open are lost (no prompt, no answer – a spinner forever).
+ * So the requests go through a queue, one by one, and a request nobody answers ends with an error after 3 minutes.
+ */
+let wvQueue: Promise<unknown> = Promise.resolve();
+const wvRequest = (detail: Record<string, unknown>): Promise<WVResponse> => {
+  const run = (): Promise<WVResponse> => new Promise((resolve) => {
+    const id = wvId++;
+    const timer = setTimeout(() => { delete wvCb[id]; resolve({ success: false, message: t('wvTimeout') }); }, 180000);
+    wvCb[id] = (r) => { clearTimeout(timer); resolve(r); };
+    // plain data only: Vue's reactive proxies (e.g. beneficiaries read from reactive state) cannot be cloned into the extension – its page script then sees a null `detail`
+    document.dispatchEvent(new CustomEvent('wvRequest', { detail: JSON.parse(JSON.stringify({ ...detail, request_id: id })) }));
   });
+  const p = wvQueue.then(run, run);
+  wvQueue = p.catch(() => undefined);
+  return p;
+};
 export const wvAvailable = (): Promise<boolean> =>
   new Promise((resolve) => {
     wvHandshake = resolve; setTimeout(() => resolve(false), 1500);
