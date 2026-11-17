@@ -50,17 +50,34 @@ const sameBens = (c: Beneficiary[], want: Beneficiary[]): boolean => {
 export const oldChains = (versions: Record<string, Post>) => CHAINS.filter((c) => auth.sessions[c.id] && versions[c.id] && isOld(versions[c.id]));
 
 /** What supporting `post` on `chain` would do right now (one scan of the replies). Never throws: a failed scan is treated as "no support comment yet". */
+/** The copy with its real beneficiary list (a list read from a replies call may be missing it). */
+const withBens = async (chain: string, post: Post): Promise<Post> => {
+  if (post.beneficiaries) return post;
+  try { return (await adapter(chain).getContent(post.author, post.permlink)) ?? post; } catch { return post; } // the copy's real beneficiaries decide who gets the money
+};
+/** Beneficiaries a support comment under `original` must have on `chain` (also used when a support comment is copied to another chain). */
+export const supportBensFor = async (chain: string, original: Post): Promise<Beneficiary[]> => supportBens(await withBens(chain, original));
+
+/** Did `me` vote on this comment? Some nodes (Melek, Steem) return comments from get_content_replies with an EMPTY vote list, so then the votes are asked for separately. */
+async function votedOn(chain: string, c: Post, me: string): Promise<boolean> {
+  if (c.active_votes?.length) return votedBy(c, me);
+  try {
+    const votes = await adapter(chain).call<NonNullable<Post['active_votes']>>('condenser_api', 'get_active_votes', [c.author, c.permlink]);
+    return votedBy({ ...c, active_votes: votes }, me);
+  } catch { return votedBy(c, me); }
+}
+
+/** What supporting `post` on `chain` would do right now (one scan of the replies). Never throws: a failed scan is treated as "no support comment yet". */
 export async function planChain(chain: string, post: Post): Promise<SupportTarget> {
   const me = auth.sessions[chain]?.user ?? ''; const a = adapter(chain);
-  let full = post;
-  if (!post.beneficiaries) { try { full = (await a.getContent(post.author, post.permlink)) ?? post; } catch { /* use what we have */ } } // the copy's real beneficiaries decide who gets the money
+  const full = await withBens(chain, post);
   const bens = supportBens(full);
   const tg: SupportTarget = { chain, post: full, bens, state: 'new', existing: null, error: '', step: '' };
   try {
     const kids = await a.call<Post[]>('condenser_api', 'get_content_replies', [post.author, post.permlink]);
     const fresh = kids.filter((c) => Date.now() - toDate(c.created).getTime() < WEEK && sameBens(c.beneficiaries ?? [], bens));
     const ex = fresh.find((c) => c.author === me) ?? fresh[0];
-    if (ex) { tg.existing = { author: ex.author, permlink: ex.permlink }; tg.state = votedBy(ex, me) ? 'done' : 'existing'; }
+    if (ex) { tg.existing = { author: ex.author, permlink: ex.permlink }; tg.state = (await votedOn(chain, ex, me)) ? 'done' : 'existing'; }
   } catch (e) { console.warn('Support scan failed on', chain, e); }
   return tg;
 }

@@ -66,6 +66,8 @@ export function rootOf(c: Post): { author: string; permlink: string } | null {
 }
 /** The "Posted with Blurt Diary" footer (settings.ts `withFooter`) means nothing inside this very front end, so comments are shown without it. */
 const FOOTER_RE = /\n*(?:---\n)?<sub>\[Posted with Blurt Diary[^\]]*\]\(https:\/\/dotevo\.github\.io\/blurtdiary\/[^)\s]*\)<\/sub>\s*$/;
+/** A support comment (see support.ts): votes on it pay the original author. */
+export const isSupportComment = (p: Post): boolean => /^Supporting original content by @/.test(p.body ?? '');
 export const stripFooter = (b: string): string => (b ?? '').replace(FOOTER_RE, '');
 export const excerpt = (b: string): string =>
   stripFooter(b).replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, '')

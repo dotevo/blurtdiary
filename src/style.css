@@ -445,3 +445,5 @@ a.hashtag{text-decoration:none}a.hashtag:hover{text-decoration:underline}
 .sup-bens{font-size:.8rem}
 
 .nsfw-opt{display:block;margin:.4rem 0;cursor:pointer}
+
+.cm.fold{padding-top:.2rem;padding-bottom:.2rem}.cm-fold{display:inline-flex;gap:.35rem;align-items:center;font-size:.85rem;text-decoration:none}.cm-fold .lnk{text-decoration:underline}

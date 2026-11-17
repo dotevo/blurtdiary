@@ -19,8 +19,10 @@ import { devTip } from './settings';
 import { state, USER } from './store';
 import { localizeBody, type ImageMap } from './upload';
 import { queued, registerJob } from './queue';
-import { meta, pushKid, tagsOf } from './util';
-import type { Operation, Post } from './types';
+import { supportBensFor } from './support';
+import { sortBens } from './ben';
+import { isSupportComment, meta, pushKid, tagsOf } from './util';
+import type { Beneficiary, Operation, Post } from './types';
 
 const THREAD_DEADLINE_MS = 40000; // must exceed (nodes in the queue x per-node timeout), otherwise the last nodes are never tried
 const BLURT_COMMUNITY = /^blurt-\d+$/;
@@ -115,15 +117,16 @@ export interface SendResult { ok: Record<string, Post>; failed: Record<string, s
 
 /** The parent fields a comment needs – small enough to keep in the retry queue. */
 const slim = (p: Post): Post => ({ author: p.author, permlink: p.permlink, title: '', body: '', created: p.created, depth: p.depth, category: p.category, community_name: p.community_name });
-interface CommentJob { parent: Post; permlink: string; text: string; images: ImageMap }
-const sendOne = (chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}): Promise<Post> =>
-  queued('comment', chain, text.replace(/\s+/g, ' ').slice(0, 60), { parent: slim(parent), permlink, text, images } as CommentJob, () => sendOneRaw(chain, parent, permlink, text, images));
-registerJob<CommentJob>('comment', (j, chain) => sendOneRaw(chain, j.parent, j.permlink, j.text, j.images));
-async function sendOneRaw(chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}): Promise<Post> {
+interface CommentJob { parent: Post; permlink: string; text: string; images: ImageMap; bens?: Beneficiary[] }
+const sendOne = (chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}, bens?: Beneficiary[]): Promise<Post> =>
+  queued('comment', chain, text.replace(/\s+/g, ' ').slice(0, 60), { parent: slim(parent), permlink, text, images, bens } as CommentJob, () => sendOneRaw(chain, parent, permlink, text, images, bens));
+registerJob<CommentJob>('comment', (j, chain) => sendOneRaw(chain, j.parent, j.permlink, j.text, j.images, j.bens));
+/** `fixed` = the beneficiaries to use as they are (a copy of an existing comment keeps its own); otherwise the usual dev tip decides. */
+async function sendOneRaw(chain: string, parent: Post, permlink: string, text: string, images: ImageMap = {}, fixed?: Beneficiary[]): Promise<Post> {
   const me = sessionOf(chain); const a = adapter(chain);
   if (!me) throw new Error('not logged in');
   const body = await localizeBody(chain, text, images); // images: each chain's own copy when there is one
-  const bens = a.beneficiaries(me.user, parent, devTip.value);
+  const bens = fixed ?? a.beneficiaries(me.user, parent, devTip.value);
   const ops: Operation[] = [['comment', { parent_author: parent.author, parent_permlink: parent.permlink, author: me.user, permlink, title: '',
     body, json_metadata: JSON.stringify({ app: 'blurtdiary/1.0', format: 'markdown' }) }]];
   if (chain === PRIMARY || bens.length) ops.push(a.commentOptions(me.user, permlink, bens));
@@ -158,7 +161,10 @@ export function mirrorableChains(node: MNode, parent: Record<string, Post>): Cha
 export async function mirrorComment(chain: string, node: MNode, parent: Record<string, Post>): Promise<Post> {
   const mine = mineOf(node.versions);
   if (!mine || !parent[chain]) throw new Error('cannot mirror');
-  return sendOne(chain, parent[chain], node.permlink, mine.body);
+  // the copy keeps what the original has: a support comment is rebuilt from the ORIGINAL post's beneficiaries on that chain (same people get the money
+  // there), any other comment keeps its own list (also when empty – no dev tip is added behind the author's back)
+  const bens = isSupportComment(mine) ? await supportBensFor(chain, parent[chain]) : sortBens((mine.beneficiaries ?? []).map((b) => ({ account: b.account, weight: b.weight })));
+  return sendOne(chain, parent[chain], node.permlink, mine.body, {}, bens);
 }
 
 // ---------- posts ----------

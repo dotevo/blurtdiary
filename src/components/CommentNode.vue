@@ -13,7 +13,7 @@ import { t } from '../lib/i18n';
 import { useImageField } from '../lib/useImageField';
 import { applyResult, chainsOf, commentTargets, describeResult, mirrorableChains, mirrorChains, mirrorComment, primaryOf, sendComment, versionsDiffer, type MNode } from '../lib/mirror';
 import { toast } from '../lib/toast';
-import { excerpt, fmtDate, payoutOf, payoutTitle, renderMd, stripFooter } from '../lib/util';
+import { excerpt, fmtDate, isSupportComment, payoutOf, payoutTitle, renderMd, stripFooter } from '../lib/util';
 import ChainDot from './ChainDot.vue';
 import DevTipToggle from './DevTipToggle.vue';
 import UserAvatar from './UserAvatar.vue';
@@ -32,6 +32,10 @@ const chains = computed(() => chainsOf(props.node.versions));
 const blurtCopy = computed(() => props.node.versions.blurt);
 const coal = computed(() => (blurtCopy.value ? coalMap.value.get(blurtCopy.value.author.toLowerCase()) : undefined)); // COAL lists Blurt accounts
 const shown = ref(false);
+/** Support comments are folded into one line (many of them would bury the real discussion); a click opens them. */
+const isSup = computed(() => isSupportComment(c.value));
+const open = ref(false);
+const folded = computed(() => isSup.value && !open.value);
 const showMirrors = computed(() => mirrorChains().length > 0);
 const differs = computed(() => versionsDiffer(props.node.versions));
 const versionsOpen = ref(false);
@@ -81,7 +85,9 @@ async function sendCopy(chain: string): Promise<void> {
 </script>
 
 <template>
-  <div class="cm" :class="{ flat: depth >= 5 }" :data-ck="`${c.author}/${c.permlink}`">
+  <div class="cm" :class="{ flat: depth >= 5, fold: folded }" :data-ck="`${c.author}/${c.permlink}`">
+    <a v-if="folded" href="#" class="cm-fold mute" @click.prevent="open = true"><Icon name="gift" /> {{ t('supportFold', { a: c.author }) }} · {{ payoutOf(c).toFixed(3) }} {{ chains[0]?.payoutSymbol }} · <span class="lnk">{{ t('supportShow') }}</span></a>
+    <template v-else>
     <div class="cm-head">
       <UserAvatar :name="c.author" small /> <a class="au" :href="profileHref(c.author, chains[0]?.id ?? 'blurt')" :title="t('profileOpen')" @click.prevent="openProfile(c.author, chains[0]?.id ?? 'blurt')"><b>{{ c.author }}</b></a>
       <span v-if="showMirrors" class="cm-chains"><ChainDot v-for="d in dots" :key="d.id" :chain="d.id" :status="d.status" :title="d.title" /></span>
@@ -104,6 +110,7 @@ async function sendCopy(chain: string): Promise<void> {
       <VoteBox :versions="node.versions"><a href="#" :class="{ on: votedAll(node.versions) }" :title="voteTitle" @click.prevent="toggleVoteAll(node.versions)"><Icon name="heart" /> {{ c.active_votes?.length ?? 0 }}</a></VoteBox>
       <a href="#" class="vinfo" :title="t('votesTitle')" :aria-label="t('votesTitle')" @click.prevent="votesOpen = true">ⓘ</a>
       <a href="#" @click.prevent="startReply">{{ t('reply') }}</a>
+      <a v-if="isSup" href="#" @click.prevent="open = false">{{ t('supportHide') }}</a>
       <span v-if="node.children.length">{{ t('repliesCount', { n: node.children.length }) }}</span>
       <a v-if="differs" href="#" class="vdiff" :title="accounts()" @click.prevent="versionsOpen = true"><Icon name="warn" /> {{ t('versionsDiffer') }}</a>
       <button v-for="x in canSendTo" :key="x.id" class="small" :disabled="busyChain === x.id" @click="sendCopy(x.id)">{{ t('sendTo', { c: x.name }) }}</button>
@@ -119,5 +126,6 @@ async function sendCopy(chain: string): Promise<void> {
     <CommentNode v-for="r in node.children" :key="r.permlink" :node="r" :parent="node.versions" :depth="depth + 1" />
     <VotesModal v-if="votesOpen" :versions="node.versions" @close="votesOpen = false" />
     <VersionsModal v-if="versionsOpen" :versions="node.versions" @close="versionsOpen = false" />
+    </template>
   </div>
 </template>
