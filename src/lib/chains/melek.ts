@@ -52,8 +52,10 @@ export const melek: ChainAdapter = {
     const p = await melek.call<Post>('condenser_api', 'get_content', [author, permlink]).catch((e) => { if (isMissingError(e)) return null; throw e; });
     return p?.author ? p : null;
   },
-  // no bridge API: the discussion call is skipped and the thread is walked with get_content_replies
-  getThread: (author, permlink) => resolveThread(melek, author, permlink, async () => null, true),
+  // no bridge API, and get_content_replies returns comments with EMPTY active_votes (so own votes were not recognised after a reload):
+  // get_state returns the whole discussion with the votes. If it fails the thread is walked with get_content_replies as a fallback.
+  getThread: (author, permlink) => resolveThread(melek, author, permlink, async () =>
+    (await melek.call<{ content?: Record<string, Post> }>('condenser_api', 'get_state', [`/tag/@${author}/${permlink}`]).catch(() => ({ content: undefined }))).content ?? null, true),
 
   feedPosts: (account, cur = {}) => firstList(melek, account, cur, [feedCondenser]),
   recentReplies: (account) => recentReplies(melek, account, [repliesScan]),
