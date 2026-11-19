@@ -12,7 +12,7 @@ import { loadNeighbors } from '../lib/neighbors';
 import { useImageField } from '../lib/useImageField';
 import { applyResult, canMirrorPost, editEverywhere, chainsOf, isUnverified, threadAccount, commentTargets, describeResult, loadChainThread, mergeThreads, mirrorChains, mirrorPost, sendComment, versionsDiffer } from '../lib/mirror';
 import { accountsOf, ownerOf } from '../lib/known';
-import { href, navigate, openProfile, openTag, profileHref, postParam, postRef, state, tagHref, USER } from '../lib/store';
+import { href, navigate, openProfile, openTag, profileHref, postParam, postRef, state, tagHref, blog } from '../lib/store';
 import { fmtDate, payoutOf, payoutTitle, renderMd, rootOf, tagsOf, thumbOf } from '../lib/util';
 import { toast } from '../lib/toast';
 import type { Post } from '../lib/types';
@@ -50,7 +50,7 @@ const checking = computed(() => mirrored.value && mirrorChains().some((c) => !th
 const payoutChains = computed(() => chainsOf(merged.value.root)); // rewards of every chain that has a copy
 const postDiffers = computed(() => versionsDiffer(merged.value.root, true));
 /** The blog owner, logged in on Blurt, may edit the post; if the copies differ they may also copy the Blurt version over the other chains. */
-const isOwner = computed(() => !fchain.value && !!post.value && post.value.author === USER && auth.me?.user === USER && (post.value.depth ?? 0) === 0);
+const isOwner = computed(() => !fchain.value && !!post.value && post.value.author === blog.user && auth.me?.user === blog.user && (post.value.depth ?? 0) === 0);
 const commentTa = ref<HTMLTextAreaElement | null>(null); const commentFile = ref<HTMLInputElement | null>(null);
 const cimg = useImageField(body, commentTa);
 const syncing = ref(false);
@@ -68,7 +68,7 @@ async function syncCopies(): Promise<void> {
 }
 /** A post read from another chain (`?chain=hive`): it has no Blurt copy, so it is shown from that chain only. */
 const fchain = computed(() => (state.chain && state.chain !== 'blurt' && CHAINS.some((c) => c.id === state.chain) ? state.chain : ''));
-const mirrored = computed(() => !fchain.value && !!post.value && post.value.author === USER && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
+const mirrored = computed(() => !fchain.value && !!post.value && post.value.author === blog.user && (post.value.depth ?? 0) === 0 && mirrorChains().length > 0);
 
 /** Copies found on other chains only by NAME (the blog declares no accounts there, or the author of a read post is unknown): not verified to be the same person. */
 const guessed = ref(false);
@@ -91,7 +91,9 @@ async function load(): Promise<void> {
   const my = ++seq; const g = guard(my);
   loading.value = true;
   Object.keys(threads).forEach((k) => delete threads[k]);
-  const { author, permlink } = postRef(state.post);
+  let { author, permlink } = postRef(state.post);
+  // an older link without the author (`?post=permlink&chain=…&c=author/permlink`): the author is in ?c=
+  if (!author && state.focus?.endsWith('/' + permlink)) author = state.focus.split('/')[0];
   if (fchain.value) {
     const fc = fchain.value;
     const fth = await adapter(fc).getThread(author, permlink);
@@ -100,7 +102,7 @@ async function load(): Promise<void> {
     if (froot && (froot.depth ?? 0) > 0) {
       // a comment (a notification from this chain) -> its root post, the comment highlighted
       const r = rootOf(froot);
-      if (r) { navigate(href({ post: postParam(r.author, r.permlink), chain: fc, c: `${author}/${permlink}` }), true); return; }
+      if (r) { navigate(href({ post: `${r.author}/${r.permlink}`, chain: fc, c: `${author}/${permlink}` }), true); return; }
     }
     // whose post is it? Our own account on this chain, or an account that a Blurt blog we have visited declared as its owner's
     const known = !froot ? undefined : auth.me && froot.author === auth.sessions[fc]?.user ? auth.me.user : ownerOf(fc, froot.author);
@@ -110,7 +112,7 @@ async function load(): Promise<void> {
       // the Blurt copy (the source of truth) shows the whole discussion of all chains
       const bt = await adapter('blurt').getThread(owner, froot.permlink);
       if (my !== seq) return;
-      if (bt.status === 'found') { window.location.replace(`?user=${encodeURIComponent(owner)}&post=${encodeURIComponent(froot.permlink)}${state.focus ? '&c=' + encodeURIComponent(state.focus) : ''}`); return; } // the owner's blog: a full load, the blog (USER) is fixed at page start
+      if (bt.status === 'found') { navigate(`?user=${encodeURIComponent(owner)}&post=${encodeURIComponent(froot.permlink)}${state.focus ? '&c=' + encodeURIComponent(state.focus) : ''}`, true); return; } // the owner's blog (replaces this address in the history)
     }
     post.value = froot;
     if (froot) threads[fc] = fth;
@@ -127,17 +129,17 @@ async function load(): Promise<void> {
   if (my !== seq) return;
   const root = th.status === 'found' ? th.root! : null;
   const isComment = !!root && (root.depth ?? 0) > 0;
-  if (root && (isComment || root.author !== USER)) {
+  if (root && (isComment || root.author !== blog.user)) {
     // a comment (e.g. from a notification) -> its root post, with the comment highlighted; a post of somebody else -> that author's blog
     const r = isComment ? rootOf(root) : { author: root.author, permlink: root.permlink };
     if (r) {
       const focus = isComment ? `${author}/${permlink}` : '';
-      if (r.author === USER) { if (isComment) { navigate(href({ post: postParam(r.author, r.permlink), c: focus }), true); return; } }
-      else { window.location.replace(`?user=${encodeURIComponent(r.author)}&post=${encodeURIComponent(r.permlink)}${focus ? '&c=' + encodeURIComponent(focus) : ''}`); return; }
+      if (r.author === blog.user) { if (isComment) { navigate(href({ post: postParam(r.author, r.permlink), c: focus }), true); return; } }
+      else { navigate(`?user=${encodeURIComponent(r.author)}&post=${encodeURIComponent(r.permlink)}${focus ? '&c=' + encodeURIComponent(focus) : ''}`, true); return; }
     }
   }
   post.value = root;
-  if (root && root.author === USER && !(root.depth ?? 0)) void loadNeighbors(root);
+  if (root && root.author === blog.user && !(root.depth ?? 0)) void loadNeighbors(root);
   if (root) threads.blurt = th;
   loading.value = false;
   if (root && mirrored.value) for (const c of mirrorChains()) void loadChainThread(g, c.id, permlink); // parallel, filled in as they answer
@@ -207,7 +209,7 @@ async function sendPost(chain: string): Promise<void> {
     <div v-if="thumbOf(post)" class="thumb hero-img" :style="{ backgroundImage: `url('${thumbOf(post)}')` }" />
     <div class="art-in">
       <a class="back" :href="href({})" @click.prevent="navigate(href({}))">{{ t('allPosts') }}</a>
-      <div v-if="post.author !== USER" class="mute">{{ t('postOf', { a: post.author }) }} · <a class="au" :href="profileHref(post.author, fchain || 'blurt')" @click.prevent="openProfile(post.author, fchain || 'blurt')">{{ t('profileOpen') }}</a></div>
+      <div v-if="post.author !== blog.user" class="mute">{{ t('postOf', { a: post.author }) }} · <a class="au" :href="profileHref(post.author, fchain || 'blurt')" @click.prevent="openProfile(post.author, fchain || 'blurt')">{{ t('profileOpen') }}</a></div>
       <h1 class="post-title">{{ post.title }}</h1>
       <div class="mute">{{ fmtDate(post.created) }} · {{ t('readMin', { n: readMin }) }} · <template v-for="x in payoutChains" :key="x.id"><span class="pay" :title="payoutTitle(merged.root[x.id])"><ChainDot v-if="payoutChains.length > 1" :chain="x.id" /> {{ payoutOf(merged.root[x.id]).toFixed(3) }} {{ x.payoutSymbol }}</span>{{ ' ' }}</template></div>
       <ChainBadges v-if="badges.length" :items="badges" @retry="retry" @send="sendPost" />
@@ -223,7 +225,7 @@ async function sendPost(chain: string): Promise<void> {
           <a v-else class="tag" :href="tagHref(tag)" :title="t('tagOnAll')" @click.prevent="openTag(tag)">#{{ tag }}</a>
         </template>
       </div>
-      <PostNav v-if="!fchain && post.author === USER && !(post.depth ?? 0)" />
+      <PostNav v-if="!fchain && post.author === blog.user && !(post.depth ?? 0)" />
       <h3>{{ t('comments', { n: post.children ?? 0 }) }} <span v-if="checking" class="spinner" role="status" :aria-label="t('checkingChains')" :title="t('checkingChains')" /></h3>
       <div v-if="checking" class="mute help">{{ t('checkingChains') }}</div>
       <template v-if="loggedIn">

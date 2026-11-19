@@ -10,15 +10,15 @@ import { adapter } from '../lib/chains';
 import { tagsOf } from '../lib/util';
 import type { Post } from '../lib/types';
 import { publishPlan } from '../lib/mirror';
-import { href, navigate, state, USER } from '../lib/store';
+import { href, navigate, state, blog } from '../lib/store';
 import { toast } from '../lib/toast';
 import { externalImages, rehostImages, uploadEverywhere, type ImageMap } from '../lib/upload';
 import { renderMd } from '../lib/util';
 import DevTipToggle from './DevTipToggle.vue';
 import ImportView from './ImportView.vue';
 
-const owner = computed(() => auth.me?.user === USER);
-const DRAFT = `bd-draft-${USER}`;
+const owner = computed(() => auth.me?.user === blog.user);
+const DRAFT = `bd-draft-${blog.user}`;
 const images = ref<ImageMap>({}); // Blurt image URL -> the same image on the other chains (uploaded separately to each host)
 const title = ref(''); const body = ref(''); const tagsText = ref(''); const community = ref('');
 const subs = ref<Sub[]>([]);
@@ -44,9 +44,9 @@ if (editPermlink) {
     const primary = p.parent_permlink || p.category || '';
     tagsText.value = tagsOf(p).filter((x) => x !== primary).join(', ');
   };
-  const known = state.posts.find((x) => x.permlink === editPermlink && x.author === USER);
+  const known = state.posts.find((x) => x.permlink === editPermlink && x.author === blog.user);
   if (known) { fill(known); editLoading.value = false; }
-  else void adapter('blurt').getContent(USER, editPermlink).then((p) => { if (p) fill(p); else editMissing.value = true; }).catch(() => { editMissing.value = true; }).finally(() => { editLoading.value = false; });
+  else void adapter('blurt').getContent(blog.user, editPermlink).then((p) => { if (p) fill(p); else editMissing.value = true; }).catch(() => { editMissing.value = true; }).finally(() => { editLoading.value = false; });
 }
 // ---- draft kept in this browser (restored on open, saved while typing)
 if (!editPermlink) try {
@@ -133,7 +133,7 @@ async function submit(): Promise<void> {
 
 <template>
   <div v-if="!owner" class="article"><div class="art-in center">
-    <p>{{ t('ownerOnly', { u: USER }) }}</p>
+    <p>{{ t('ownerOnly', { u: blog.user }) }}</p>
     <button v-if="!auth.me" class="pri" @click="loginOpen = true">{{ t('login') }}</button>
   </div></div>
 

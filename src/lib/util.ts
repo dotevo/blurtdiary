@@ -1,5 +1,6 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { detectMedia, mediaLabel } from './media';
 import { lang, t } from './i18n';
 import type { Post } from './types';
 
@@ -135,12 +136,31 @@ function linkHashtags(html: string): string {
   }
   return doc.body.innerHTML;
 }
+/** Puts a ▶ chip after every link to embeddable media (see media.ts). Runs AFTER sanitizing; only validated ids end up in the attributes. */
+function linkMedia(html: string): string {
+  if (!html.includes('href')) return html;
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+  let any = false;
+  for (const a of Array.from(doc.querySelectorAll('a[href]'))) {
+    const ref = detectMedia(a.getAttribute('href') ?? ''); if (!ref) continue;
+    const b = doc.createElement('button'); b.type = 'button'; b.className = 'media-chip'; b.setAttribute('aria-label', `▶ ${mediaLabel(ref)}`); b.title = `▶ ${mediaLabel(ref)}`;
+    b.setAttribute('data-mt', ref.type); b.setAttribute('data-mid', ref.id);
+    if (ref.host) b.setAttribute('data-mh', ref.host);
+    if (ref.src) b.setAttribute('data-ms', ref.src);
+    if (ref.pending) b.setAttribute('data-mp', '1');
+    const txt = (a.textContent ?? '').trim(); if (txt && !/^https?:\/\//i.test(txt)) b.setAttribute('data-mtitle', txt.slice(0, 200));
+    b.textContent = `▶ ${mediaLabel(ref)}`;
+    const add = b.cloneNode(false) as HTMLElement; add.className = 'media-add'; add.title = t('playerAddQueue'); add.setAttribute('aria-label', t('playerAddQueue')); add.textContent = '＋';
+    a.after(' ', b, add); any = true;
+  }
+  return any ? doc.body.innerHTML : html;
+}
 export const renderMd = (body: string): string => {
   hookOnce();
-  return linkHashtags(linkMentions(DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string, {
+  return linkMedia(linkHashtags(linkMentions(DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string, {
     ALLOWED_TAGS: MD_TAGS, ALLOWED_ATTR: MD_ATTRS, ALLOW_DATA_ATTR: false, ALLOW_ARIA_ATTR: false, SANITIZE_NAMED_PROPS: true,
     ALLOWED_URI_REGEXP: /^(?:https?:|mailto:)/i, // no javascript:, data:, relative or blob: URLs
-  })));
+  }))));
 };
 /** A remote image URL that is safe to drop into CSS `url('…')` and an <img src>: plain https, no quotes/brackets/backslashes. */
 export const safeImg = (u?: string): string => { const v = (u ?? '').trim(); return /^https:\/\/[^\s"'()<>\\]+$/i.test(v) ? v : ''; };

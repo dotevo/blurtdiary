@@ -9,7 +9,7 @@ import { reloadWorldFeed } from './world';
 import { adapter, PRIMARY } from './chains';
 import { t } from './i18n';
 import { followOn, relationOn } from './profile';
-import { state, USER } from './store';
+import { state, blog } from './store';
 import { toast } from './toast';
 
 interface Target { chain: string; account: string; me: string; yes: boolean | null }
@@ -17,8 +17,8 @@ export const follow = reactive<{ state: 'unknown' | 'yes' | 'no'; busy: boolean;
 
 /** Chains where I am logged in and the owner has an account: [chain, owner's account there, my account there]. */
 function plan(): Target[] {
-  if (!USER) return [];
-  const accounts: Record<string, string> = { [PRIMARY]: USER, ...(state.cfg.accounts ?? {}) };
+  if (!blog.user) return [];
+  const accounts: Record<string, string> = { [PRIMARY]: blog.user, ...(state.cfg.accounts ?? {}) };
   return Object.entries(accounts).flatMap(([chain, account]) => {
     const me = auth.sessions[chain]?.user;
     return me && me !== account ? [{ chain, account, me, yes: null as boolean | null }] : [];
@@ -49,9 +49,9 @@ export async function setFollow(on: boolean): Promise<void> {
     catch (e) { failed.push(`${adapter(x.chain).name} (${(e as Error).message || t('followFailed')})`); }
   }
   summarize();
-  if (done.length) toast(t(on ? 'followOk' : 'unfollowOk', { u: `${USER} – ${done.join(', ')}` }));
+  if (done.length) toast(t(on ? 'followOk' : 'unfollowOk', { u: `${blog.user} – ${done.join(', ')}` }));
   if (failed.length) toast(t('followFailed') + ': ' + failed.join(', '));
   if (done.length) { void reloadFeed(); void reloadWorldFeed(); } // the feed now includes / drops this blog
   follow.busy = false;
 }
-watch(() => [auth.me?.user, Object.values(auth.sessions).map((s) => s?.user).join(), JSON.stringify(state.cfg.accounts ?? {})], () => { void loadFollow(); }, { immediate: true });
+watch(() => [blog.user, auth.me?.user, Object.values(auth.sessions).map((s) => s?.user).join(), JSON.stringify(state.cfg.accounts ?? {})], () => { void loadFollow(); }, { immediate: true });

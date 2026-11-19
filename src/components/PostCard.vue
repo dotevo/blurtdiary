@@ -3,12 +3,12 @@ import Icon from './Icon.vue';
 import { computed } from 'vue';
 import type { Post } from '../lib/types';
 import { excerpt, fmtDate, payoutOf, payoutTitle, thumbOf, votesOf } from '../lib/util';
-import { href, navigate, state, USER } from '../lib/store';
+import { href, navigate, state, blog } from '../lib/store';
 import { t } from '../lib/i18n';
 import { feedHref } from '../lib/feed';
 const props = defineProps<{ post: Post }>();
 const pinned = computed(() => !!state.pinned && state.pinned.permlink === props.post.permlink && !state.cat && !state.month);
-const foreign = computed(() => props.post.author !== USER); // feed card of someone else: open it in that author's blog
+const foreign = computed(() => props.post.author !== blog.user); // feed card of someone else: open it in that author's blog
 const link = computed(() => (foreign.value ? feedHref(props.post) : href({ post: props.post.permlink })));
 const go = (e: Event): void => { if (!foreign.value) { e.preventDefault(); navigate(link.value); } };
 const img = computed(() => thumbOf(props.post));

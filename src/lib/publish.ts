@@ -5,7 +5,7 @@ import { CONFIG_PERMLINK, parseTags, serializeConfig } from './config';
 import { t } from './i18n';
 import { editEverywhere, mirrorEverywhere } from './mirror';
 import type { ImageMap } from './upload';
-import { state, USER } from './store';
+import { state, blog } from './store';
 import { withFooter } from './settings';
 import { meta, slug, tagsOf } from './util';
 import type { Operation, Post } from './types';
@@ -51,7 +51,7 @@ export async function publishPost(p: NewPost): Promise<PublishResult> {
   // show it on the blog right away; the chain data replaces it on the next load
   const optimistic: Post = { author: me, permlink, title, body, created: new Date().toISOString().slice(0, 19), json_metadata: JSON.stringify(meta),
     children: 0, active_votes: [], payout: 0, is_paidout: false, pending_payout_value: '0.000 BLURT', category: primary, community_name: community || undefined, beneficiaries: bens };
-  if (me === USER) state.posts.unshift(optimistic);
+  if (me === blog.user) state.posts.unshift(optimistic);
   if (p.source && isHttpUrl(p.source)) rememberImported(p.source, permlink);
   const m = await mirrorEverywhere(optimistic, p.images);
   return { permlink, mirrored: m.ok, failed: m.failed };
@@ -60,7 +60,7 @@ export async function publishPost(p: NewPost): Promise<PublishResult> {
 /** Saves the blog settings as @user/blurt-diary-config (created once with payout disabled, then edited in place). */
 export async function saveConfig(): Promise<void> {
   const me = auth.me?.user;
-  if (!me || me !== USER) throw new Error(t('ownerOnly', { u: USER }));
+  if (!me || me !== blog.user) throw new Error(t('ownerOnly', { u: blog.user }));
   const existing = state.configPost;
   const ops: Operation[] = [['comment', {
     parent_author: '', parent_permlink: existing?.parent_permlink ?? 'blurt-diary', author: me, permlink: CONFIG_PERMLINK,

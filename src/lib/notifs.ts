@@ -3,7 +3,7 @@ import { auth } from './auth';
 import { adapter, CHAINS, PRIMARY } from './chains';
 import { coalMap, coalReady } from './coal';
 import { rpc } from './rpc';
-import { href, postParam } from './store';
+import { href } from './store';
 
 /** `chain` = where the notification comes from. Blurt always; Hive/Steem/… for every chain we are logged in on (when its node has the bridge API). */
 export interface Notif { id: number; type: string; score: number; date: string; msg: string; url?: string; chain: string; /** 'hist' = rebuilt from the account history (its ids are not comparable with the bridge ids) */ src?: 'hist' }
@@ -58,9 +58,14 @@ type Hist = [number, { op: [string, Record<string, unknown>]; timestamp: string 
  * the account, so votes, replies and incoming transfers are rebuilt from it. Less rich than the bridge, but nothing is missed.
  */
 async function fromHistory(chain: string, account: string, only?: string): Promise<Notif[]> {
-  const rows = await adapter(chain).call<Hist[]>('condenser_api', 'get_account_history', [account, -1, only ? 150 : 60]);
+  // the history is full of the account's own operations (its votes and comments), so 60 entries often held none of the replies: read 2 pages of 200 (smaller when the node refuses)
+  const ad = adapter(chain); let rows: Hist[] = [];
+  const page = async (from: number, n: number): Promise<Hist[]> => { const r = await ad.call<Hist[]>('condenser_api', 'get_account_history', [account, from, n]); return Array.isArray(r) ? r : []; };
+  try { rows = await page(-1, 200); } catch { rows = await page(-1, 100); }
+  const first = rows.reduce((m, r) => Math.min(m, r[0]), Infinity);
+  if (!only && rows.length >= 100 && first > 0) { try { rows = [...(await page(first - 1, Math.min(200, first - 1))), ...rows]; } catch { /* the first page is enough */ } }
   const out: Notif[] = [];
-  for (const [id, h] of Array.isArray(rows) ? rows : []) {
+  for (const [id, h] of rows) {
     const [type, o] = h?.op ?? [];
     const str = (k: string): string => (typeof o?.[k] === 'string' ? (o[k] as string) : '');
     const base = { id, score: 50, date: h.timestamp, chain, src: 'hist' as const };
@@ -127,9 +132,9 @@ export function closeNotifs(): void { if (notifs.open) { notifs.open = false; ma
 export function notifLink(n: Notif): { href: string; ext: boolean } {
   const m = n.url?.replace(/^@/, '').match(/^([^/]+)\/(.+)$/);
   if (!m) return { href: '', ext: false };
-  if (n.chain === PRIMARY) return { href: href({ post: postParam(m[1], m[2]), c: `${m[1]}/${m[2]}` }), ext: false };
+  if (n.chain === PRIMARY) return { href: '?' + new URLSearchParams({ post: `${m[1]}/${m[2]}`, c: `${m[1]}/${m[2]}` }), ext: false };
   // another chain: read in our own page; the page resolves a comment to its root post and prefers the Blurt copy (whole thread)
-  return { href: href({ post: postParam(m[1], m[2]), chain: n.chain, c: `${m[1]}/${m[2]}` }), ext: false };
+  return { href: href({ post: `${m[1]}/${m[2]}`, chain: n.chain, c: `${m[1]}/${m[2]}` }), ext: false };
 }
 export const notifHref = (n: Notif): string => notifLink(n).href;
 /** Icon (see Icon.vue) for a notification type. */

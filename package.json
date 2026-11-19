@@ -4,11 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "dev": "node scripts/make-icons.mjs && vite",
+    "build": "node scripts/make-icons.mjs && vue-tsc -b && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "check:csp": "node scripts/check-csp.mjs"
+    "check:csp": "node scripts/check-csp.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "@beblurt/dblurt": "^0.10.9",
@@ -19,6 +20,7 @@
     "vue": "^3.5.34"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^24.12.3",
     "@vitejs/plugin-vue": "^6.0.6",
