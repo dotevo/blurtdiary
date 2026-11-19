@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { lang, t } from '../lib/i18n';
-import { href, navigate, USER } from '../lib/store';
+import { href, navigate, blog } from '../lib/store';
 import LangSelect from './LangSelect.vue';
 
 // Documentation exists in Polish and English; every other interface language shows the English text.
 const pl = computed(() => lang.value === 'pl');
-const home = (): string => (USER ? href({}) : '?');
+const home = (): string => (blog.user ? href({}) : '?');
 </script>
 
 <template>

@@ -9,7 +9,7 @@ import { lang } from '../lib/i18n';
 import { coalMap } from '../lib/coal';
 import { DEFAULT_PANELS } from '../lib/config';
 import { t } from '../lib/i18n';
-import { archive, loadOlder, state, href, navigate, USER } from '../lib/store';
+import { archive, loadOlder, state, href, navigate, blog } from '../lib/store';
 import { auth } from '../lib/auth';
 import { feed, feedHref, loadFeed } from '../lib/feed';
 import { favs } from '../lib/favs';
@@ -71,9 +71,9 @@ const panels = computed(() => state.cfg.panels ?? DEFAULT_PANELS);
     <div v-if="favs.list.length" class="card fav-card"><h4><Icon name="star-fill" /> {{ t('favTitle') }}</h4><FavList /></div>
     <template v-for="(p, i) in panels" :key="i">
       <div v-if="p.id === 'about'" class="card author">
-        <UserAvatar :name="USER" />
-        <div><b>@{{ USER }}</b>
-          <div class="mute links"><a :href="`https://blurt.blog/@${USER}`" target="_blank" rel="noopener">{{ t('profile') }}</a> · <a :href="walletUrl(USER)" target="_blank" rel="noopener">{{ t('wallet') }}</a></div></div>
+        <UserAvatar :name="blog.user" />
+        <div><b>@{{ blog.user }}</b>
+          <div class="mute links"><a :href="`https://blurt.blog/@${blog.user}`" target="_blank" rel="noopener">{{ t('profile') }}</a> · <a :href="walletUrl(blog.user)" target="_blank" rel="noopener">{{ t('wallet') }}</a></div></div>
         <p v-if="state.cfg.about || about" class="mute about">{{ state.cfg.about || about }}</p>
       </div>
 

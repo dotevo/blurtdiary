@@ -16,7 +16,7 @@ import { errorThread, missingThread } from './chains/thread';
 import { normAccount } from './config';
 import { t } from './i18n';
 import { devTip } from './settings';
-import { state, USER } from './store';
+import { state, blog } from './store';
 import { localizeBody, type ImageMap } from './upload';
 import { queued, registerJob } from './queue';
 import { supportBensFor } from './support';
@@ -31,11 +31,11 @@ export const keyOf = (p: { author: string; permlink: string }): string => `${p.a
 // ---------- accounts ----------
 /** The blog owner's account on `chain` (Blurt = the blog user); undefined when it is not configured. */
 export const accountOn = (chain: string): string | undefined => {
-  if (chain === PRIMARY) return USER;
+  if (chain === PRIMARY) return blog.user;
   const cfg = normAccount(state.cfg.accounts?.[chain]);
   if (cfg) return cfg;
   // not declared in the settings: the blog owner (logged in on Blurt as the blog user) may still use whatever account they are logged in with there
-  return auth.me?.user === USER ? sessionOf(chain)?.user : undefined;
+  return auth.me?.user === blog.user ? sessionOf(chain)?.user : undefined;
 };
 /** Other chains the blog owner declared accounts on. */
 /** The blog's mirror chains. None while a post of ANOTHER chain is being read (`?chain=steem`): it has no copies to check, show or send to. */
@@ -92,7 +92,7 @@ export function mergeThreads(threads: Record<string, ChainThread>): { root: Reco
  * Used for reading threads only; showing payouts, stats or the "mirror this post" buttons stays with the declared accounts (`accountOn`).
  */
 export const looseMatch = (): boolean => !Object.values(state.cfg.accounts ?? {}).some((a) => normAccount(a));
-export const threadAccount = (chain: string): string | undefined => accountOn(chain) ?? (chain !== PRIMARY && looseMatch() ? USER : undefined);
+export const threadAccount = (chain: string): string | undefined => accountOn(chain) ?? (chain !== PRIMARY && looseMatch() ? blog.user : undefined);
 export const isUnverified = (chain: string): boolean => chain !== PRIMARY && !accountOn(chain) && !!threadAccount(chain);
 export async function loadChainThread(threads: Record<string, ChainThread>, chain: string, permlink: string, account: string | undefined = threadAccount(chain)): Promise<void> {
   if (!account) { threads[chain] = missingThread(chain); return; }
@@ -197,7 +197,7 @@ async function mirrorPostRaw(chain: string, post: Post, images: ImageMap = {}): 
 
 /** The owner (logged in on Blurt as the blog user) may copy the post to `chain` once it is verifiably missing there. */
 export const canMirrorPost = (chain: string, post: Post, threads: Record<string, ChainThread>): boolean =>
-  chain !== PRIMARY && post.author === USER && auth.me?.user === USER && threads[chain]?.status === 'missing'
+  chain !== PRIMARY && post.author === blog.user && auth.me?.user === blog.user && threads[chain]?.status === 'missing'
   && !!accountOn(chain) && sessionOf(chain)?.user === accountOn(chain);
 
 /** What publishing will do right now: chains that will get a copy, and logged-in chains that are skipped (and why). */

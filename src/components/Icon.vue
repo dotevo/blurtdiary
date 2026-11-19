@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** One icon family (24px grid, 2px round strokes, currentColor) so the navigation looks the same everywhere instead of mixing emoji and glyphs. */
-defineProps<{ name: 'feed' | 'tag' | 'home' | 'pen' | 'sliders' | 'bell' | 'gift' | 'chat' | 'heart' | 'heart-fill' | 'star' | 'star-fill' | 'x' | 'check' | 'plus' | 'refresh' | 'warn' | 'pin' | 'chart' | 'image' | 'download' | 'doc' | 'up' | 'down' | 'coin' | 'at' | 'repeat' | 'user-plus' | 'clock' | 'lock' }>();
+defineProps<{ name: 'feed' | 'tag' | 'home' | 'pen' | 'sliders' | 'bell' | 'gift' | 'chat' | 'heart' | 'heart-fill' | 'star' | 'star-fill' | 'x' | 'check' | 'plus' | 'refresh' | 'warn' | 'pin' | 'chart' | 'image' | 'download' | 'doc' | 'up' | 'down' | 'coin' | 'at' | 'repeat' | 'user-plus' | 'clock' | 'lock' | 'play' | 'pause' | 'skip-next' | 'skip-prev' | 'music' | 'expand' }>();
 </script>
 <template>
   <svg class="ico" viewBox="0 0 24 24" width="1.25em" height="1.25em" :fill="name.endsWith('-fill') ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -32,5 +32,11 @@ defineProps<{ name: 'feed' | 'tag' | 'home' | 'pen' | 'sliders' | 'bell' | 'gift
     <template v-else-if="name === 'user-plus'"><circle cx="9.5" cy="8" r="3.5" /><path d="M3 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5M19 8v6M16 11h6" /></template>
     <template v-else-if="name === 'chat'"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z" /></template>
     <template v-else-if="name === 'gift'"><rect x="4" y="9" width="16" height="11" rx="1.5" /><path d="M12 9v11M4 14h16M12 9C9 9 8 5 10.5 5S12 9 12 9zm0 0c3 0 4-4 1.5-4S12 9 12 9z" /></template>
+    <template v-else-if="name === 'play'"><path d="M8 5.5v13l11-6.5z" fill="currentColor" /></template>
+    <template v-else-if="name === 'pause'"><path d="M8 5.5v13M16 5.5v13" stroke-width="3" /></template>
+    <template v-else-if="name === 'skip-next'"><path d="M6 6v12l9-6zM18 6v12" /></template>
+    <template v-else-if="name === 'skip-prev'"><path d="M18 6v12l-9-6zM6 6v12" /></template>
+    <template v-else-if="name === 'music'"><path d="M9 18V6l10-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="16.5" cy="16" r="2.5" /></template>
+    <template v-else-if="name === 'expand'"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></template>
   </svg>
 </template>

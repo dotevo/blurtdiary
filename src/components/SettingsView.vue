@@ -6,7 +6,7 @@ import { CHAINS, PRIMARY } from '../lib/chains';
 import { UI_OPTIONS, CONFIG_PERMLINK, DEFAULT_PANELS, MAX_CUSTOM_PANELS, BUILTIN_PANELS, MAX_BLOGROLL, normAccount, normPermlink, parseTags, safeUrl } from '../lib/config';
 import { LANGS, t } from '../lib/i18n';
 import { saveConfig } from '../lib/publish';
-import { href, navigate, state, USER } from '../lib/store';
+import { href, navigate, state, blog } from '../lib/store';
 import { applyTheme, PALETTES } from '../lib/theme';
 import SideBar from './SideBar.vue';
 import { toast } from '../lib/toast';
@@ -14,7 +14,7 @@ import { slug } from '../lib/util';
 import type { BlogCategory } from '../lib/types';
 import { ref } from 'vue';
 
-const owner = computed(() => auth.me?.user === USER);
+const owner = computed(() => auth.me?.user === blog.user);
 // The form edits state.cfg directly, so the whole page is a live preview. Cancel/leave restores the backup.
 const c = state.cfg;
 const backup = JSON.parse(JSON.stringify(state.cfg));
@@ -89,18 +89,18 @@ async function save(): Promise<void> {
   busy.value = false;
 }
 const cancel = (): void => navigate(href({}));
-const cfgUrl = `https://blurt.blog/@${USER}/${CONFIG_PERMLINK}`;
+const cfgUrl = `https://blurt.blog/@${blog.user}/${CONFIG_PERMLINK}`;
 </script>
 
 <template>
   <div v-if="!owner" class="article"><div class="art-in center">
-    <p>{{ t('ownerOnly', { u: USER }) }}</p>
+    <p>{{ t('ownerOnly', { u: blog.user }) }}</p>
     <button v-if="!auth.me" class="pri" @click="loginOpen = true">{{ t('login') }}</button>
   </div></div>
 
   <div v-else class="settings">
     <h1>{{ t('setTitle') }}</h1>
-    <p class="mute">{{ t('setIntro', { u: USER, p: CONFIG_PERMLINK }) }} <a :href="href({ view: 'docs' })" target="_blank">{{ t('howItWorks') }}</a></p>
+    <p class="mute">{{ t('setIntro', { u: blog.user, p: CONFIG_PERMLINK }) }} <a :href="href({ view: 'docs' })" target="_blank">{{ t('howItWorks') }}</a></p>
 
     <section class="card form">
       <h3>{{ t('secGeneral') }}</h3>

@@ -3,7 +3,7 @@ import Icon from './Icon.vue';
 import { onMounted } from 'vue';
 import { t } from '../lib/i18n';
 import { RANGES, loadStats, retryChain, setRange, statsChains, statsState } from '../lib/stats';
-import { USER } from '../lib/store';
+import { blog } from '../lib/store';
 import ChainDot from './ChainDot.vue';
 import EarningsChart from './EarningsChart.vue';
 onMounted(() => void loadStats());
@@ -11,7 +11,7 @@ const sum = (s: { author: number; curation: number; benefactor: number }): numbe
 </script>
 <template>
   <section class="stats">
-    <h2 class="feed-h"><Icon name="chart" /> {{ t('statsTitle') }} <span class="mute">@{{ USER }}</span></h2>
+    <h2 class="feed-h"><Icon name="chart" /> {{ t('statsTitle') }} <span class="mute">@{{ blog.user }}</span></h2>
     <div class="tabs"><button v-for="d in RANGES" :key="d" class="chip" :class="{ on: statsState.days === d }" @click="setRange(d)">{{ t('statsDays', { n: d }) }}</button></div>
     <div v-for="c in statsChains()" :key="c.id" class="card stat-card" :style="{ '--c': c.color }">
       <div class="stat-h"><ChainDot :chain="c.id" /><b>{{ c.name }}</b><span class="mute">@{{ statsState.chains[c.id]?.account }}</span></div>

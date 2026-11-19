@@ -21,8 +21,10 @@ if (q.has('user') && (WORLD_VIEWS.includes(q.get('view') ?? '') || (q.get('post'
   location.replace('?' + clean);
 }
 // the account name goes into URLs, storage keys and RPC calls: anything that is not a valid account name is ignored
-export const USER = normAccount(q.get('user') ?? '');
-if (USER) { try { localStorage.setItem('bd-last-user', USER); } catch { /* ignore */ } } // used by the installed app (PWA) to reopen the last blog
+/** Whose blog is open ('' = none: the front page, Feed, Latest, Tags, profiles, wallet). Reactive: the blog is switched without reloading the page (switchUser). */
+export const blog = reactive({ user: normAccount(q.get('user') ?? '') });
+const rememberUser = (): void => { if (blog.user) { try { localStorage.setItem('bd-last-user', blog.user); } catch { /* ignore */ } } }; // used by the installed app (PWA) to reopen the last blog
+rememberUser();
 // ?recent=auto|replies|own|scan lets you try each "recent comments" strategy in the browser.
 const parseMonth = (m: string | null): string => (/^\d{4}-(0[1-9]|1[0-2])$/.test(m ?? '') ? m! : ''); // ?month=2026-10 – anything else is ignored
 export const RECENT_MODE = q.get('recent') ?? 'auto';
@@ -45,7 +47,7 @@ export const href = (o: { month?: string; cat?: string; post?: string; c?: strin
   const p = new URLSearchParams();
   const world = o.view === 'world' || o.view === 'feed' || o.view === 'wallet' || (!!o.post && !!o.chain); // pages outside any blog: no user in the address
   if (o.view === 'feed') { o = { ...o, view: 'world', tab: 'feed' }; }
-  if (USER && !world) p.set('user', USER); // the documentation also works without a user
+  if (blog.user && !world) p.set('user', blog.user); // the documentation also works without a user
   if (o.cat) p.set('cat', o.cat);
   if (o.month) p.set('month', o.month);
   if (o.post) p.set('post', o.post);
@@ -60,17 +62,17 @@ export const href = (o: { month?: string; cat?: string; post?: string; c?: strin
 };
 /**
  * A tag's page has no `user`: it is the same page whoever's blog you came from (one address per tag, nothing duplicated for search engines).
- * From inside a blog that is a normal page load, because the blog (USER) is fixed when the page starts.
+ * Leaving a blog for it switches the page to "no blog" without a reload (navigate → switchUser).
  */
 export const tagHref = (tag: string): string => { const p = new URLSearchParams({ view: 'world', tab: 'tags', tag }); return '?' + p; };
 /** An account's profile on one chain: its posts and (when logged in there) a follow button. Like a tag page it has no `user`. */
 export const profileHref = (account: string, chain: string): string => '?' + new URLSearchParams({ view: 'profile', account, chain });
-export const openProfile = (account: string, chain: string): void => { if (USER) window.location.href = profileHref(account, chain); else navigate(profileHref(account, chain)); };
-export const openTag = (tag: string): void => { if (USER) window.location.href = tagHref(tag); else navigate(tagHref(tag)); };
-/** `post` param = "permlink" (post of USER) or "author/permlink" (someone else's). */
-export const postParam = (author: string, permlink: string): string => (author === USER ? permlink : `${author}/${permlink}`);
+export const openProfile = (account: string, chain: string): void => navigate(profileHref(account, chain));
+export const openTag = (tag: string): void => navigate(tagHref(tag));
+/** `post` param = "permlink" (post of blog.user) or "author/permlink" (someone else's). */
+export const postParam = (author: string, permlink: string): string => (author === blog.user ? permlink : `${author}/${permlink}`);
 export const postRef = (p: string): { author: string; permlink: string } => {
-  const [a, b] = p.includes('/') ? p.replace(/^@/, '').split('/') : [USER, p];
+  const [a, b] = p.includes('/') ? p.replace(/^@/, '').split('/') : [blog.user, p];
   return { author: a, permlink: b };
 };
 export const keyOf = (p: Post): string => `${p.author}/${p.permlink}`;
@@ -80,22 +82,49 @@ export const commentHref = (c: Post): string => {
   return r ? href({ post: postParam(r.author, r.permlink), c: keyOf(c) }) : '';
 };
 
-function syncFromUrl(): void {
+/** Reads the address into `state` (and switches the blog when `user` changed). Returns true when the blog changed. */
+function syncFromUrl(): boolean {
   const p = new URLSearchParams(location.search);
   state.month = parseMonth(p.get('month')); state.cat = p.get('cat') ?? ''; state.post = p.get('post') ?? ''; state.focus = p.get('c') ?? ''; state.view = p.get('view') ?? ''; state.edit = p.get('edit') ?? '';
   state.account = normAccount(p.get('account') ?? ''); state.chain = p.get('chain') ?? ''; state.tab = p.get('tab') ?? ''; state.tag = p.get('tag') ?? '';
+  const u = normAccount(p.get('user') ?? '');
+  if (u === blog.user) return false;
+  switchUser(u); return true;
+}
+
+// ---------- switching the blog without reloading the page ----------
+/** Counts blog switches: a slow answer for the blog we have just left must not land in the blog we are in now. */
+let gen = 0;
+export const currentGen = (): number => gen;
+function resetBlog(): void {
+  Object.assign(state, { loading: !!blog.user, error: '', profile: null, cfg: emptyConfig(), configPost: null, posts: [], more: true, loadingMore: false, busy: false, recent: [], pinned: null, searchBroken: false });
+  for (const k of Object.keys(buckets)) delete buckets[k];
+  applyTheme(state.cfg); // the blog's colours / font / layout go with it
+  document.title = 'Blurt Diary';
+}
+export function switchUser(u: string): void {
+  gen++; blog.user = u; rememberUser();
+  resetBlog();
+  if (u) void initBlog();
 }
 export function navigate(h: string, replace = false): void {
-  // from inside a blog to a page without user (Feed, Latest, Tags, a foreign post): a normal page load, because the blog (USER) is fixed when the page starts
-  if (USER && !new URLSearchParams(h.slice(h.indexOf('?') + 1)).has('user')) { if (replace) location.replace(h); else location.assign(h); return; }
   if (replace) history.replaceState({}, '', h); else history.pushState({}, '', h);
-  syncFromUrl();
+  const switched = syncFromUrl();
   if (!replace) window.scrollTo(0, 0);
-  if (!state.post && !state.view) void ensureEnough();
+  if (!switched && !state.post && !state.view) void ensureEnough();
 }
-window.addEventListener('popstate', () => { syncFromUrl(); if (!state.post && !state.view) void ensureEnough(); });
+window.addEventListener('popstate', () => { const switched = syncFromUrl(); if (!switched && !state.post && !state.view) void ensureEnough(); });
+// every in-app link that is a plain `?…` address is a navigation, not a page load (blog links in lists, @mentions, favourites …); a click handler that
+// already took care of it (preventDefault), a modifier key, another target or a download keep their normal behaviour
+document.addEventListener('click', (e) => {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const a = (e.target as Element | null)?.closest?.('a');
+  const h = a?.getAttribute('href');
+  if (!a || !h || !h.startsWith('?') || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+  e.preventDefault(); navigate(h);
+});
 
-const isConfigPost = (p: Post): boolean => p.author === USER && p.permlink === CONFIG_PERMLINK;
+const isConfigPost = (p: Post): boolean => p.author === blog.user && p.permlink === CONFIG_PERMLINK;
 
 // ---------- categories ----------
 // Preferred: bridge.search_posts {author, tag, offset} (server-side filter). Results are ALWAYS re-checked in the
@@ -111,12 +140,12 @@ async function catRound(c: BlogCategory): Promise<void> {
   const b = buckets[c.id];
   await Promise.all(c.tags.filter((t) => !b.done[t]).map(async (tag) => {
     const offset = b.offsets[tag] ?? 0;
-    const r = await rpc<{ posts?: Post[]; total?: number } | Post[]>('bridge', 'search_posts', { author: USER, tag, limit: PAGE, offset });
+    const r = await rpc<{ posts?: Post[]; total?: number } | Post[]>('bridge', 'search_posts', { author: blog.user, tag, limit: PAGE, offset });
     const raw = Array.isArray(r) ? r : (r.posts ?? []);
     const total = Array.isArray(r) ? undefined : r.total;
     b.offsets[tag] = offset + raw.length;
     if (raw.length < PAGE || (total != null && b.offsets[tag] >= total)) b.done[tag] = true;
-    for (const p of raw) if (!isConfigPost(p) && p.author === USER && tagsOf(p).includes(tag) && !b.posts.some((x) => x.permlink === p.permlink)) b.posts.push(p);
+    for (const p of raw) if (!isConfigPost(p) && p.author === blog.user && tagsOf(p).includes(tag) && !b.posts.some((x) => x.permlink === p.permlink)) b.posts.push(p);
   }));
   b.posts.sort((x, y) => y.created.localeCompare(x.created));
 }
@@ -144,14 +173,15 @@ export const canMore = computed(() => {
 });
 
 // ---------- loading ----------
-async function loadProfile(): Promise<void> {
+async function loadProfile(g: number): Promise<void> {
   // the settings post is looked up in parallel with the account (fixed permlink, so no profile link is needed)
   const [accs, own] = await Promise.all([
-    rpc<Record<string, string>[]>('condenser_api', 'get_accounts', [[USER]]),
-    rpc<Post>('condenser_api', 'get_content', [USER, CONFIG_PERMLINK]).catch(() => null),
+    rpc<Record<string, string>[]>('condenser_api', 'get_accounts', [[blog.user]]),
+    rpc<Post>('condenser_api', 'get_content', [blog.user, CONFIG_PERMLINK]).catch(() => null),
   ]);
+  if (g !== gen) return;
   const acc = accs[0];
-  if (!acc) throw new Error(t('accountNotFound', { u: USER }));
+  if (!acc) throw new Error(t('accountNotFound', { u: blog.user }));
   let prof: Profile = {};
   try { prof = JSON.parse(acc.posting_json_metadata || acc.json_metadata || '{}').profile ?? {}; } catch { /* ignore */ }
   state.profile = prof;
@@ -165,33 +195,37 @@ async function loadProfile(): Promise<void> {
       try {
         const [a, pl] = link.replace(/^@/, '').split('/');
         const post = await rpc<Post>('condenser_api', 'get_content', [a, pl]);
+        if (g !== gen) return;
         if (post?.body) state.cfg = parseConfig(post.body);
       } catch (e) { console.warn('blog config load failed', e); }
     }
   }
-  document.title = (state.cfg.title ?? prof.name ?? '@' + USER) + ' – Blurt Diary';
-  touchFav(USER, state.cfg.title ?? prof.name);
-  rememberAccounts(USER, state.cfg.accounts);
+  document.title = (state.cfg.title ?? prof.name ?? '@' + blog.user) + ' – Blurt Diary';
+  touchFav(blog.user, state.cfg.title ?? prof.name);
+  rememberAccounts(blog.user, state.cfg.accounts);
   applyTheme(state.cfg);
+  if (g !== gen) return;
   const dl = state.cfg.language as Lang | undefined; // the blog's default language applies only until the visitor picks their own
   if (dl && !langSaved() && LANGS.some((l) => l.code === dl)) await loadLanguage(dl);
 }
 
 async function fetchPage(limit: number): Promise<void> {
   if (state.loadingMore || !state.more) return;
-  state.loadingMore = true;
+  state.loadingMore = true; const g = gen;
   try {
     const last = state.posts[state.posts.length - 1];
-    const p: Record<string, unknown> = { sort: 'posts', account: USER, limit };
+    const p: Record<string, unknown> = { sort: 'posts', account: blog.user, limit };
     if (last) { p.start_author = last.author; p.start_permlink = last.permlink; }
     let res = await rpc<Post[]>('bridge', 'get_account_posts', p);
+    if (g !== gen) return;
     if (last) res = res.filter((x) => x.permlink !== last.permlink);
     state.posts.push(...res.filter((x) => !isConfigPost(x)));
     if (res.length < limit - 1) state.more = false;
   } catch (e) {
+    if (g !== gen) return;
     if (!state.posts.length) throw e; // first page failing = show the error
     state.more = false;
-  } finally { state.loadingMore = false; }
+  } finally { if (g === gen) state.loadingMore = false; }
 }
 export const fetchPosts = (): Promise<void> => fetchPage(PAGE);
 
@@ -237,9 +271,11 @@ export async function loadOlder(): Promise<void> { state.busy = true; try { awai
 
 async function loadPinned(): Promise<void> {
   state.pinned = null; const pl = state.cfg.pinned; if (!pl) return;
+  const g = gen;
   try {
-    const p = await rpc<Post>('condenser_api', 'get_content', [USER, pl]);
-    if (p?.author === USER && p.title && !p.parent_author && !isConfigPost(p)) state.pinned = p; // only a real root post of the owner
+    const p = await rpc<Post>('condenser_api', 'get_content', [blog.user, pl]);
+    if (g !== gen) return;
+    if (p?.author === blog.user && p.title && !p.parent_author && !isConfigPost(p)) state.pinned = p; // only a real root post of the owner
   } catch (e) { console.warn('pinned post', e); }
 }
 
@@ -260,31 +296,35 @@ export async function loadRecent(): Promise<void> {
     if (m === 'replies') {
       const out: Post[] = []; let last: Post | undefined;
       for (let i = 0; i < 3 && out.length < 10; i++) {
-        const prm: Record<string, unknown> = { sort: 'replies', account: USER, limit: 30 };
+        const prm: Record<string, unknown> = { sort: 'replies', account: blog.user, limit: 30 };
         if (last) { prm.start_author = last.author; prm.start_permlink = last.permlink; }
         let res = await rpc<Post[]>('bridge', 'get_account_posts', prm);
         if (last) res = res.filter((x) => x.permlink !== last!.permlink);
         if (!res.length) break;
-        out.push(...res.filter((c) => rootOf(c)?.author === USER && notCoal(c)));
+        out.push(...res.filter((c) => rootOf(c)?.author === blog.user && notCoal(c)));
         last = res[res.length - 1];
       }
       return out.slice(0, 12);
     }
-    if (m === 'own') return rpc<Post[]>('bridge', 'get_account_posts', { sort: 'comments', account: USER, limit: 12 });
+    if (m === 'own') return rpc<Post[]>('bridge', 'get_account_posts', { sort: 'comments', account: blog.user, limit: 12 });
     const rs = await Promise.all(state.posts.slice(0, 8).map((p) =>
       rpc<Post[]>('condenser_api', 'get_content_replies', [p.author, p.permlink]).catch(() => [] as Post[])));
     return rs.flat().sort((a, b) => b.created.localeCompare(a.created)).slice(0, 12);
   };
   for (const m of RECENT_MODE === 'auto' ? ['replies', 'scan'] : [RECENT_MODE]) {
-    try { const l = (await attempt(m)).filter(notCoal); if (l.length) { state.recent = l; return; } } catch (e) { console.warn('recent', m, e); }
+    const g = gen;
+    try { const l = (await attempt(m)).filter(notCoal); if (g !== gen) return; if (l.length) { state.recent = l; return; } } catch (e) { console.warn('recent', m, e); }
   }
 }
 
 export async function initBlog(): Promise<void> {
-  if (!USER) { state.loading = false; return; }
+  if (!blog.user) { state.loading = false; return; }
+  const g = gen;
   try {
-    await loadProfile(); await Promise.all([fetchPosts(), loadPinned()]); autoCats(); await ensureEnough();
+    await loadProfile(g); if (g !== gen) return;
+    await Promise.all([fetchPosts(), loadPinned()]); if (g !== gen) return;
+    autoCats(); await ensureEnough(); if (g !== gen) return;
     void loadRecent();
-  } catch (e) { state.error = (e as Error).message; }
-  state.loading = false;
+  } catch (e) { if (g === gen) state.error = (e as Error).message; }
+  if (g === gen) state.loading = false;
 }

@@ -1,5 +1,6 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { coverOf, detectMedia, mediaLabel } from './media';
 import { lang, t } from './i18n';
 import type { Post } from './types';
 
@@ -135,12 +136,51 @@ function linkHashtags(html: string): string {
   }
   return doc.body.innerHTML;
 }
+/**
+ * Media links in rendered posts. A link that stands alone in its paragraph becomes a small card (thumbnail, ▶, title, the original link);
+ * a link inside a sentence gets a ▶ chip after it. Both get a ＋ (add to queue). Runs AFTER sanitizing; only validated ids end up in the
+ * attributes, and the player re-validates them on click.
+ */
+function linkMedia(html: string): string {
+  if (!html.includes('href')) return html;
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+  let any = false;
+  const mark = (el: HTMLElement, ref: NonNullable<ReturnType<typeof detectMedia>>, title: string): void => {
+    el.setAttribute('data-mt', ref.type); el.setAttribute('data-mid', ref.id);
+    if (ref.host) el.setAttribute('data-mh', ref.host);
+    if (ref.src) el.setAttribute('data-ms', ref.src);
+    if (ref.pending) el.setAttribute('data-mp', '1');
+    if (title) el.setAttribute('data-mtitle', title);
+  };
+  for (const a of Array.from(doc.querySelectorAll('a[href]'))) {
+    const ref = detectMedia(a.getAttribute('href') ?? ''); if (!ref) continue;
+    const txt = (a.textContent ?? '').trim(); const title = txt && !/^https?:\/\//i.test(txt) ? txt.slice(0, 200) : '';
+    const label = mediaLabel(ref);
+    const add = doc.createElement('button'); add.type = 'button'; add.className = 'media-add'; add.title = t('playerAddQueue'); add.setAttribute('aria-label', t('playerAddQueue')); add.textContent = '＋'; mark(add, ref, title);
+    const par = a.parentElement;
+    if (par?.tagName === 'P' && (par.textContent ?? '').trim() === txt && !par.querySelector('img')) {
+      const cover = coverOf(ref);
+      const card = doc.createElement('div'); card.className = 'media-card'; if (ref.type === 'peertube' || ref.type === 'youtube') card.setAttribute('data-hydrate', '1');
+      const play = doc.createElement('button'); play.type = 'button'; play.className = 'media-play'; play.setAttribute('aria-label', `▶ ${title || label}`); mark(play, ref, title);
+      const th = doc.createElement('span'); th.className = 'mc-thumb';
+      if (cover) { const im = doc.createElement('img'); im.setAttribute('src', cover); im.setAttribute('alt', ''); im.setAttribute('loading', 'lazy'); im.setAttribute('referrerpolicy', 'no-referrer'); th.append(im); }
+      const pb = doc.createElement('span'); pb.className = 'mc-play'; pb.textContent = '▶'; th.append(pb);
+      const meta = doc.createElement('span'); meta.className = 'mc-meta';
+      const b = doc.createElement('b'); b.className = 'mc-title'; b.textContent = title || label; const sm = doc.createElement('small'); sm.textContent = label; meta.append(b, sm);
+      play.append(th, meta); a.className = 'mc-ext'; a.setAttribute('title', a.getAttribute('href') ?? ''); a.textContent = '↗'; card.append(play, add, a);
+      par.replaceWith(card); any = true; continue;
+    }
+    const chip = doc.createElement('button'); chip.type = 'button'; chip.className = 'media-chip'; chip.title = `▶ ${label}`; chip.setAttribute('aria-label', `▶ ${label}`); chip.textContent = `▶ ${label}`; mark(chip, ref, title);
+    a.after(' ', chip, add); any = true;
+  }
+  return any ? doc.body.innerHTML : html;
+}
 export const renderMd = (body: string): string => {
   hookOnce();
-  return linkHashtags(linkMentions(DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string, {
+  return linkMedia(linkHashtags(linkMentions(DOMPurify.sanitize(marked.parse(body ?? '', { breaks: true, async: false }) as string, {
     ALLOWED_TAGS: MD_TAGS, ALLOWED_ATTR: MD_ATTRS, ALLOW_DATA_ATTR: false, ALLOW_ARIA_ATTR: false, SANITIZE_NAMED_PROPS: true,
     ALLOWED_URI_REGEXP: /^(?:https?:|mailto:)/i, // no javascript:, data:, relative or blob: URLs
-  })));
+  }))));
 };
 /** A remote image URL that is safe to drop into CSS `url('…')` and an <img src>: plain https, no quotes/brackets/backslashes. */
 export const safeImg = (u?: string): string => { const v = (u ?? '').trim(); return /^https:\/\/[^\s"'()<>\\]+$/i.test(v) ? v : ''; };

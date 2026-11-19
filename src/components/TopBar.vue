@@ -4,7 +4,8 @@ import { auth, loggedChains, loginOpen, setSession } from '../lib/auth';
 import type { ChainId } from '../lib/chains';
 import { t } from '../lib/i18n';
 import { setVoteWeight, voteWeight } from '../lib/settings';
-import { href, navigate, state, USER } from '../lib/store';
+import { pl, setPinned } from '../lib/player';
+import { href, navigate, state, blog } from '../lib/store';
 import { adapter } from '../lib/chains';
 import { closeNotifs, loadNotifs, notifGroups, notifIcon, notifLink, notifs, toggleNotifs, unreadMsg, unreadOther } from '../lib/notifs';
 import { CHAINS } from '../lib/chains';
@@ -20,7 +21,7 @@ watch(() => auth.me?.user, (u) => { if (u) void loadNotifs(); }, { immediate: tr
 watch(() => Object.values(auth.sessions).map((s) => s.chain + s.user).join(), () => { void loadWallets(); }, { immediate: true });
 setInterval(() => { void loadWallets(); }, 120000);
 const vpText = (id: string): string => { const v = wallets[id]?.vp; return v == null ? '' : `${v.toFixed(v < 10 ? 1 : 0)}%`; };
-const isOwner = computed(() => auth.me?.user === USER);
+const isOwner = computed(() => auth.me?.user === blog.user);
 /** Own blog: another blog has another config, so this is a normal page load (like following a notification to someone else's blog). */
 const myBlog = computed(() => (auth.me ? `?user=${encodeURIComponent(auth.me.user)}` : ''));
 const menuOpen = ref(false);
@@ -32,6 +33,9 @@ const openNotif = (n: Parameters<typeof notifLink>[0]): void => {
 };
 /** Chains with unclaimed rewards. Phones get one 🎁 chip with this count (the amounts are in the account menu), desktops one button per chain. */
 const rewardChains = computed(() => loggedChains().filter((c) => wallets[c.id]?.has));
+const rewardIdx = ref(0), rewardHold = ref(false);
+setInterval(() => { if (!rewardHold.value && rewardChains.value.length > 1) rewardIdx.value++; }, 3500);
+const shownReward = computed(() => (rewardChains.value.length ? rewardChains.value[rewardIdx.value % rewardChains.value.length] : null));
 const rewardTitle = computed(() => rewardChains.value.map((c) => `${c.name}: ${wallets[c.id].label}`).join('\n'));
 const openRewards = (): void => { closeNotifs(); menuOpen.value = true; };
 const bell = (k: 'msg' | 'other'): void => { menuOpen.value = false; toggleNotifs(k); };
@@ -45,17 +49,21 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
   <header class="topbar"><div class="topbar-in">
     <LangSelect compact />
     <span class="grow" />
-    <div v-if="loggedIn" class="user-area">
-      <template v-for="c in loggedChains()" :key="c.id">
-        <button v-if="wallets[c.id]?.has" class="pri claim claim-d" :disabled="wallets[c.id].busy" :title="t('claimTitle', { list: wallets[c.id].label })" @click="claim(c.id)"><Icon name="gift" /> <ChainDot :chain="c.id" /><span class="nb-lbl"> {{ wallets[c.id].power }} {{ c.powerSymbol }}</span></button>
-      </template>
+    <div v-if="loggedIn" class="user-area" :class="{ tight: loggedChains().length > 2 }">
+      <!-- desktop: one fixed slot; with several chains the rewards take turns (slide animation), hovering pauses it -->
+      <div v-if="shownReward" class="rew-slot" :title="rewardTitle" @mouseenter="rewardHold = true" @mouseleave="rewardHold = false" @focusin="rewardHold = true" @focusout="rewardHold = false">
+        <Transition name="rew" mode="out-in">
+          <button :key="shownReward.id" class="pri claim claim-d" :disabled="wallets[shownReward.id].busy" :title="t('claimTitle', { list: wallets[shownReward.id].label })" @click="claim(shownReward.id)"><Icon name="gift" /> <ChainDot :chain="shownReward.id" /><span class="nb-lbl"> {{ wallets[shownReward.id].power }} {{ shownReward.powerSymbol }}</span></button>
+        </Transition>
+        <span v-if="rewardChains.length > 1" class="rew-n" aria-hidden="true">{{ (rewardIdx % rewardChains.length) + 1 }}/{{ rewardChains.length }}</span>
+      </div>
       <button v-if="rewardChains.length" class="pri claim claim-m" :title="rewardTitle" :aria-label="t('rewardsPending')" @click="openRewards"><Icon name="gift" /><span class="badge badge-n">{{ rewardChains.length }}</span></button>
-      <span v-for="c in loggedChains()" :key="'vp' + c.id" class="vp nb-lbl" :title="t('vpTitle', { c: c.name })"><ChainDot :chain="c.id" /> {{ vpText(c.id) || '–' }}</span>
+      <span v-for="c in loggedChains()" v-show="loggedChains().length <= 2" :key="'vp' + c.id" class="vp nb-lbl" :title="t('vpTitle', { c: c.name })"><ChainDot :chain="c.id" /> {{ vpText(c.id) || '–' }}</span>
       <button v-if="auth.me" class="icon" :class="{ on: notifs.open && notifs.kind === 'msg' }" :aria-label="t('messages')" :title="t('messages')" @click="bell('msg')"><Icon name="chat" /><span v-if="unreadMsg" class="badge">{{ unreadMsg > 9 ? '9+' : unreadMsg }}</span></button>
       <button v-if="auth.me" class="icon" :class="{ on: notifs.open && notifs.kind === 'other' }" :aria-label="t('notifications')" :title="t('notifications')" @click="bell('other')"><Icon name="bell" /><span v-if="unreadOther" class="badge">{{ unreadOther > 9 ? '9+' : unreadOther }}</span></button>
-      <a v-if="!USER || loggedIn" class="btn navbtn" :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab === 'feed') }" :href="href({ view: 'world', tab: 'feed' })" :title="t('feedTitle')" :aria-label="t('feedTitle')" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon name="feed" /> <span class="nb-lbl">{{ t('feedTitle') }}</span></a>
-      <a v-if="!USER || loggedIn" class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'latest' || (!state.tab && !state.tag && !auth.me)) }" :href="href({ view: 'world', tab: 'latest' })" :title="t('latestTab')" :aria-label="t('latestTab')" @click.prevent="go(href({ view: 'world', tab: 'latest' }))"><Icon name="clock" /> <span class="nb-lbl">{{ t('latestTab') }}</span></a>
-      <a v-if="!USER || loggedIn" class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" :title="t('tagsTab')" :aria-label="t('tagsTab')" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><Icon name="tag" /> <span class="nb-lbl">{{ t('tagsTab') }}</span></a>
+      <a v-if="!blog.user || loggedIn" class="btn navbtn" :class="{ on: state.view === 'feed' || (state.view === 'world' && state.tab === 'feed') }" :href="href({ view: 'world', tab: 'feed' })" :title="t('feedTitle')" :aria-label="t('feedTitle')" @click.prevent="go(href({ view: 'world', tab: 'feed' }))"><Icon name="feed" /> <span class="nb-lbl">{{ t('feedTitle') }}</span></a>
+      <a v-if="!blog.user || loggedIn" class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'latest' || (!state.tab && !state.tag && !auth.me)) }" :href="href({ view: 'world', tab: 'latest' })" :title="t('latestTab')" :aria-label="t('latestTab')" @click.prevent="go(href({ view: 'world', tab: 'latest' }))"><Icon name="clock" /> <span class="nb-lbl">{{ t('latestTab') }}</span></a>
+      <a v-if="!blog.user || loggedIn" class="btn navbtn" :class="{ on: state.view === 'world' && (state.tab === 'tags' || !!state.tag) }" :href="href({ view: 'world', tab: 'tags' })" :title="t('tagsTab')" :aria-label="t('tagsTab')" @click.prevent="go(href({ view: 'world', tab: 'tags' }))"><Icon name="tag" /> <span class="nb-lbl">{{ t('tagsTab') }}</span></a>
       <a v-if="auth.me && !isOwner" class="btn navbtn" :href="myBlog" :title="t('myBlog')" :aria-label="t('myBlog')"><Icon name="home" /> <span class="nb-lbl">{{ t('myBlog') }}</span></a>
       <template v-if="isOwner">
         <a class="btn navbtn" :class="{ on: state.view === 'write' }" :href="href({ view: 'write' })" :title="t('write')" :aria-label="t('write')" @click.prevent="go(href({ view: 'write' }))"><Icon name="pen" /> <span class="nb-lbl">{{ t('write') }}</span></a>
@@ -89,6 +97,7 @@ const addAccount = (): void => { closeAll(); loginOpen.value = true; };
         </div>
         <div v-if="auth.me && loggedChains().length > 1" class="mute mp-note">{{ t('logoutBlurtAll') }}</div>
         <button v-if="loggedChains().length < CHAINS.length" class="mp-row" @click="addAccount"><Icon name="plus" /> {{ t('addAccount') }}</button>
+        <button v-if="auth.me" class="mp-row" @click="setPinned(!pl.pinned); menuOpen = false"><Icon name="music" /> {{ pl.pinned ? t('playerHide') : t('playerShow') }}</button>
         <label v-if="auth.me" class="mp-row"><span><Icon name="heart" /> {{ t('voteWeight') }}</span>
           <select class="sel" :value="voteWeight" @change="setVoteWeight(+($event.target as HTMLSelectElement).value)"><option v-for="w in [100, 75, 50, 25, 10]" :key="w" :value="w">{{ w }}%</option></select></label>
       </div>

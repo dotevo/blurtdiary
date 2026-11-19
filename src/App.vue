@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const BASE = import.meta.env.BASE_URL; // static files of public/ (the logo)
 import Icon from './components/Icon.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { loginOpen } from './lib/auth';
@@ -6,7 +7,7 @@ import { safeUrl } from './lib/config';
 import { lang, t } from './lib/i18n';
 import { support } from './lib/support';
 import { setShowNsfw, showNsfw } from './lib/settings';
-import { canMore, href, initBlog, loadMore, navigate, state, USER, visible } from './lib/store';
+import { canMore, href, initBlog, loadMore, navigate, state, blog, visible } from './lib/store';
 import { toastMsg } from './lib/toast';
 import DocsView from './components/DocsView.vue';
 import LoginModal from './components/LoginModal.vue';
@@ -24,6 +25,7 @@ import WorldView from './components/WorldView.vue';
 import WalletView from './components/WalletView.vue';
 import ActiveKeyModal from './components/ActiveKeyModal.vue';
 import JobQueue from './components/JobQueue.vue';
+import PlayerDock from './components/PlayerDock.vue';
 import ProfileView from './components/ProfileView.vue';
 import FavList from './components/FavList.vue';
 import NodeSettings from './components/NodeSettings.vue';
@@ -33,7 +35,7 @@ import { follow, setFollow } from './lib/follow';
 const who = ref('');
 onMounted(initBlog);
 const reload = (): void => window.location.reload();
-const openUser = (): void => { if (who.value.trim()) window.location.search = '?user=' + encodeURIComponent(who.value.trim()); };
+const openUser = (): void => { if (who.value.trim()) navigate('?user=' + encodeURIComponent(who.value.trim())); };
 const cover = () => safeUrl(state.cfg.cover) || safeUrl(state.profile?.cover_image);
 const logo = (): string => safeUrl(state.cfg.logo);
 const monthLabel = (m: string): string => new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7) - 1, 1)).toLocaleDateString(lang.value, { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -98,12 +100,14 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
 </script>
 
 <template>
+  <!-- keyed by the blog: opening another blog (or leaving one) rebuilds the page parts from scratch, without a page reload -->
+  <div :key="blog.user" class="app-page">
   <DocsView v-if="state.view === 'docs'" />
   <!-- no blog: tag pages and posts read from one chain (a tag's address has no user, so every blog leads to the same page) -->
-  <template v-else-if="!USER && (state.view === 'world' || state.view === 'profile' || state.view === 'wallet' || (state.post && state.chain))">
+  <template v-else-if="!blog.user && (state.view === 'world' || state.view === 'profile' || state.view === 'wallet' || (state.post && (state.chain || state.post.includes('/'))))">
     <TopBar />
     <div class="wrap wide"><main>
-      <p><a class="mute" :href="href({})" @click.prevent="navigate(href({}))">Blurt Diary</a></p>
+      <p><a class="mute brand" :href="href({})" @click.prevent="navigate(href({}))"><img :src="BASE + 'favicon.svg'" alt="" width="22" height="22"> Blurt Diary</a></p>
       <WorldView v-if="state.view === 'world'" />
       <ProfileView v-else-if="state.view === 'profile'" />
       <WalletView v-else-if="state.view === 'wallet'" />
@@ -111,11 +115,11 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
     </main></div>
   </template>
   <!-- no blog chosen: the front page is the newest posts of all chains; a blog can be opened from the box at the top -->
-  <template v-else-if="!USER">
+  <template v-else-if="!blog.user">
     <TopBar />
     <div class="wrap wide"><main>
       <div class="landing-top center">
-        <h1>Blurt Diary</h1><p class="mute">{{ t('enterUser') }}</p>
+        <img class="landing-logo" :src="BASE + 'logo.svg'" alt="" width="200" height="200"><h1>Blurt Diary</h1><p class="mute">{{ t('enterUser') }}</p>
         <form style="max-width:280px;margin:auto" @submit.prevent="openUser"><input v-model="who" :placeholder="t('userPlaceholder')"></form>
         <div v-if="favs.list.length" class="fav-landing"><h4><Icon name="star-fill" /> {{ t('favTitle') }}</h4><FavList /></div>
       </div>
@@ -131,13 +135,13 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
     <header class="hero" :class="{ cover: cover() }" :style="cover() ? { backgroundImage: `url('${cover()}')` } : {}">
       <div class="hero-in">
         <img v-if="logo()" class="logo" :src="logo()" alt="">
-        <UserAvatar v-else :name="USER" />
+        <UserAvatar v-else :name="blog.user" />
         <div>
-          <h1><a :href="href({})" @click.prevent="navigate(href({}))">{{ state.cfg.title ?? state.profile?.name ?? '@' + USER }}</a>
-            <button class="star" :class="{ on: isFav(USER) }" :title="isFav(USER) ? t('favUnfollow') : t('favFollow')" :aria-label="isFav(USER) ? t('favUnfollow') : t('favFollow')" :aria-pressed="isFav(USER)"
-              @click="toggleFav(USER, state.cfg.title ?? state.profile?.name)"><Icon :name="isFav(USER) ? 'star-fill' : 'star'" /></button>
+          <h1><a :href="href({})" @click.prevent="navigate(href({}))">{{ state.cfg.title ?? state.profile?.name ?? '@' + blog.user }}</a>
+            <button class="star" :class="{ on: isFav(blog.user) }" :title="isFav(blog.user) ? t('favUnfollow') : t('favFollow')" :aria-label="isFav(blog.user) ? t('favUnfollow') : t('favFollow')" :aria-pressed="isFav(blog.user)"
+              @click="toggleFav(blog.user, state.cfg.title ?? state.profile?.name)"><Icon :name="isFav(blog.user) ? 'star-fill' : 'star'" /></button>
             <button v-if="follow.state !== 'unknown'" class="small follow" :class="{ on: follow.state === 'yes' }" :disabled="follow.busy" :title="t('followTitle')" @click="setFollow(follow.state !== 'yes')"><Icon :name="follow.state === 'yes' ? 'check' : 'plus'" /> {{ follow.state === 'yes' ? t('following') : t('follow') }}</button></h1>
-          <div class="mute">{{ state.cfg.subtitle ?? '@' + USER }}</div>
+          <div class="mute">{{ state.cfg.subtitle ?? '@' + blog.user }}</div>
           <div v-if="state.cfg.links.length" class="hero-links">
             <template v-for="(l, i) in state.cfg.links" :key="i"><a v-if="safeUrl(l.url)" :href="safeUrl(l.url)" target="_blank" rel="noopener noreferrer">{{ l.label }}</a></template>
           </div>
@@ -178,9 +182,11 @@ onBeforeUnmount(() => { document.removeEventListener('touchstart', onStart); doc
       <NodeSettings />
     </footer>
   </template>
+  </div>
   <LoginModal v-if="loginOpen" @close="loginOpen = false" />
   <ActiveKeyModal />
   <JobQueue />
+  <PlayerDock />
   <SupportModal v-if="support.show" />
   <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
 </template>
