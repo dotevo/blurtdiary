@@ -72,6 +72,8 @@
  "playerPause": "Pause",
  "playerNext": "Weiter",
  "playerPrev": "Zurück",
+ "playerSize": "Video breiter / schmaler",
+ "playerPanel": "Warteschlange, Playlists, Hinzufügen",
  "playerExpand": "Erweitern: Video, Warteschlange, Playlists",
  "playerClose": "Stoppen und schließen",
  "playerHide": "Player ausblenden",

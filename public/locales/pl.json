@@ -72,6 +72,8 @@
  "playerPause": "Pauza",
  "playerNext": "Następny",
  "playerPrev": "Poprzedni",
+ "playerSize": "Większy / mniejszy widok wideo",
+ "playerPanel": "Kolejka, playlisty i dodawanie",
  "playerExpand": "Rozwiń: wideo, kolejka, playlisty",
  "playerClose": "Zatrzymaj i zamknij",
  "playerHide": "Ukryj odtwarzacz",

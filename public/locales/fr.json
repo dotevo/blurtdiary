@@ -72,6 +72,8 @@
  "playerPause": "Pause",
  "playerNext": "Suivant",
  "playerPrev": "Précédent",
+ "playerSize": "Vidéo plus large / plus étroite",
+ "playerPanel": "File d’attente, playlists, ajout",
  "playerExpand": "Agrandir : vidéo, file d’attente, playlists",
  "playerClose": "Arrêter et fermer",
  "playerHide": "Masquer le lecteur",

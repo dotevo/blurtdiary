@@ -25,14 +25,23 @@ const pickList = (e: Event, tr: Track): void => { const el = e.target as HTMLSel
 const modeIcon: Record<string, string> = { sequential: '→', shuffle: '⤮', 'repeat-all': '⟲', 'repeat-one': '⟲1' };
 const nextAuto = computed(() => { const i = cur.value ? pl.auto.findIndex((x) => x.key === cur.value?.key) : -1; return pl.auto.slice(i + 1); });
 const tabs = ['queue', 'lists'] as const;
+const more = ref(false); // phone: queue / playlists / add-to panel is folded away until asked for
+const big = ref(false);
+try { big.value = localStorage.getItem('bd-player-size') === 'l'; } catch { /* ignore */ }
+const toggleBig = (): void => { big.value = !big.value; try { localStorage.setItem('bd-player-size', big.value ? 'l' : 'm'); } catch { /* ignore */ } };
+const pct = computed(() => (pl.duration ? Math.min(100, (pl.time / pl.duration) * 100) : 0));
 </script>
 <template>
   <template v-if="dockVisible">
-    <aside class="pdock" :class="{ exp: pl.expanded, withvid: showVideo }" :aria-label="t('playerTitle')">
+    <aside class="pdock" :class="{ exp: pl.expanded, withvid: showVideo, big: big && pl.expanded, more }" :aria-label="t('playerTitle')">
       <div class="pd-left">
         <div v-if="hasVideo && src" class="pd-stage" :class="{ show: showVideo }">
           <iframe :key="(cur?.key ?? '') + pl.nonce + src" :src="src" title="player" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"
             sandbox="allow-scripts allow-same-origin allow-presentation allow-popups" @load="frameLoaded($event.target as HTMLIFrameElement)" />
+        </div>
+        <div v-if="cur" class="pd-seek" :style="{ '--p': pct + '%' }">
+          <input type="range" min="0" :max="pl.duration || 0" step="1" :value="pl.time" :disabled="!pl.duration" :aria-label="t('playerSeek')" @input="seek(+($event.target as HTMLInputElement).value)">
+          <input class="pd-vol" type="range" min="0" max="1" step="0.05" :value="pl.volume" :aria-label="t('playerVolume')" @input="setVolume(+($event.target as HTMLInputElement).value)">
         </div>
         <div class="pd-bar">
           <img v-if="cover" :key="cover" class="pd-cover" :src="cover" alt="" referrerpolicy="no-referrer">
@@ -44,19 +53,17 @@ const tabs = ['queue', 'lists'] as const;
           </div>
           <div class="pd-ctl">
             <template v-if="cur">
-              <button class="icon" :title="t('playerPrev')" :aria-label="t('playerPrev')" @click="prev"><Icon name="skip-prev" /></button>
+              <button class="icon x" :title="t('playerPrev')" :aria-label="t('playerPrev')" @click="prev"><Icon name="skip-prev" /></button>
               <button class="icon pd-play" :title="pl.playing ? t('playerPause') : t('playerPlay')" :aria-label="pl.playing ? t('playerPause') : t('playerPlay')" @click="toggle"><Icon :name="pl.playing ? 'pause' : 'play'" /></button>
               <button class="icon" :title="t('playerNext')" :aria-label="t('playerNext')" @click="next()"><Icon name="skip-next" /></button>
-              <button class="icon pd-mode" :class="{ on: pl.mode !== 'sequential' }" :title="t('playerMode_' + pl.mode)" :aria-label="t('playerMode_' + pl.mode)" @click="cycleMode">{{ modeIcon[pl.mode] }}</button>
+              <button class="icon pd-mode x" :class="{ on: pl.mode !== 'sequential' }" :title="t('playerMode_' + pl.mode)" :aria-label="t('playerMode_' + pl.mode)" @click="cycleMode">{{ modeIcon[pl.mode] }}</button>
               <button v-if="cur.sponsored" class="icon on" :title="t('spTitle')" :aria-label="t('spTitle')" @click="showAds = true"><Icon name="coin" /></button>
             </template>
+            <button v-if="pl.expanded" class="icon pd-more" :class="{ on: more }" :title="t('playerPanel')" :aria-label="t('playerPanel')" :aria-pressed="more" @click="more = !more">☰</button>
+            <button v-if="pl.expanded && hasVideo" class="icon pd-size" :class="{ on: big }" :title="t('playerSize')" :aria-label="t('playerSize')" :aria-pressed="big" @click="toggleBig">⇔</button>
             <button class="icon" :class="{ on: pl.expanded }" :title="t('playerExpand')" :aria-label="t('playerExpand')" :aria-expanded="pl.expanded" @click="pl.expanded = !pl.expanded"><Icon name="expand" /></button>
             <button class="icon" :title="pl.pinned ? t('playerHide') : t('playerClose')" :aria-label="pl.pinned ? t('playerHide') : t('playerClose')" @click="pl.pinned ? hide() : close()"><Icon name="x" /></button>
           </div>
-        </div>
-        <div v-if="cur" class="pd-seek">
-          <input type="range" min="0" :max="pl.duration || 0" step="1" :value="pl.time" :disabled="!pl.duration" :aria-label="t('playerSeek')" @input="seek(+($event.target as HTMLInputElement).value)">
-          <input class="pd-vol" type="range" min="0" max="1" step="0.05" :value="pl.volume" :aria-label="t('playerVolume')" @input="setVolume(+($event.target as HTMLInputElement).value)">
         </div>
         <div v-if="pl.expanded && cur && !cur.sponsored" class="pd-acts">
           <button class="small" @click="addToQueue(cur)">＋ {{ t('playerAddQueue') }}</button>

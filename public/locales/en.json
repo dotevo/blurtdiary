@@ -72,6 +72,8 @@
  "playerPause": "Pause",
  "playerNext": "Next",
  "playerPrev": "Previous",
+ "playerSize": "Wider / narrower video view",
+ "playerPanel": "Queue, playlists and add",
  "playerExpand": "Expand: video, queue, playlists",
  "playerClose": "Stop and close",
  "playerHide": "Hide the player",

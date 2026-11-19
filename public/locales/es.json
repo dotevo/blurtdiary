@@ -72,6 +72,8 @@
  "playerPause": "Pausa",
  "playerNext": "Siguiente",
  "playerPrev": "Anterior",
+ "playerSize": "Vídeo más ancho / más estrecho",
+ "playerPanel": "Cola, listas y añadir",
  "playerExpand": "Ampliar: vídeo, cola, listas",
  "playerClose": "Detener y cerrar",
  "playerHide": "Ocultar el reproductor",
