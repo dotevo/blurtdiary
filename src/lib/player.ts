@@ -71,6 +71,7 @@ let adTimer: ReturnType<typeof setTimeout> | null = null;
 const YT_ORIGIN = 'https://www.youtube-nocookie.com';
 const SUNO_ORIGIN = ((): string => { try { return new URL(SUNO_EMBED_BASE).origin; } catch { return ''; } })();
 const ytCmd = (func: string, args: unknown[] = []): void => { frame?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), YT_ORIGIN); };
+let sunoLock = 0; // right after our own play/pause command a late time update must not flip the state back
 const sunoCmd = (action: string, extra: Record<string, unknown> = {}): void => { frame?.contentWindow?.postMessage({ action, ...extra }, SUNO_ORIGIN); };
 
 function stopEngines(): void {
@@ -157,7 +158,11 @@ window.addEventListener('message', (e: MessageEvent) => {
     else if (m.type === 'play') { pl.playing = true; pl.loading = false; }
     else if (m.type === 'pause') pl.playing = false;
     else if (m.type === 'ended') { pl.playing = false; next(true); }
-    else if (m.type === 'timeupdate' && m.duration > 0) { pl.duration = m.duration; pl.time = m.currentTime; }
+    else if (m.type === 'timeupdate' && m.duration > 0) {
+      // the embed may start by itself (autoplay) without a separate "play" message: moving time means it is playing
+      if (m.currentTime > pl.time + 0.05 && Date.now() > sunoLock) { pl.playing = true; pl.loading = false; }
+      pl.duration = m.duration; pl.time = m.currentTime;
+    }
   }
 });
 
@@ -250,7 +255,7 @@ export function toggle(): void {
   if (pl.error) { playTrack(tr); return; }
   if (tr.type === 'audio') { if (audio?.paused) void audio.play(); else audio?.pause(); }
   else if (tr.type === 'youtube') ytCmd(pl.playing ? 'pauseVideo' : 'playVideo');
-  else if (tr.type === 'suno') sunoCmd(pl.playing ? 'pause' : 'play');
+  else if (tr.type === 'suno') { const to = !pl.playing; sunoLock = Date.now() + 900; sunoCmd(to ? 'play' : 'pause'); pl.playing = to; }
   else if (tr.type === 'peertube' && pt) { if (pl.playing) void pt.pause(); else void pt.play(); }
 }
 export function seek(sec: number): void {

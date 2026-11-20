@@ -504,8 +504,10 @@ a.hashtag{text-decoration:none}a.hashtag:hover{text-decoration:underline}
 .pd-info{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
 .pd-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.92rem}
 .pd-sub{font-size:.74rem}
-.pd-ctl{display:flex;align-items:center;gap:0;flex:none}
-.pd-ctl .icon{padding:5px 7px}
+.pd-ctl{display:flex;align-items:center;gap:4px;flex:none}
+.pd-ctl .icon{flex:none;box-sizing:border-box;width:36px;height:36px;padding:0;display:inline-grid;place-items:center;line-height:1}
+.pd-ctl .ico{width:1.2em;height:1.2em}
+.pd-play{width:40px!important;height:40px!important;border-radius:50%!important}
 .pd-play{background:var(--accent);color:#fff;border-radius:50%}
 .pd-mode{font-size:.95rem;min-width:2em}.pd-mode.on{color:var(--accent)}
 .pd-size{font-size:1rem}.pd-size.on{color:var(--accent)}
@@ -553,11 +555,10 @@ body.has-player{padding-bottom:84px}
   .pdock{bottom:calc(58px + env(safe-area-inset-bottom) + 6px);width:calc(100vw - 12px)}
   .pdock:not(.exp) .x{display:none}
   .pdock:not(.exp) .pd-cover{width:36px;height:36px}
-  .pd-ctl .icon{padding:6px 7px;font-size:.95rem}
-  .pd-ctl .ico{width:1.05em;height:1.05em}
+  .pd-ctl .icon{width:34px;height:34px}
   .pdock{max-width:calc(100vw - 12px);overflow:clip}
-  .pdock *{min-width:0}
-  .pdock .pd-ctl{gap:0}
+  .pd-info,.pd-title,.pd-seek input,.pd-acts>*{min-width:0}
+  .pdock .pd-ctl{gap:3px}
   /* expanded: a bottom sheet; video on top, controls compact, the list takes the remaining height */
   .pdock.exp{display:flex;flex-direction:column;max-height:calc(100dvh - 58px - 60px - env(safe-area-inset-bottom))}
   .pdock.exp:not(.more) .pd-panel,.pdock.exp:not(.more) .pd-acts{display:none}
