@@ -6,7 +6,7 @@ import { rpc } from './rpc';
 import { href } from './store';
 
 /** `chain` = where the notification comes from. Blurt always; Hive/Steem/… for every chain we are logged in on (when its node has the bridge API). */
-export interface Notif { id: number; type: string; score: number; date: string; msg: string; url?: string; chain: string; /** 'hist' = rebuilt from the account history (its ids are not comparable with the bridge ids) */ src?: 'hist' }
+export interface Notif { id: number; type: string; score: number; date: string; msg: string; url?: string; chain: string; /** 'hist' = rebuilt from the account history (its ids are not comparable with the bridge ids) */ src?: 'hist' | 'api' }
 export const notifs = reactive({ items: [] as Notif[], open: false, kind: 'other' as Kind, loading: false, lastRead: {} as Record<string, number> });
 /**
  * Two lists with their own read-state: "messages" (replies to you and mentions – someone is talking to you, so they matter more)
@@ -57,7 +57,7 @@ type Hist = [number, { op: [string, Record<string, unknown>]; timestamp: string 
  * Fallback for chains whose node has no `bridge` API (e.g. Melek): the account history already lists the operations that concern
  * the account, so votes, replies and incoming transfers are rebuilt from it. Less rich than the bridge, but nothing is missed.
  */
-async function fromHistory(chain: string, account: string, only?: string): Promise<Notif[]> {
+async function fromHistory(chain: string, account: string, only?: string, skipReplies = false): Promise<Notif[]> {
   // the history is full of the account's own operations (its votes and comments), so 60 entries often held none of the replies: read 2 pages of 200 (smaller when the node refuses)
   const ad = adapter(chain); let rows: Hist[] = [];
   const page = async (from: number, n: number): Promise<Hist[]> => { const r = await ad.call<Hist[]>('condenser_api', 'get_account_history', [account, from, n]); return Array.isArray(r) ? r : []; };
@@ -73,11 +73,38 @@ async function fromHistory(chain: string, account: string, only?: string): Promi
     if (type === 'vote' && str('author') === account && str('voter') !== account) {
       const w = Number(o.weight) / 100;
       if (w > 0) out.push({ ...base, type: 'vote', msg: `@${str('voter')} voted on your post or comment (${w}%)`, url: `@${account}/${str('permlink')}` });
-    } else if (type === 'comment' && str('parent_author') === account && str('author') !== account) {
+    } else if (!skipReplies && type === 'comment' && str('parent_author') === account && str('author') !== account) {
       out.push({ ...base, type: 'reply', msg: `@${str('author')} replied to you`, url: `@${str('author')}/${str('permlink')}` });
     } else if (type === 'transfer' && str('to') === account && str('from') !== account) {
       out.push({ ...base, type: 'transfer', msg: `@${str('from')} sent you ${str('amount')}` });
     }
+  }
+  return out;
+}
+/**
+ * Melek's own notification list (`get_notifications`, the call its official front end makes): replies, MENTIONS and follows, which the
+ * account history cannot show (a mention is only text inside someone else's post). Times are unix seconds, there are no numeric ids.
+ */
+type MelekRow = { type?: string; author?: string; follower?: string; permlink?: string; timestamp?: number };
+/** The node accepts the bare method name only over its WebSocket (over HTTP it insists on "api.method"): one request, one answer, then the socket is closed. */
+const MELEK_WS = 'wss://melek.salon/';
+const wsCall = (url: string, method: string, params: unknown[], ms = 8000): Promise<unknown> => new Promise((ok, bad) => {
+  let ws: WebSocket; try { ws = new WebSocket(url); } catch (e) { bad(e); return; }
+  const done = (f: () => void): void => { clearTimeout(timer); try { ws.close(); } catch { /* ignore */ } f(); };
+  const timer = setTimeout(() => done(() => bad(new Error('websocket timeout'))), ms);
+  ws.onopen = () => ws.send(JSON.stringify({ id: 0, jsonrpc: '2.0', method, params }));
+  ws.onerror = () => done(() => bad(new Error('websocket error')));
+  ws.onmessage = (e) => { try { const j = JSON.parse(String(e.data)); if (j.id !== 0) return; if (j.error) done(() => bad(new Error(String(j.error.message ?? 'rpc error')))); else done(() => ok(j.result)); } catch (x) { done(() => bad(x)); } };
+});
+async function fromMelekApi(chain: string, account: string): Promise<Notif[]> {
+  const r = (await wsCall(MELEK_WS, 'get_notifications', [account])) as MelekRow[];
+  if (!Array.isArray(r)) throw new Error('get_notifications: unexpected answer');
+  const out: Notif[] = [];
+  for (const x of r) {
+    const ts = Number(x?.timestamp); if (!ts) continue;
+    const base = { id: ts, score: 50, date: new Date(ts * 1000).toISOString(), chain, src: 'api' as const };
+    if ((x.type === 'reply' || x.type === 'mention') && x.author && x.permlink) out.push({ ...base, type: x.type, msg: `@${x.author} ${x.type === 'reply' ? 'replied to you' : 'mentioned you'}`, url: `@${x.author}/${x.permlink}` });
+    else if (x.type === 'follow' && x.follower) out.push({ ...base, type: 'follow', msg: `@${x.follower} started following you` });
   }
   return out;
 }
@@ -90,7 +117,11 @@ async function fromChain(chain: string, account: string): Promise<Notif[]> {
     if (Array.isArray(r)) list = r.filter((n) => n && typeof n.msg === 'string' && typeof n.date === 'string').map((n) => ({ ...n, chain }));
   } catch (e) { console.warn('notifications (bridge)', chain, e); }
   try {
-    if (!list) { if (chain !== PRIMARY) list = await fromHistory(chain, account); }
+    if (!list && chain === 'melek') {
+      // its own list has replies, mentions and follows; the history adds what that list lacks (votes, transfers) - replies come from one source only
+      const api = await fromMelekApi(chain, account).catch((e) => { console.warn('notifications (melek api)', e); return null; });
+      list = api ? [...api, ...(await fromHistory(chain, account, undefined, true))] : await fromHistory(chain, account);
+    } else if (!list) { if (chain !== PRIMARY) list = await fromHistory(chain, account); }
     else if (!list.some((n) => n.type.includes('transfer'))) list = [...list, ...(await fromHistory(chain, account, 'transfer'))]; // a bridge without money notifications: add incoming transfers
   } catch (e) { console.warn('notifications (history)', chain, e); }
   return (list ?? []).filter(coalOk);

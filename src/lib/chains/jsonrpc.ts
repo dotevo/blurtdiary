@@ -23,7 +23,7 @@ export type RpcStyle = 'legacy' | 'modern';
 
 const bodyFor = (api: string, method: string, params: unknown, direct: boolean): string =>
   JSON.stringify(api === 'bridge' || direct
-    ? { jsonrpc: '2.0', id: 1, method: `${api}.${method}`, params }
+    ? { jsonrpc: '2.0', id: 1, method: api ? `${api}.${method}` : method, params } // empty api = a bare method name (Melek's get_notifications)
     : { jsonrpc: '2.0', id: 1, method: 'call', params: [api, method, params] });
 
 async function once<T>(url: string, init: RequestInit, timeoutMs: number): Promise<T> {
@@ -54,7 +54,7 @@ export async function jsonRpc<T = unknown>(pool: NodePool, api: string, method: 
     asked++;
     const attempts: RequestInit[] = style === 'modern'
       ? [{ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: bodyFor(api, method, params, true) },
-         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: bodyFor(api, method, params, false) }]
+         ...(api ? [{ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: bodyFor(api, method, params, false) }] : [])]
       : [{ method: 'POST', body: bodyFor(api, method, params, false) }];
     let reachable = true, ref = false;
     for (const init of attempts) {
