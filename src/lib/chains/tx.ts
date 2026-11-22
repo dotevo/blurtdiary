@@ -17,8 +17,11 @@ const OP_ID: Record<string, number> = { vote: 0, comment: 1, transfer: 2, transf
 const STRICT = new Set(['melek']);
 const EXPIRE_MS = 60_000;
 
+/** Hive's binary form of the two names that changed with the fork; some nodes still answer with these old names (and sign over them). */
+const LEGACY_SYMBOL: Record<string, string> = { HIVE: 'STEEM', HBD: 'SBD' };
 class Out {
   b: number[] = [];
+  constructor(private legacy = false) {}
   u8(n: number): void { this.b.push(n & 255); }
   u16(n: number): void { this.u8(n); this.u8(n >> 8); }
   u32(n: number): void { this.u16(n & 0xffff); this.u16(Math.floor(n / 65536) & 0xffff); }
@@ -34,7 +37,8 @@ class Out {
     n = BigInt.asUintN(64, n);
     for (let i = 0; i < 8; i++) this.u8(Number((n >> BigInt(8 * i)) & 255n));
     this.u8((m[3] ?? '').length);
-    for (let i = 0; i < 7; i++) this.u8(m[4].charCodeAt(i) || 0);
+    const sym = this.legacy ? (LEGACY_SYMBOL[m[4]] ?? m[4]) : m[4];
+    for (let i = 0; i < 7; i++) this.u8(sym.charCodeAt(i) || 0);
   }
   bytes(): Uint8Array { return Uint8Array.from(this.b); }
 }
@@ -71,15 +75,52 @@ const hex = (b: Uint8Array): string => [...b].map((n) => n.toString(16).padStart
 const unhex = (s: string): Uint8Array => Uint8Array.from(s.match(/../g)?.map((h) => parseInt(h, 16)) ?? []);
 
 interface Tx { ref_block_num: number; ref_block_prefix: number; expiration: string; operations: Operation[]; extensions: unknown[]; signatures?: string[] }
-function serialize(tx: Tx): Uint8Array {
-  const o = new Out();
+export function serialize(tx: Tx, legacy = false): Uint8Array {
+  const o = new Out(legacy);
   o.u16(tx.ref_block_num); o.u32(tx.ref_block_prefix); o.u32(Math.floor(new Date(tx.expiration + 'Z').getTime() / 1000));
   o.varint(tx.operations.length); for (const op of tx.operations) writeOp(o, op);
   o.varint(0); // extensions
   return o.bytes();
 }
 
-/** Builds, checks against the node, signs and broadcasts `ops` on a Steem-family chain with a posting key (WIF). */
+/** One JSON-RPC call to one given node (the shared transport always starts from its queue; here the node matters). */
+async function nodeCall<T>(url: string, method: string, params: unknown, ms = 6000): Promise<T> {
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url.replace(/\/?$/, '/'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, mode: 'cors', cache: 'no-cache', signal: ctl.signal, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json(); if (j.error) throw new Error(String(j.error.message ?? 'RPC error'));
+    return j.result as T;
+  } finally { clearTimeout(timer); }
+}
+const sameHex = (theirs: string, mine: string): boolean => theirs === mine || theirs === mine + '00';
+const commonLen = (x: string, y: string): number => { let i = 0; while (i < x.length && i < y.length && x[i] === y[i]) i = i + 1; return i - (i % 2); };
+/** Which operation a byte of the serialized transaction belongs to, and where inside it ("comment_options+57"). */
+function where(ops: Operation[], byte: number): string {
+  let pos = 10 + 1; // ref block (2) + prefix (4) + expiration (4) + operation count (1 byte below 128 operations)
+  for (const op of ops) {
+    const o = new Out(); writeOp(o, op);
+    if (byte < pos + o.b.length) return `${op[0]}+${byte - pos}`;
+    pos += o.b.length;
+  }
+  return `tail+${byte - pos}`;
+}
+/**
+ * One short line for the sending queue, readable in a phone screenshot: node, operation and position of the first differing byte, six bytes of each
+ * side around it, and the sizes. Both of our variants (new / old coin names) are tried and the closer one is reported.
+ */
+const diffLine = (ops: Operation[], mine: string, old: string, theirs: string): string => {
+  const base = commonLen(old, theirs) > commonLen(mine, theirs) ? old : mine;
+  const i = commonLen(base, theirs);
+  return `${where(ops, i / 2)} @${i / 2} | ours ${base.slice(i, i + 12) || '-'} | node ${theirs.slice(i, i + 12) || '-'} | ${base.length / 2}/${theirs.length / 2}B`;
+};
+
+/**
+ * Builds, checks against the node, signs and broadcasts `ops` on a Steem-family chain with a posting key (WIF).
+ * Public nodes do not all serialize alike (one may answer in another asset format), so the check is made against each node in the queue until one
+ * agrees with our bytes; that node then also receives the transaction (it must verify the signature over its own serialization), and it is put first
+ * in the queue for the next time. Only when no node agrees is nothing signed.
+ */
 export async function broadcastSteemFamily(a: ChainAdapter, ops: Operation[], key: string | dblurt.PrivateKey): Promise<void> {
   const props = await a.call<{ head_block_number: number; head_block_id: string; time: string }>('condenser_api', 'get_dynamic_global_properties', []);
   const tx: Tx = {
@@ -89,12 +130,26 @@ export async function broadcastSteemFamily(a: ChainAdapter, ops: Operation[], ke
     operations: ops, extensions: [],
   };
   const mine = hex(serialize(tx));
-  let theirs = '';
-  try { theirs = String(await a.call('condenser_api', 'get_transaction_hex', [{ ...tx, signatures: [] }])); } catch (e) { console.warn('get_transaction_hex', a.id, e); }
-  if (theirs) {
-    if (theirs !== mine && theirs !== mine + '00') throw new Error(`${a.name}: the node serializes this operation differently (ours ${mine.slice(0, 300)} / node ${theirs.slice(0, 300)}) – not signed`);
-  } else if (STRICT.has(a.id)) throw new Error(`${a.name}: could not verify the transaction with the node – not signed`);
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', Uint8Array.from([...(a.chainId ? unhex(a.chainId) : new Uint8Array(dblurt.DEFAULT_CHAIN_ID)), ...unhex(mine)])));
+  const old = hex(serialize(tx, true)); // same transaction with the old coin names; identical on chains that never renamed
+  let mineUsed = mine;
+  let agreed = '', mismatch = '', asked = 0;
+  for (const url of a.pool?.list() ?? []) {
+    let theirs = '';
+    try { theirs = String(await nodeCall(url, 'condenser_api.get_transaction_hex', [{ ...tx, signatures: [] }])); } catch (e) { console.warn('get_transaction_hex', url, e); continue; }
+    if (!theirs) continue;
+    asked++;
+    if (sameHex(theirs, mine)) { agreed = url; break; }
+    if (old !== mine && sameHex(theirs, old)) { agreed = url; mineUsed = old; break; }
+    console.warn('get_transaction_hex: different serialization', url, diffLine(ops, mine, old, theirs));
+    mismatch ||= `${url.replace(/^https?:\/\//, '')} | ${diffLine(ops, mine, old, theirs)}`;
+  }
+  if (!agreed) {
+    if (asked) throw new Error(`${a.name}: not signed, nodes write ${ops.map((o) => o[0]).join('+')} differently\n${mismatch}`);
+    if (STRICT.has(a.id)) throw new Error(`${a.name}: could not verify the transaction with the node – not signed`);
+  }
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', Uint8Array.from([...(a.chainId ? unhex(a.chainId) : new Uint8Array(dblurt.DEFAULT_CHAIN_ID)), ...unhex(mineUsed)])));
   const sig = (typeof key === 'string' ? dblurt.PrivateKey.from(key) : key).sign(digest as never).toString();
-  await a.call('condenser_api', 'broadcast_transaction', [{ ...tx, signatures: [sig] }]);
+  const signed = { ...tx, signatures: [sig] };
+  if (agreed) { try { await nodeCall(agreed, 'condenser_api.broadcast_transaction', [signed], 15000); a.pool?.ok(agreed); return; } catch (e) { if (/duplicate|already/i.test(String((e as Error).message))) return; console.warn('broadcast via', agreed, e); } }
+  try { await a.call('condenser_api', 'broadcast_transaction', [signed]); } catch (e) { if (!/duplicate|already/i.test(String((e as Error).message))) throw e; } // the first attempt may have gone through
 }

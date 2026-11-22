@@ -418,11 +418,12 @@ a.hashtag{text-decoration:none}a.hashtag:hover{text-decoration:underline}
 .jobfab .spinner{width:22px;height:22px}
 .jobfab .jf-bang{font-weight:700;font-size:1.3rem;color:var(--accent)}
 .jobfab.bad{background:#c0392b;border-color:#c0392b}.jobfab.bad .jf-bang{color:#fff}
-.jobpop{width:min(380px,calc(100vw - 28px));max-height:60vh;overflow:auto;padding:.7rem .8rem;box-shadow:0 4px 18px rgba(0,0,0,.3)}
+.jobpop{width:min(380px,calc(100vw - 28px));max-height:75vh;overflow:auto;padding:.7rem .8rem;box-shadow:0 4px 18px rgba(0,0,0,.3)}
 .jobpop .jp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem}
 .jobpop ul{list-style:none;margin:0;padding:0}
-.jobpop li{display:flex;gap:.5rem;align-items:center;padding:.35rem 0;border-top:1px solid var(--line)}
-.jobpop .jp-err{display:block;font-size:.82rem;word-break:break-word}
+.jobpop li{display:flex;flex-wrap:wrap;gap:.3rem .5rem;align-items:center;padding:.35rem 0;border-top:1px solid var(--line)}
+.jobpop .jp-err{flex:1 1 100%;font-size:.72rem;line-height:1.35;word-break:break-all;white-space:pre-line;font-family:ui-monospace,Menlo,Consolas,monospace}
+.jobpop .grow{flex:1;min-width:8em}
 .jobpop .jp-btns{display:flex;gap:.25rem}
 .jobpop .jp-foot{display:flex;gap:.4rem;margin-top:.5rem}
 @media (max-width:760px){.jobq{bottom:calc(58px + env(safe-area-inset-bottom) + 12px)}}

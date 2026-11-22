@@ -21,10 +21,11 @@ const name = (c: string): string => { try { return adapter(c).name; } catch { re
         <li v-for="j in jobs" :key="j.id" :class="j.status">
           <ChainDot :chain="j.chain" />
           <span class="grow"><span>{{ t('job_' + j.kind) }}<template v-if="j.title">: {{ j.title }}</template> <span class="mute">· {{ name(j.chain) }}</span></span>
-            <span v-if="j.status === 'failed'" class="badtxt jp-err">{{ err(j.error) }}</span></span>
+          </span>
           <span v-if="j.status === 'running'" class="spinner" :title="t('jobRunning')" />
           <Icon v-else-if="j.status === 'done'" name="check" />
           <span v-else class="jp-btns"><button @click="retry(j.id)"><Icon name="refresh" /> {{ t('jobRetry') }}</button><button class="icon" :title="t('jobDismiss')" @click="remove(j.id)"><Icon name="x" /></button></span>
+          <div v-if="j.status === 'failed' && j.error" class="badtxt jp-err">{{ err(j.error) }}</div>
         </li>
       </ul>
       <div v-if="failed" class="jp-foot"><button class="pri" :disabled="!!running" @click="retryAll"><Icon name="refresh" /> {{ t('jobRetryAll') }}</button> <button :disabled="!!running" @click="clearJobs">{{ t('jobClear') }}</button></div>

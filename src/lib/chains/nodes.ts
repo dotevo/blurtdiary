@@ -22,9 +22,12 @@ export function setPref(chain: string, url: string): void { prefs[chain] = url; 
 export class NodePool {
   /** Reactive, so the footer can show the active node and which ones failed. */
   readonly state = reactive({ order: [] as string[], active: '', failedAt: {} as Record<string, number> });
-  constructor(readonly chain: string, readonly nodes: string[], readonly adaptive: boolean, readonly timeoutMs = 6000) {
-    const last = adaptive ? get(LAST + chain) : '';
-    this.state.order = last && nodes.includes(last) ? [last, ...nodes.filter((n) => n !== last)] : [...nodes];
+  /** `backup`: slow / unreliable nodes - always at the end of the queue, never promoted to the front (and a remembered backup node is not used as the first one). */
+  constructor(readonly chain: string, readonly nodes: string[], readonly adaptive: boolean, readonly timeoutMs = 6000, readonly backup: string[] = []) {
+    const saved = adaptive ? get(LAST + chain) : '';
+    const last = saved && !backup.includes(saved) ? saved : '';
+    const main = nodes.filter((n) => !backup.includes(n)), tail = nodes.filter((n) => backup.includes(n));
+    this.state.order = last && main.includes(last) ? [last, ...main.filter((n) => n !== last), ...tail] : [...main, ...tail];
   }
   /** Nodes in the order they should be tried: the pinned one first, then the queue. */
   list(): string[] {
@@ -34,11 +37,11 @@ export class NodePool {
   /** A node answered: remember it (and, in adaptive pools, put it first). */
   ok(url: string): void {
     delete this.state.failedAt[url]; this.state.active = url;
-    if (this.adaptive) { this.state.order = [url, ...this.state.order.filter((n) => n !== url)]; put(LAST + this.chain, url); }
+    if (this.adaptive && !this.backup.includes(url)) { this.state.order = [url, ...this.state.order.filter((n) => n !== url)]; put(LAST + this.chain, url); }
   }
   /** A node could not be reached: in adaptive pools it goes to the end of the queue. */
   fail(url: string): void {
     this.state.failedAt[url] = Date.now();
-    if (this.adaptive) this.state.order = [...this.state.order.filter((n) => n !== url), url];
+    if (this.adaptive) this.state.order = [...this.state.order.filter((n) => n !== url && !this.backup.includes(n)), ...(this.backup.includes(url) ? [] : [url]), ...this.state.order.filter((n) => this.backup.includes(n))];
   }
 }
