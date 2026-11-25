@@ -12,7 +12,7 @@ import { NodePool } from './nodes';
 import { resolveThread } from './thread';
 import type { ChainAccount, ChainAdapter } from './types';
 
-export const HIVE_NODES = ['https://api.hive.blog', 'https://api.openhive.network', 'https://api.deathwing.me', 'https://hive-api.arcange.eu', 'https://anyx.io'];
+export const HIVE_NODES = ['https://api.hive.blog', 'https://api.openhive.network', 'https://api.deathwing.me', 'https://hive-api.arcange.eu'];
 /** Adaptive: a silent node drops to the end of the queue, the one that answered is asked first next time. */
 export const HIVE_POOL = new NodePool('hive', HIVE_NODES, true, 5000, ['https://anyx.io']) // anyx.io often times out: last resort only;
 

@@ -13,6 +13,17 @@ import { deadKey, isDead, isPermanent, markDead } from './dead';
 import type { NodePool } from './nodes';
 
 
+/** Text of a JSON-RPC `error`: nodes answer with a string, but also with nested objects (`message: {…}`, details in `data`) that would otherwise print as "[object Object]". */
+export function rpcErrorText(err: unknown): string {
+  if (typeof err === 'string') return err;
+  const e = err as { message?: unknown; data?: { message?: unknown; stack?: { format?: unknown }[] } } | null;
+  const m = e?.message;
+  let out = typeof m === 'string' ? m : '';
+  const d = e?.data;
+  if (!out || out.length < 40) { const extra = [d?.message, ...(d?.stack ?? []).map((x) => x?.format)].filter((x): x is string => typeof x === 'string' && x !== out)[0]; if (extra) out = out ? `${out}: ${extra}` : extra; }
+  if (!out) { try { out = JSON.stringify(err); } catch { out = 'RPC error'; } }
+  return out.slice(0, 400);
+}
 export class RpcError extends Error {
   /** true = the node answered with a JSON-RPC error (it is alive, only this call failed); false = it could not be reached. */
   constructor(message: string, readonly nodes: string[], readonly answered = false) { super(message); this.name = 'RpcError'; }
@@ -33,7 +44,7 @@ async function once<T>(url: string, init: RequestInit, timeoutMs: number): Promi
     const r = await fetch(url.replace(/\/?$/, '/'), { ...init, mode: 'cors', cache: 'no-cache', signal: ctl.signal });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
-    if (j.error) throw new RpcError(j.error.message || 'RPC error', [url], true);
+    if (j.error) throw new RpcError(rpcErrorText(j.error) || 'RPC error', [url], true);
     return j.result as T;
   } catch (e) {
     throw ctl.signal.aborted ? new Error(`timeout: ${url}`) : e;

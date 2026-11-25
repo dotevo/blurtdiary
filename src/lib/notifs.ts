@@ -1,3 +1,4 @@
+import { rpcErrorText } from './chains/jsonrpc';
 import { reactive, computed } from 'vue';
 import { auth } from './auth';
 import { adapter, CHAINS, PRIMARY } from './chains';
@@ -94,7 +95,7 @@ const wsCall = (url: string, method: string, params: unknown[], ms = 8000): Prom
   const timer = setTimeout(() => done(() => bad(new Error('websocket timeout'))), ms);
   ws.onopen = () => ws.send(JSON.stringify({ id: 0, jsonrpc: '2.0', method, params }));
   ws.onerror = () => done(() => bad(new Error('websocket error')));
-  ws.onmessage = (e) => { try { const j = JSON.parse(String(e.data)); if (j.id !== 0) return; if (j.error) done(() => bad(new Error(String(j.error.message ?? 'rpc error')))); else done(() => ok(j.result)); } catch (x) { done(() => bad(x)); } };
+  ws.onmessage = (e) => { try { const j = JSON.parse(String(e.data)); if (j.id !== 0) return; if (j.error) done(() => bad(new Error(rpcErrorText(j.error)))); else done(() => ok(j.result)); } catch (x) { done(() => bad(x)); } };
 });
 async function fromMelekApi(chain: string, account: string): Promise<Notif[]> {
   const r = (await wsCall(MELEK_WS, 'get_notifications', [account])) as MelekRow[];

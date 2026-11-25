@@ -3,6 +3,7 @@ import * as dblurt from '@beblurt/dblurt';
 import { adapter, CHAINS, PRIMARY, type ChainAdapter, type ChainId } from './chains';
 import { t } from './i18n';
 import { broadcastSteemFamily } from './chains/tx';
+import { rpcErrorText } from './chains/jsonrpc';
 import { askActiveKey } from './activeKey';
 import type { Operation, Session } from './types';
 
@@ -92,6 +93,15 @@ export const wvSign = (chain: ChainId, user: string, message: unknown, reason: s
   return wvRequest({ type: 'signBuffer', username: prefix + user, message, method, reason, sigType: 'hex', appid: 'blurtdiary' });
 };
 
+/** Text of a failed WhaleVault answer: `message` is a string when the vault itself refuses, but an object when the node's error is passed through ("[object Object]"). */
+function vaultError(r: WVResponse): string {
+  console.warn('WhaleVault answered with an error', r);
+  const x = r as unknown as { message?: unknown; error?: unknown };
+  const raw = x.message ?? x.error;
+  const text = typeof raw === 'string' ? raw : raw ? rpcErrorText(raw) : '';
+  return text || t('wvError');
+}
+
 /** Other chains can only be added on top of a Blurt login (Blurt is the main account). */
 const needBlurtFirst = (chain: ChainId): void => { if (chain !== PRIMARY && !auth.sessions[PRIMARY]) throw new Error(t('blurtFirst')); };
 
@@ -99,7 +109,7 @@ export async function loginWhaleVault(chain: ChainId, user: string): Promise<voi
   needBlurtFirst(chain);
   if (!(await wvAvailable())) throw new Error(t('wvMissing'));
   const r = await wvSign(chain, user, `Login to Blurt Diary as ${user} at ${new Date().toISOString()}`, 'Login');
-  if (!r.success) throw new Error(r.message || t('wvError'));
+  if (!r.success) throw new Error(vaultError(r));
   setSession(chain, { user, type: 'wv', chain });
 }
 
@@ -123,9 +133,33 @@ export async function broadcast(ops: Operation[], chain: ChainId = PRIMARY): Pro
     if (chain !== PRIMARY) await broadcastSteemFamily(a, ops, me.key!); // dblurt serializes Blurt's operation numbering only (see tx.ts)
     else await new dblurt.Client(a.pool.list(), a.chainId ? { addressPrefix: a.addressPrefix, chainId: a.chainId } : undefined).broadcast.sendOperations(ops as never, dblurt.PrivateKey.from(me.key!));
   } else {
-    const r = await wvSign(chain, me.user, { operations: ops, url: a.pool.list()[0] }, 'bkc_broadcast');
-    if (!r.success) throw new Error(r.message || t('wvError'));
+    const send = (o: Operation[]): Promise<WVResponse> => wvSign(chain, me.user, { operations: o, url: a.pool.list()[0] }, 'bkc_broadcast');
+    const r = await send(ops);
+    if (r.success) return;
+    const first = vaultError(r);
+    // Hive's own JSON writes the beneficiaries as a typed object; if the vault / node did not take the array form, try that once (nothing was sent yet)
+    const typed = typedExtensions(chain, ops);
+    if (typed && !/cancel|reject|denied|declin|refus/i.test(first)) {
+      const r2 = await send(typed);
+      if (r2.success) return;
+      console.warn('WhaleVault: the typed-extension form failed too', r2);
+    }
+    throw new Error(first);
   }
+}
+
+/** `comment_options` with Hive's typed extension objects instead of `[0, {…}]` pairs; undefined when there is nothing to change. */
+function typedExtensions(chain: ChainId, ops: Operation[]): Operation[] | undefined {
+  if (chain !== 'hive') return undefined;
+  let changed = false;
+  const out = ops.map((o): Operation => {
+    if (o[0] !== 'comment_options') return o;
+    const d = o[1] as { extensions?: unknown[] };
+    if (!d.extensions?.some((e) => Array.isArray(e))) return o;
+    changed = true;
+    return ['comment_options', { ...d, extensions: d.extensions.map((e) => (Array.isArray(e) && e[0] === 0 ? { type: 'comment_payout_beneficiaries', value: e[1] } : e)) }] as Operation;
+  });
+  return changed ? out : undefined;
 }
 
 /**
@@ -139,7 +173,7 @@ export async function broadcastActive(ops: Operation[], chain: ChainId, summary:
   const a = adapter(chain);
   if (me.type === 'wv') {
     const r = await wvSign(chain, me.user, { operations: ops, url: a.pool.list()[0] }, 'bkc_broadcast', 'Active');
-    if (!r.success) throw new Error(r.message || t('wvError'));
+    if (!r.success) throw new Error(vaultError(r));
     return;
   }
   let key = await askActiveKey(chain, me.user, summary);

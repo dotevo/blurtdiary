@@ -11,6 +11,7 @@
 import * as dblurt from '@beblurt/dblurt';
 import type { Operation } from '../types';
 import type { ChainAdapter } from './types';
+import { rpcErrorText } from './jsonrpc';
 
 const OP_ID: Record<string, number> = { vote: 0, comment: 1, transfer: 2, transfer_to_vesting: 3, withdraw_vesting: 4, custom_json: 18, comment_options: 19, claim_reward_balance: 39 };
 /** Chains whose numbering is not known for sure: they are only signed when the node confirms the serialization. */
@@ -89,7 +90,7 @@ async function nodeCall<T>(url: string, method: string, params: unknown, ms = 60
   try {
     const r = await fetch(url.replace(/\/?$/, '/'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, mode: 'cors', cache: 'no-cache', signal: ctl.signal, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json(); if (j.error) throw new Error(String(j.error.message ?? 'RPC error'));
+    const j = await r.json(); if (j.error) throw new Error(rpcErrorText(j.error));
     return j.result as T;
   } finally { clearTimeout(timer); }
 }
